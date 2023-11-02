@@ -1,0 +1,29 @@
+{
+  "canisters": {
+    "cosmicrafts": {
+      "main": "src/cosmicrafts/main.mo",
+      "type": "motoko"
+    },
+    "matchmaking": {
+      "main": "src/mp_matchmaking/main.mo",
+      "type": "motoko"
+    },
+    "statistics": {
+      "main": "src/statistics/main.mo",
+      "type": "motoko"
+    }
+  },
+  "defaults": {
+    "build": {
+      "args": "",
+      "packtool": "mops sources"
+    }
+  },
+  "networks": {
+    "local": {
+      "bind": "127.0.0.1:8000",
+      "type": "ephemeral"
+    }
+  },
+  "version": 1
+}
