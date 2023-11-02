@@ -119,5 +119,37 @@ query getBasicStats(gameID : Nat)
 /// Where the gameID is the game we want to retrieve
 ```
 
+### Validation
+
+The validation works the following way:
+We have some fixed data inside the game and we have studied the different values that can be output with this, so if the statistics of a game are somewhere outside this probabilities, we flag the game as altered and move it to a list of games to check
+For the moment the games that fall into this list will be checked manually to know what alterations anyone can be doing and try to fix it in the go
+
+For the validator we have the following functions
+```
+/// There's a soft top of score that can be achieved and if this top is reached then maybe something wrong happened during the game
+/// To validate the player's score vs the top we use the following function
+maxPlausibleScore()
+
+/// There's also a fixed amount of energy generated per second, if the energy used is beyond the amount of the possible given the match time, something has been altered
+/// We can check this with the following function
+validateEnergyBalance()
+
+/// With the energy we decided to have a second validation to check the amount per second generated, if this is something else than the possible, we flag the game as possible alteration
+validateEfficiency()
+
+/// Finally we have the function that receives all the data and uses the rest of the functions to validate the match
+validateGame()
+
+
+/// For retreiving and validating data we have the following:
+/// Get all the games flagged as altered by the validator
+getAllOnValidation()
+
+/// Decide that a game was real with no alteration
+setGameValid()
+/// This call is going to be only by the DAO once is developed, for the moment we decide it
+```
+
 ## `In the Roadmap`
 In a near future we plan to implement websockets to distribute the rewards for the users of the matches

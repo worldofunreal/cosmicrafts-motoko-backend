@@ -58,20 +58,29 @@ actor class Statistics() {
     private stable var _playerGamesStats : [(PlayerID, PlayerGamesStats)] = [];
     var playerGamesStats : HashMap.HashMap<PlayerID, PlayerGamesStats> = HashMap.fromIter(_playerGamesStats.vals(), 0, Principal.equal, Principal.hash);
 
+    private stable var _onValidation : [(GameID, BasicStats)] = [];
+    var onValidation : HashMap.HashMap<GameID, BasicStats> = HashMap.fromIter(_onValidation.vals(), 0, _natEqual, _natHash);
+
     //State functions
     system func preupgrade() {
         _basicStats       := Iter.toArray(basicStats.entries());
         _playerGamesStats := Iter.toArray(playerGamesStats.entries());
+        _onValidation     := Iter.toArray(onValidation.entries());
     };
     system func postupgrade() {
         _basicStats       := [];
         _playerGamesStats := [];
+        _onValidation     := [];
     };
 
     public shared(msg) func saveFinishedGame (gameID : GameID, _basicStats : BasicStats) : async Bool {
         switch(basicStats.get(gameID)){
             case(null) {
                 basicStats.put(gameID, _basicStats);
+                if(validateGame(300 - _basicStats.secRemaining, _basicStats.energyUsed, _basicStats.xpEarned, 0.5) == false){
+                    onValidation.put(gameID, _basicStats);
+                    return false;
+                };
                 /// Player stats
                 let _winner = if(_basicStats.wonGame == true)  1 else 0;
                 let _looser = if(_basicStats.wonGame == false) 1 else 0;
@@ -194,7 +203,7 @@ actor class Statistics() {
                 return true;
             };
             case(?_bs){
-                /// Was saved before, only save for the user calling in their local variables
+                /// Was saved before
                 return false;
             };
         };
@@ -241,5 +250,56 @@ actor class Statistics() {
 
     public shared query(msg) func getBasicStats (gameID : GameID) : async ?BasicStats {
         return basicStats.get(gameID);
+    };
+
+
+
+
+
+
+    /// Game validator
+    // Function to calculate the maximum plausible score
+    func maxPlausibleScore(timeInSeconds : Float) : Float {
+        let maxScoreRate : Float = 550000.0 / (5.0 * 60.0);
+        let maxPlausibleScore : Float = maxScoreRate * timeInSeconds;
+        return maxPlausibleScore;
+    };
+    
+    // Function to validate energy balance
+    func validateEnergyBalance(timeInSeconds : Float, energySpent : Float) : Bool {
+        let energyGenerated : Float = 30.0 + (0.5 * timeInSeconds);
+        return energyGenerated == energySpent;
+    };
+
+    // Function to validate efficiency
+    func validateEfficiency(score : Float, energySpent : Float, efficiencyThreshold : Float) : Bool {
+        let efficiency : Float = score / energySpent;
+        return efficiency <= efficiencyThreshold;
+    };
+
+    // Main validation function
+    func validateGame(timeInSeconds : Float, energySpent : Float, score : Float, efficiencyThreshold : Float) : Bool {
+        let maxScore : Float = maxPlausibleScore(timeInSeconds);
+        let isScoreValid : Bool = score <= maxScore;
+        let isEnergyBalanceValid : Bool = validateEnergyBalance(timeInSeconds, energySpent);
+        let isEfficiencyValid : Bool = validateEfficiency(score, energySpent, efficiencyThreshold);
+        return isScoreValid and isEnergyBalanceValid and isEfficiencyValid;
+    };
+
+    public query func getAllOnValidation () : async [(GameID, BasicStats)] {
+        return _onValidation;
+    };
+
+    public shared(msg) func setGameValid(gameID : GameID) : async Bool {
+        switch(onValidation.get(gameID)){
+            case(null){
+                return false;
+            };
+            case(?_bs){
+                onValidation.delete(gameID);
+                basicStats.put(gameID, _bs);
+                return true;
+            };
+        };
     };
 };
