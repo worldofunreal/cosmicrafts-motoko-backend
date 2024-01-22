@@ -11,12 +11,25 @@
     "statistics": {
       "main": "src/statistics/main.mo",
       "type": "motoko"
+    },
+    "validator": {
+      "main": "src/validator/main.mo",
+      "type": "motoko"
+    },
+    "icrc1": {
+      "main": "src/ICRC1/Canisters/Token.mo",
+      "type": "motoko"
+    }
+    ,
+    "icrc7": {
+      "main": "src/icrc7/main.mo",
+      "type": "motoko"
     }
   },
   "defaults": {
     "build": {
       "args": "",
-      "packtool": "mops sources"
+      "packtool": "vessel sources"
     }
   },
   "networks": {

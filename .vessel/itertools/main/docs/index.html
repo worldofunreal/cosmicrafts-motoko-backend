@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html><head title="Motoko docs"><meta charset="UTF-8"/><link href="styles.css" rel="stylesheet"/></head><div class="index-container"><h1 class="index-header">Index of modules</h1><ul class="index-listing"><li class="index-item"><a class="index-item-link" href="Deiter.html">Deiter</a><div class="index-item-comment"><p>Double Ended Iterator</p>
+<p>This type of iterator allows for both forward and backward iteration
+Double Ended Iterators are useful for iterating over data structures in reverse without allocating extra space for the reverse iteration.</p>
+<p>The <code>Deiter</code> type is an extension of the <code>Iter</code> type built in Motoko
+so it is compatible with all the function defined for the <code>Iter</code> type.</p>
+<p>The <code>Deiter</code> is intended to be used with functions for the <code>Iter</code> type to avoid rewriting similar functions for both types.</p>
+<ul><li>An example reversing a list of integers and breaking them into chunks of size <code>n</code>:</li></ul>
+
+<pre class="motoko"><code class="motoko">
+  import Itertools &quot;mo:itertools/Iter&quot;;
+  import Deiter &quot;mo:itertools/Deiter&quot;;
+
+  let arr = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+
+  // create a double ended iterator from an array
+  let deiter = Deiter.fromArray(arr);
+
+  // reverse double ended iterator
+  let revDeiter = Deiter.reverse(deiter);
+
+  // Double Ended Iter gets typecasted to an Iter typw
+  let chunks = Itertools.chunks(revDeiter, 3);
+
+  assert chunks.next() == ?[10, 9, 8];
+  assert chunks.next() == ?[7, 6, 5];
+  assert chunks.next() == ?[4, 3, 2];
+  assert chunks.next() == ?[1];
+  assert chunks.next() == null;
+
+</code></pre></div></li><li class="index-item"><a class="index-item-link" href="Iter.html">Iter</a><div class="index-item-comment"><p>Main module with utility functions for working efficiently with iterators.</p>
+<p>See the <a href="https://internetcomputer.org/docs/current/references/motoko-ref/iter#iter-1"><code>Iter</code></a> module from the base lib for more information on the <code>Iter</code> type.</p>
+<h2 id="Getting-started">Getting started</h2>
+
+<p>To get started, you'll need to import the <code>Iter</code> module from both the base library and this one.</p>
+<pre class="motoko"><code class="motoko">    import Iter &quot;mo:base/Iter&quot;;
+    import Itertools &quot;mo:itertools/Iter&quot;;</code></pre>
+
+<p>Converting data types to iterators is the next step.</p>
+<ul><li>Array<ul><li><code>[1, 2, 3, 4, 5].vals()</code></li><li><code>Iter.fromArray([1, 2, 3, 4, 5])</code></li></ul></li><li>List<ul><li><code>Iter.fromList(list)</code></li></ul></li><li>Text<ul><li><code>&quot;Hello, world!&quot;.chars()</code></li><li><code>Text.split(&quot;a,b,c&quot;, #char ',')</code></li></ul></li><li>Buffer<ul><li><code>Buffer.toArray(buffer).vals()</code></li></ul></li><li><a href="https://internetcomputer.org/docs/current/references/motoko-ref/hashmap#hashmap-1">HashMap</a><ul><li><code>map.entries()</code></li></ul></li></ul>
+
+<p>For conversion of other data types to iterators, you can look in the <a href="https://internetcomputer.org/docs/current/references/motoko-ref/array">base library</a> for the specific data type's documentation.</p>
+<p>Here are some examples of using the functions in this library to create simple and
+efficient iterators for solving different problems:</p>
+<ul><li>An example, using <code>range</code> and <code>sum</code> to find the sum of values from 1 to 25:</li></ul>
+
+<pre class="motoko"><code class="motoko">    let range = Itertools.range(1, 25 + 1);
+    let sum = Itertools.sum(range, Nat.add);
+
+    assert sum == ?325;</code></pre>
+
+<ul><li>An example, using multiple functions to retrieve the indices of all even numbers in an array:</li></ul>
+
+<pre class="motoko"><code class="motoko">    let vals = [1, 2, 3, 4, 5, 6].vals();
+    let iterWithIndices = Itertools.enumerate(vals);
+
+    let isEven = func ( x : (Int, Int)) : Bool { x.1 % 2 == 0 };
+    let mapIndex = func (x : (Int, Int)) : Int { x.0 };
+    let evenIndices = Itertools.mapFilter(iterWithIndices, isEven, mapIndex);
+
+    assert Iter.toArray(evenIndices) == [1, 3, 5];</code></pre>
+
+<ul><li>An example to find the difference between consecutive elements in an array:</li></ul>
+
+<pre class="motoko"><code class="motoko">    let vals = [5, 3, 3, 7, 8, 10].vals();
+
+    let tuples = Itertools.slidingTuples(vals);
+    // Iter.toArray(tuples) == [(5, 3), (3, 3), (3, 7), (7, 8), (8, 10)]
+
+    let diff = func (x : (Int, Int)) : Int { x.1 - x.0 };
+    let iter = Iter.map(tuples, diff);
+
+    assert Iter.toArray(iter) == [-2, 0, 4, 1, 2];</code></pre></div></li><li class="index-item"><a class="index-item-link" href="PeekableIter.html">PeekableIter</a><div class="index-item-comment"><p>Peekable Iterator</p>
+<p>An iterator equipped with a <code>peek</code> method that returns the next value without advancing the iterator.</p>
+<p>The <code>PeekableIter</code> type is an extension of the <code>Iter</code> type built in Motoko
+so it is compatible with all the function defined for the <code>Iter</code> type.</p>
+</div></li><li class="index-item"><a class="index-item-link" href="Utils/ArrayMut.html">Utils/ArrayMut</a><div class="index-item-comment"></div></li><li class="index-item"><a class="index-item-link" href="Utils/Deque.html">Utils/Deque</a><div class="index-item-comment"></div></li><li class="index-item"><a class="index-item-link" href="Utils/Nat.html">Utils/Nat</a><div class="index-item-comment"></div></li><li class="index-item"><a class="index-item-link" href="Utils/TrieMap.html">Utils/TrieMap</a><div class="index-item-comment"></div></li></ul></div></html>

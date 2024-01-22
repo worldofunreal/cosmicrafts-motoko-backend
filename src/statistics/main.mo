@@ -16,6 +16,9 @@ import Principal "mo:base/Principal";
 import Result "mo:base/Result";
 import Text "mo:base/Text";
 
+import PlayersCanister "../mp_matchmaking/main";
+import Validator "../validator/main";
+
 actor class Statistics() {
     type GameID             = Types.GameID;
     type BasicStats         = Types.BasicStats;
@@ -26,6 +29,9 @@ actor class Statistics() {
     type GamesWithGameMode  = Types.GamesWithGameMode;
     type GamesWithCharacter = Types.GamesWithCharacter;
     type AverageStats       = Types.AverageStats;
+
+    let multiplayerCanister : PlayersCanister.PlayersCanister = actor("vqzll-jiaaa-aaaan-qegba-cai"); /// multiplayer canister data
+    let validatorCanister   : Validator.Validator = actor("2dzox-tqaaa-aaaan-qlphq-cai"); /// multiplayer canister data
 
     private stable var overallStats : OverallStats = {
         totalGamesPlayed        : Nat   = 0;
@@ -74,10 +80,13 @@ actor class Statistics() {
     };
 
     public shared(msg) func saveFinishedGame (gameID : GameID, _basicStats : BasicStats) : async Bool {
+        /// End game on the matchmaking canister
         switch(basicStats.get(gameID)){
             case(null) {
+                let endingGame = await multiplayerCanister.setGameOver(msg.caller);
                 basicStats.put(gameID, _basicStats);
-                if(validateGame(300 - _basicStats.secRemaining, _basicStats.energyUsed, _basicStats.xpEarned, 0.5) == false){
+                let _gameValid : Bool = await validatorCanister.validateGame(300 - _basicStats.secRemaining, _basicStats.energyUsed, _basicStats.xpEarned, 0.5);
+                if(_gameValid == false){
                     onValidation.put(gameID, _basicStats);
                     return false;
                 };
@@ -203,8 +212,120 @@ actor class Statistics() {
                 return true;
             };
             case(?_bs){
-                /// Was saved before
-                return false;
+                /// Was saved before, only save the respective variables
+                /// Also validate info vs other save
+                let endingGame = await multiplayerCanister.setGameOver(msg.caller);
+                let _winner = if(_basicStats.wonGame == true)  1 else 0;
+                let _looser = if(_basicStats.wonGame == false) 1 else 0;
+                switch(playerGamesStats.get(msg.caller)){
+                    case(null) {
+                        let _gs : PlayerGamesStats = {
+                            gamesPlayed             = 1;
+                            gamesWon                = _winner;
+                            gamesLost               = _looser;
+                            energyGenerated         = _basicStats.energyGenerated;
+                            energyUsed              = _basicStats.energyUsed;
+                            energyWasted            = _basicStats.energyWasted;
+                            totalDamageDealt        = _basicStats.damageDealt;
+                            totalDamageTaken        = _basicStats.damageTaken;
+                            totalDamageCrit         = _basicStats.damageCritic;
+                            totalDamageEvaded       = _basicStats.damageEvaded;
+                            totalXpEarned           = _basicStats.xpEarned;
+                            totalGamesWithFaction   = [{factionID   = _basicStats.faction;     gamesPlayed = 1; gamesWon = _winner;}];
+                            totalGamesGameMode      = [{gameModeID  = _basicStats.gameMode;    gamesPlayed = 1; gamesWon = _winner;}];
+                            totalGamesWithCharacter = [{characterID = _basicStats.characterID; gamesPlayed = 1; gamesWon = _winner;}];
+                        };
+                        playerGamesStats.put(msg.caller, _gs);
+                    };
+                    case(?_bs){
+                        var _gamesWithFaction        : [GamesWithFaction]   = []; 
+                        var _gamesWithGameMode       : [GamesWithGameMode]  = [];
+                        var _totalGamesWithCharacter : [GamesWithCharacter] = [];
+                        for(gf in _bs.totalGamesWithFaction.vals()){
+                            if(gf.factionID == _basicStats.faction){
+                                _gamesWithFaction := Array.append(_gamesWithFaction, [{gamesPlayed = gf.gamesPlayed + 1; factionID = gf.factionID; gamesWon = gf.gamesWon + _winner;}] );
+                            } else {
+                                _gamesWithFaction := Array.append(_gamesWithFaction, [gf] );
+                            };
+                        };
+                        for(gm in _bs.totalGamesGameMode.vals()){
+                            if(gm.gameModeID == _basicStats.gameMode){
+                                _gamesWithGameMode := Array.append(_gamesWithGameMode, [{gamesPlayed = gm.gamesPlayed + 1; gameModeID = gm.gameModeID; gamesWon = gm.gamesWon + _winner;}] );
+                            } else {
+                                _gamesWithGameMode := Array.append(_gamesWithGameMode, [gm] );
+                            };
+                        };
+                        for(gc in _bs.totalGamesWithCharacter.vals()){
+                            if(gc.characterID == _basicStats.characterID){
+                                _totalGamesWithCharacter := Array.append(_totalGamesWithCharacter, [{gamesPlayed = gc.gamesPlayed + 1; characterID = gc.characterID; gamesWon = gc.gamesWon + _winner;}] );
+                            } else {
+                                _totalGamesWithCharacter := Array.append(_totalGamesWithCharacter, [gc] );
+                            };
+                        };
+                        var _thisGameXP = _basicStats.xpEarned;
+                        if(_basicStats.wonGame == true){
+                            _thisGameXP := _thisGameXP * 2;
+                        } else {
+                            _thisGameXP := _thisGameXP * 0.5;
+                        };
+                        if(_basicStats.gameMode == 1){
+                            _thisGameXP := _thisGameXP * 2;
+                        } else {
+                            _thisGameXP := _thisGameXP * 0.25;
+                        };
+                        let _gs : PlayerGamesStats = {
+                            gamesPlayed             = _bs.gamesPlayed       + 1;
+                            gamesWon                = _bs.gamesWon          + _winner;
+                            gamesLost               = _bs.gamesLost         + _looser;
+                            energyGenerated         = _bs.energyGenerated   + _basicStats.energyGenerated;
+                            energyUsed              = _bs.energyUsed        + _basicStats.energyUsed;
+                            energyWasted            = _bs.energyWasted      + _basicStats.energyWasted;
+                            totalDamageDealt        = _bs.totalDamageDealt  + _basicStats.damageDealt;
+                            totalDamageTaken        = _bs.totalDamageTaken  + _basicStats.damageTaken;
+                            totalDamageCrit         = _bs.totalDamageCrit   + _basicStats.damageCritic;
+                            totalDamageEvaded       = _bs.totalDamageEvaded + _basicStats.damageEvaded;
+                            totalXpEarned           = _bs.totalXpEarned     + _thisGameXP;
+                            totalGamesWithFaction   = _gamesWithFaction;
+                            totalGamesGameMode      = _gamesWithGameMode;
+                            totalGamesWithCharacter = _totalGamesWithCharacter;
+                        };
+                        playerGamesStats.put(msg.caller, _gs);
+                    };
+                };
+                /// Overall stats
+                var _totalGamesWithFaction   : [GamesWithFaction]   = [];
+                var _totalGamesWithCharacter : [GamesWithCharacter] = [];
+                for(gf in overallStats.totalGamesWithFaction.vals()){
+                    if(gf.factionID == _basicStats.faction){
+                        _totalGamesWithFaction := Array.append(_totalGamesWithFaction, [{gamesPlayed = gf.gamesPlayed + 1; factionID = gf.factionID; gamesWon = gf.gamesWon + _winner;}] );
+                    } else {
+                        _totalGamesWithFaction := Array.append(_totalGamesWithFaction, [gf] );
+                    };
+                };
+                for(gc in overallStats.totalGamesWithCharacter.vals()){
+                    if(gc.characterID == _basicStats.characterID){
+                        _totalGamesWithCharacter := Array.append(_totalGamesWithCharacter, [{gamesPlayed = gc.gamesPlayed + 1; characterID = gc.characterID; gamesWon = gc.gamesWon + _winner;}] );
+                    } else {
+                        _totalGamesWithCharacter := Array.append(_totalGamesWithCharacter, [gc] );
+                    };
+                };
+                let _os : OverallStats = {
+                    totalGamesPlayed        = overallStats.totalGamesPlayed + 1;
+                    totalGamesSP            = if(_basicStats.gameMode == 2) overallStats.totalGamesSP + 1 else overallStats.totalGamesSP;
+                    totalGamesMP            = if(_basicStats.gameMode == 1) overallStats.totalGamesMP + 1 else overallStats.totalGamesMP;
+                    totalDamageDealt        = overallStats.totalDamageDealt + _basicStats.damageDealt;
+                    totalTimePlayed         = overallStats.totalTimePlayed;
+                    totalKills              = overallStats.totalKills + _basicStats.kills;
+                    totalEnergyUsed         = overallStats.totalEnergyUsed + _basicStats.energyUsed;
+                    totalEnergyGenerated    = overallStats.totalEnergyGenerated + _basicStats.energyGenerated;
+                    totalEnergyWasted       = overallStats.totalEnergyWasted + _basicStats.energyWasted;
+                    totalGamesWithFaction   = _totalGamesWithFaction;
+                    totalGamesGameMode      = overallStats.totalGamesGameMode;
+                    totalGamesWithCharacter = _totalGamesWithCharacter;
+                    totalXpEarned           = overallStats.totalXpEarned + _basicStats.xpEarned;
+                };
+                overallStats := _os;
+                return true;
             };
         };
     };
@@ -254,38 +375,7 @@ actor class Statistics() {
 
 
 
-
-
-
-    /// Game validator
-    // Function to calculate the maximum plausible score
-    func maxPlausibleScore(timeInSeconds : Float) : Float {
-        let maxScoreRate : Float = 550000.0 / (5.0 * 60.0);
-        let maxPlausibleScore : Float = maxScoreRate * timeInSeconds;
-        return maxPlausibleScore;
-    };
-    
-    // Function to validate energy balance
-    func validateEnergyBalance(timeInSeconds : Float, energySpent : Float) : Bool {
-        let energyGenerated : Float = 30.0 + (0.5 * timeInSeconds);
-        return energyGenerated == energySpent;
-    };
-
-    // Function to validate efficiency
-    func validateEfficiency(score : Float, energySpent : Float, efficiencyThreshold : Float) : Bool {
-        let efficiency : Float = score / energySpent;
-        return efficiency <= efficiencyThreshold;
-    };
-
-    // Main validation function
-    func validateGame(timeInSeconds : Float, energySpent : Float, score : Float, efficiencyThreshold : Float) : Bool {
-        let maxScore : Float = maxPlausibleScore(timeInSeconds);
-        let isScoreValid : Bool = score <= maxScore;
-        let isEnergyBalanceValid : Bool = validateEnergyBalance(timeInSeconds, energySpent);
-        let isEfficiencyValid : Bool = validateEfficiency(score, energySpent, efficiencyThreshold);
-        return isScoreValid and isEnergyBalanceValid and isEfficiencyValid;
-    };
-
+    // Validation Data
     public query func getAllOnValidation () : async [(GameID, BasicStats)] {
         return _onValidation;
     };

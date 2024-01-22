@@ -20,7 +20,18 @@ module {
         id                : UserId;
         matchAccepted     : Bool;
         elo               : Nat;
-        characterSelected : Nat;
+        playerGameData    : Text;
+        lastPlayerActive  : Nat64;
+        // characterSelected : Nat;
+        // deckSavedKeyIds   : [Text];
+    };
+
+    public type FullPlayerInfo = {
+        id                : UserId;
+        matchAccepted     : Bool;
+        elo               : Nat;
+        playerGameData    : Text;
+        playerName        : Text;
     };
 
     public type PlayerStatus = {
@@ -32,6 +43,13 @@ module {
         gameId  : Nat;
         player1 : PlayerInfo;
         player2 : ?PlayerInfo;
+        status  : MatchmakingStatus;
+    };
+
+    public type FullMatchData = {
+        gameId  : Nat;
+        player1 : FullPlayerInfo;
+        player2 : ?FullPlayerInfo;
         status  : MatchmakingStatus;
     };  
 };
