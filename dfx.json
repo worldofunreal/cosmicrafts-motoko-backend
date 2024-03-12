@@ -19,6 +19,10 @@
     "icrc1": {
       "main": "src/ICRC1/Canisters/Token.mo",
       "type": "motoko"
+    },
+    "flux": {
+      "main": "src/Flux/Canisters/Token.mo",
+      "type": "motoko"
     }
     ,
     "icrc7": {

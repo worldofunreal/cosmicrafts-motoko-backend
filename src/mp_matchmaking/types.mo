@@ -19,7 +19,7 @@ module {
     public type PlayerInfo = {
         id                : UserId;
         matchAccepted     : Bool;
-        elo               : Nat;
+        elo               : Float;
         playerGameData    : Text;
         lastPlayerActive  : Nat64;
         // characterSelected : Nat;
@@ -29,7 +29,7 @@ module {
     public type FullPlayerInfo = {
         id                : UserId;
         matchAccepted     : Bool;
-        elo               : Nat;
+        elo               : Float;
         playerGameData    : Text;
         playerName        : Text;
     };

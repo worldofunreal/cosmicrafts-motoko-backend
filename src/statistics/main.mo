@@ -18,6 +18,7 @@ import Text "mo:base/Text";
 
 import PlayersCanister "../mp_matchmaking/main";
 import Validator "../validator/main";
+import Cosmicrafts "../cosmicrafts/main";
 
 actor class Statistics() {
     type GameID             = Types.GameID;
@@ -32,6 +33,9 @@ actor class Statistics() {
 
     let multiplayerCanister : PlayersCanister.PlayersCanister = actor("vqzll-jiaaa-aaaan-qegba-cai"); /// multiplayer canister data
     let validatorCanister   : Validator.Validator = actor("2dzox-tqaaa-aaaan-qlphq-cai"); /// multiplayer canister data
+    let cosmicraftsCanister : Cosmicrafts.Cosmicrafts = actor("2dzox-tqaaa-aaaan-qlphq-cai"); /// multiplayer canister data
+
+    private stable var k : Int = 30;
 
     private stable var overallStats : OverallStats = {
         totalGamesPlayed        : Nat   = 0;
@@ -79,11 +83,46 @@ actor class Statistics() {
         _onValidation     := [];
     };
 
+    /* TO-DO ELO */
+    /*
+    ** DONE - Give each player their base ELO
+    ** DONE - Increase / decrease the amount of ELO after each game
+    ** Create list for players looking for games
+    ** Search player matching / close ELO on matchmaking
+    ** If no player is near, match with the closest ELO
+    ** If no player is available then add it to the waiting list
+    */
+
+    private func updatePlayerELO(playerID : PlayerID, won : Nat, otherPlayerID : ?PlayerID) : async Bool{
+        switch(otherPlayerID){
+            case(null){
+                return false;
+            };
+            case(?_p){
+                let _p1Elo : Float = await cosmicraftsCanister.getPlayerElo(playerID);
+                let _p2Elo : Float = await cosmicraftsCanister.getPlayerElo(_p);
+                let _p1Expected : Float = 1 / (1 + Float.pow(10, (_p2Elo - _p1Elo) / 400));
+                let _p2Expected : Float = 1 / (1 + Float.pow(10, (_p1Elo - _p2Elo) / 400));
+                switch(playerGamesStats.get(playerID)){
+                    case(null){
+                        return false;
+                    };
+                    case(?_p){
+                        let _elo : Float = _p1Elo + Float.fromInt(k) * (Float.fromInt64(Int64.fromInt(won)) - _p1Expected);
+                        let _updated = cosmicraftsCanister.updatePlayerElo(playerID, _elo);
+                        return true;
+                    };
+                };
+                return true;
+            };
+        };
+    };
+
     public shared(msg) func saveFinishedGame (gameID : GameID, _basicStats : BasicStats) : async Bool {
         /// End game on the matchmaking canister
         switch(basicStats.get(gameID)){
             case(null) {
-                let endingGame = await multiplayerCanister.setGameOver(msg.caller);
+                let endingGame : (Bool, Bool, ?Principal) = await multiplayerCanister.setGameOver(msg.caller);
                 basicStats.put(gameID, _basicStats);
                 let _gameValid : Bool = await validatorCanister.validateGame(300 - _basicStats.secRemaining, _basicStats.energyUsed, _basicStats.xpEarned, 0.5);
                 if(_gameValid == false){
@@ -93,6 +132,7 @@ actor class Statistics() {
                 /// Player stats
                 let _winner = if(_basicStats.wonGame == true)  1 else 0;
                 let _looser = if(_basicStats.wonGame == false) 1 else 0;
+                let _elo = await updatePlayerELO(msg.caller, _winner, endingGame.2);
                 switch(playerGamesStats.get(msg.caller)){
                     case(null) {
                         let _gs : PlayerGamesStats = {

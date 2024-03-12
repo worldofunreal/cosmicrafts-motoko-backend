@@ -45,9 +45,7 @@ module {
 
   public type TokenId = Nat;
 
-  public type MetadataArray = [(Text, Metadata)];
-
-  public type Metadata = { #Nat: Nat; #Int: Int; #Text: Text; #Blob: Blob; #MetadataArray: MetadataArray };
+  public type Metadata = { #Nat: Nat; #Int: Int; #Text: Text; #Blob: Blob };
 
   public type TokenMetadata = {
     tokenId: TokenId;

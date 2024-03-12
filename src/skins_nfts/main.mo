@@ -14,7 +14,7 @@ import Time "mo:base/Time";
 import Types "./types";
 import Utils "./utils";
 
-shared actor class Collection(collectionOwner: Types.Account, init: Types.CollectionInitArgs) = Self {
+shared actor class SkinsCollection(collectionOwner: Types.Account, init: Types.CollectionInitArgs) = Self {
   private stable var owner: Types.Account = collectionOwner;
   
   private stable var name: Text = init.name;
@@ -33,8 +33,6 @@ shared actor class Collection(collectionOwner: Types.Account, init: Types.Collec
   private var NULL_PRINCIPAL: Principal = Principal.fromText("aaaaa-aa");
   private var PERMITTED_DRIFT : Nat64 = 2 * 60 * 1_000_000_000; // 2 minutes in nanoseconds
   private var TX_WINDOW : Nat64 = 24 * 60 * 60 * 1_000_000_000; // 24 hours in nanoseconds
-
-  private stable var _cosmicraftsPrincipal : Principal = Principal.fromActor(actor("woimf-oyaaa-aaaan-qegia-cai"));
 
   private stable var tokens: Trie<Types.TokenId, Types.TokenMetadata> = Trie.empty(); 
   //owner Trie: use of Text insted of Account to improve performanances in lookup
@@ -324,7 +322,7 @@ shared actor class Collection(collectionOwner: Types.Account, init: Types.Collec
     let acceptedTo: Types.Account = _acceptAccount(mintArgs.to);
 
     //todo add a more complex roles management
-    if (Principal.notEqual(caller, owner.owner) and Principal.notEqual(caller, _cosmicraftsPrincipal) ) {
+    if (Principal.notEqual(caller, owner.owner)) {
       return #Err(#Unauthorized);
     };
 
@@ -789,51 +787,6 @@ shared actor class Collection(collectionOwner: Types.Account, init: Types.Collec
 
   private func _incrementTransactionIndex() {
     transactionSequentialIndex := transactionSequentialIndex + 1;
-  };
-
-
-
-  public shared(msg) func upgradeNFT(upgradeArgs: Types.UpgradeArgs) : async Types.UpgradeReceipt {
-    /// Validate caller
-    if(Principal.notEqual(msg.caller, _cosmicraftsPrincipal)) {
-      return #Err(#Unauthorized);
-    };
-    // assert(msg.caller == Principal.fromText("woimf-oyaaa-aaaan-qegia-cai"));
-    
-    /// Validate the owner?
-    // if (Principal.notEqual(upgradeArgs.from.owner, owner.owner)) {
-    //   return #Err(#Unauthorized);
-    // };
-
-    //cannot mint to zero principal
-    if (Principal.equal(upgradeArgs.from.owner, NULL_PRINCIPAL)) {
-      return #Err(#InvalidRecipient);
-    };
-
-    //cannot upgrade an new token id
-    let alreadyExists = _exists(upgradeArgs.token_id);
-    if (alreadyExists == false) {
-      return #Err(#DoesntExistTokenId);
-    };
-
-    let now = Nat64.fromIntWrap(Time.now());
-
-    //create the new token
-    let upgradedToken: Types.TokenMetadata = {
-      tokenId = upgradeArgs.token_id;
-      owner = upgradeArgs.from;
-      metadata = upgradeArgs.metadata;
-    };
-
-    //update the token metadata
-    let tokenId : Types.TokenId = upgradeArgs.token_id;
-    tokens := Trie.put(tokens, _keyFromTokenId tokenId, Nat.equal, upgradedToken).0;
-
-    _addTokenToOwners(upgradeArgs.from, upgradeArgs.token_id);
-
-    let transaction: Types.Transaction = _addTransaction(#upgrade, now, ?[upgradeArgs.token_id], ?upgradeArgs.from, null, null, null, null, null);
-
-    return #Ok(upgradeArgs.token_id);
   };
 
 };
