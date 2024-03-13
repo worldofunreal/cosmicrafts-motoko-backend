@@ -23,8 +23,11 @@
     "flux": {
       "main": "src/Flux/Canisters/Token.mo",
       "type": "motoko"
-    }
-    ,
+    },
+    "chests": {
+      "main": "src/Chests/main.mo",
+      "type": "motoko"
+    },
     "icrc7": {
       "main": "src/icrc7/main.mo",
       "type": "motoko"
