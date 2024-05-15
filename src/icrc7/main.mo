@@ -836,4 +836,49 @@ shared actor class Collection(collectionOwner: Types.Account, init: Types.Collec
     return #Ok(upgradeArgs.token_id);
   };
 
+  /// Mint deck with 8 units and random rarity within a range provided
+  public shared({ caller}) func mintDeck(deck : [Types.MintArgs]) : async Types.MintReceipt {
+    if (Principal.notEqual(caller, owner.owner) and Principal.notEqual(caller, _cosmicraftsPrincipal) ) {
+      return #Err(#Unauthorized);
+    };
+    var lastTokenMinted : Nat = 0;
+    let now = Nat64.fromIntWrap(Time.now());
+    let acceptedTo: Types.Account = _acceptAccount({owner= caller; subaccount=null});
+    var _deck : [Types.TokenId] = [];
+    for (mintArgs in deck.vals()) {
+      let tokenId : Types.TokenId = mintArgs.token_id;
+      let acceptedTo: Types.Account = _acceptAccount(mintArgs.to);
+      //todo add a more complex roles management
+      //check on supply cap overflow
+      if (supplyCap != null) {
+        let _supplyCap: Nat = Utils.nullishCoalescing<Nat>(supplyCap, 0);
+        if (totalSupply + 1 > _supplyCap) {
+          return #Err(#SupplyCapOverflow);
+        };
+      };
+      //cannot mint to zero principal
+      if (Principal.equal(acceptedTo.owner, NULL_PRINCIPAL)) {
+        return #Err(#InvalidRecipient);
+      };
+      //cannot mint an existing token id
+      let alreadyExists = _exists(tokenId);
+      if (alreadyExists) {
+        return #Err(#AlreadyExistTokenId);
+      };
+      //create the new token
+      let newToken: Types.TokenMetadata = {
+        tokenId = mintArgs.token_id;
+        owner = acceptedTo;
+        metadata = mintArgs.metadata;
+      };
+      //update the token metadata
+      _addTokenToOwners(acceptedTo, mintArgs.token_id);
+      _incrementBalance(acceptedTo);
+      _incrementTotalSupply(1);
+      lastTokenMinted := tokenId;
+    };
+    let transaction: Types.Transaction = _addTransaction(#mint, now, ?_deck, ?acceptedTo, null, null, null, null, null);
+    return #Ok(lastTokenMinted);
+  };
+
 };

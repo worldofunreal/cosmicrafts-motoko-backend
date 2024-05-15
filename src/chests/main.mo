@@ -321,6 +321,7 @@ shared actor class Chests(collectionOwner: Types.Account, init: Types.Collection
     return owner;
   };
 
+  /// Mint NFT
   public shared({ caller }) func mint(mintArgs: Types.MintArgs): async Types.MintReceipt {
     let now = Nat64.fromIntWrap(Time.now());
     let acceptedTo: Types.Account = _acceptAccount(mintArgs.to);
@@ -820,6 +821,13 @@ shared actor class Chests(collectionOwner: Types.Account, init: Types.Collection
   public shared({ caller }) func openChest(args : Types.OpenArgs): async Types.OpenReceipt {
     /// Check if the caller is authorized
     if (Principal.notEqual(caller, Principal.fromText("woimf-oyaaa-aaaan-qegia-cai")) ) {
+      return #Err(#Unauthorized({
+        token_ids = [args.token_id];
+      }));
+    };
+    /// Validate if the user is the onwer of the token with _isOwner
+    let _imOwner : Bool = _isOwner(args.from, args.token_id);
+    if(_imOwner != true){
       return #Err(#Unauthorized({
         token_ids = [args.token_id];
       }));

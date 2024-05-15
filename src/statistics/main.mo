@@ -1,4 +1,5 @@
 import Types "./types";
+import RewardsTypes "../rewards/types";
 
 import Array "mo:base/Array";
 import Blob "mo:base/Blob";
@@ -19,6 +20,7 @@ import Text "mo:base/Text";
 import PlayersCanister "../mp_matchmaking/main";
 import Validator "../validator/main";
 import Cosmicrafts "../cosmicrafts/main";
+import Rewards "../rewards/main";
 
 actor class Statistics() {
     type GameID             = Types.GameID;
@@ -33,7 +35,10 @@ actor class Statistics() {
 
     let multiplayerCanister : PlayersCanister.PlayersCanister = actor("vqzll-jiaaa-aaaan-qegba-cai"); /// multiplayer canister data
     let validatorCanister   : Validator.Validator = actor("2dzox-tqaaa-aaaan-qlphq-cai"); /// multiplayer canister data
-    let cosmicraftsCanister : Cosmicrafts.Cosmicrafts = actor("2dzox-tqaaa-aaaan-qlphq-cai"); /// multiplayer canister data
+    let cosmicraftsCanister : Cosmicrafts.Cosmicrafts = actor("woimf-oyaaa-aaaan-qegia-cai"); /// multiplayer canister data
+    let rewardsCanister     : Rewards.Rewards = actor("bm5s5-qqaaa-aaaap-qcgfq-cai"); /// Cosmicraft's Rewards Canister
+
+    private stable var _cosmicraftsPrincipal : Principal = Principal.fromText("woimf-oyaaa-aaaan-qegia-cai");
 
     private stable var k : Int = 30;
 
@@ -93,46 +98,74 @@ actor class Statistics() {
     ** If no player is available then add it to the waiting list
     */
 
-    private func updatePlayerELO(playerID : PlayerID, won : Nat, otherPlayerID : ?PlayerID) : async Bool{
+    private func initializeNewPlayerStats (_player : Principal) : async (Bool, Text) {
+        let _playerStats : PlayerGamesStats = {
+            gamesPlayed             = 0;
+            gamesWon                = 0;
+            gamesLost               = 0;
+            energyGenerated         = 0;
+            energyUsed              = 0;
+            energyWasted            = 0;
+            totalDamageDealt        = 0;
+            totalDamageTaken        = 0;
+            totalDamageCrit         = 0;
+            totalDamageEvaded       = 0;
+            totalXpEarned           = 0;
+            totalGamesWithFaction   = [];
+            totalGamesGameMode      = [];
+            totalGamesWithCharacter = [];
+        };
+        playerGamesStats.put(_player, _playerStats);
+        return (true, "Player stats initialized");
+    };
+
+    private func updatePlayerELO(playerID : PlayerID, won : Nat, otherPlayerID : ?PlayerID) : async Bool {
         switch(otherPlayerID){
             case(null){
                 return false;
             };
             case(?_p){
-                let _p1Elo : Float = await cosmicraftsCanister.getPlayerElo(playerID);
+                /// Get both player's ELO
+                var _p1Elo : Float = await cosmicraftsCanister.getPlayerElo(playerID);
                 let _p2Elo : Float = await cosmicraftsCanister.getPlayerElo(_p);
+                /// Calculate expected results
                 let _p1Expected : Float = 1 / (1 + Float.pow(10, (_p2Elo - _p1Elo) / 400));
                 let _p2Expected : Float = 1 / (1 + Float.pow(10, (_p1Elo - _p2Elo) / 400));
-                switch(playerGamesStats.get(playerID)){
-                    case(null){
-                        return false;
-                    };
-                    case(?_p){
-                        let _elo : Float = _p1Elo + Float.fromInt(k) * (Float.fromInt64(Int64.fromInt(won)) - _p1Expected);
-                        let _updated = cosmicraftsCanister.updatePlayerElo(playerID, _elo);
-                        return true;
-                    };
-                };
+                /// Update ELO
+                let _elo : Float = _p1Elo + Float.fromInt(k) * (Float.fromInt64(Int64.fromInt(won)) - _p1Expected);
+                let _updated = await cosmicraftsCanister.updatePlayerElo(playerID, _elo);
                 return true;
             };
         };
     };
 
-    public shared(msg) func saveFinishedGame (gameID : GameID, _basicStats : BasicStats) : async Bool {
+    public shared(msg) func saveFinishedGame (gameID : GameID, _basicStats : BasicStats) : async (Bool, Text) {
         /// End game on the matchmaking canister
+        var _txt : Text = "";
         switch(basicStats.get(gameID)){
             case(null) {
                 let endingGame : (Bool, Bool, ?Principal) = await multiplayerCanister.setGameOver(msg.caller);
                 basicStats.put(gameID, _basicStats);
-                let _gameValid : Bool = await validatorCanister.validateGame(300 - _basicStats.secRemaining, _basicStats.energyUsed, _basicStats.xpEarned, 0.5);
-                if(_gameValid == false){
+                let _gameValid : (Bool, Text) = await validatorCanister.validateGame(300 - _basicStats.secRemaining, _basicStats.energyUsed, _basicStats.xpEarned, 0.5);
+                if(_gameValid.0 == false){
                     onValidation.put(gameID, _basicStats);
-                    return false;
+                    return (false, _gameValid.1);
                 };
                 /// Player stats
                 let _winner = if(_basicStats.wonGame == true)  1 else 0;
                 let _looser = if(_basicStats.wonGame == false) 1 else 0;
-                let _elo = await updatePlayerELO(msg.caller, _winner, endingGame.2);
+                let _elo : Bool = await updatePlayerELO(msg.caller, _winner, endingGame.2);
+                var _progressRewards : [RewardsTypes.RewardProgress] = [{
+                    rewardType = #GamesCompleted;
+                    progress   = 1;
+                }];
+                if(_basicStats.wonGame == true){
+                    let _wonProgress : RewardsTypes.RewardProgress = {
+                        rewardType = #GamesWon;
+                        progress   = 1;
+                    };
+                    _progressRewards := Array.append(_progressRewards, [_wonProgress]);
+                };
                 switch(playerGamesStats.get(msg.caller)){
                     case(null) {
                         let _gs : PlayerGamesStats = {
@@ -249,7 +282,7 @@ actor class Statistics() {
                     totalXpEarned           = overallStats.totalXpEarned + _basicStats.xpEarned;
                 };
                 overallStats := _os;
-                return true;
+                return (true, "Game saved");
             };
             case(?_bs){
                 /// Was saved before, only save the respective variables
@@ -257,6 +290,20 @@ actor class Statistics() {
                 let endingGame = await multiplayerCanister.setGameOver(msg.caller);
                 let _winner = if(_basicStats.wonGame == true)  1 else 0;
                 let _looser = if(_basicStats.wonGame == false) 1 else 0;
+                let _elo : Bool = await updatePlayerELO(msg.caller, _winner, endingGame.2);
+                var _progressRewards : [RewardsTypes.RewardProgress] = [{
+                    rewardType = #GamesCompleted;
+                    progress   = 1;
+                }];
+                if(_basicStats.wonGame == true){
+                    let _wonProgress : RewardsTypes.RewardProgress = {
+                        rewardType = #GamesWon;
+                        progress   = 1;
+                    };
+                    _progressRewards := Array.append(_progressRewards, [_wonProgress]);
+                };
+                let _progressAdded = await rewardsCanister.addProgressToRewards(msg.caller, _progressRewards);
+                _txt := _progressAdded.1;
                 switch(playerGamesStats.get(msg.caller)){
                     case(null) {
                         let _gs : PlayerGamesStats = {
@@ -365,7 +412,7 @@ actor class Statistics() {
                     totalXpEarned           = overallStats.totalXpEarned + _basicStats.xpEarned;
                 };
                 overallStats := _os;
-                return true;
+                return (true, _txt # " - Game saved");
             };
         };
     };
@@ -387,13 +434,44 @@ actor class Statistics() {
     };
 
     public shared query(msg) func getMyStats () : async ?PlayerGamesStats {
-        return playerGamesStats.get(msg.caller);
+        switch(playerGamesStats.get(msg.caller)){
+            case(null){
+                let _playerStats : PlayerGamesStats = {
+                    gamesPlayed             = 0;
+                    gamesWon                = 0;
+                    gamesLost               = 0;
+                    energyGenerated         = 0;
+                    energyUsed              = 0;
+                    energyWasted            = 0;
+                    totalDamageDealt        = 0;
+                    totalDamageTaken        = 0;
+                    totalDamageCrit         = 0;
+                    totalDamageEvaded       = 0;
+                    totalXpEarned           = 0;
+                    totalGamesWithFaction   = [];
+                    totalGamesGameMode      = [];
+                    totalGamesWithCharacter = [];
+                };
+                return ?_playerStats;
+            };
+            case(?_p){
+                return playerGamesStats.get(msg.caller);
+            };
+        };
     };
 
     public shared query(msg) func getMyAverageStats () : async ?AverageStats {
         switch(playerGamesStats.get(msg.caller)){
             case(null){
-                return null;
+                let _newAverageStats : AverageStats = {
+                    averageEnergyGenerated  = 0;
+                    averageEnergyUsed       = 0;
+                    averageEnergyWasted     = 0;
+                    averageDamageDealt      = 0;
+                    averageKills            = 0;
+                    averageXpEarned         = 0;
+                };
+                return ?_newAverageStats;
             };
             case(?_p){
                 let _averageStats : AverageStats = {
@@ -411,6 +489,61 @@ actor class Statistics() {
 
     public shared query(msg) func getBasicStats (gameID : GameID) : async ?BasicStats {
         return basicStats.get(gameID);
+    };
+
+    public query func getPlayerStats (_player : Principal) : async ?PlayerGamesStats {
+        switch(playerGamesStats.get(_player)){
+            case(null){
+                let _playerStats : PlayerGamesStats = {
+                    gamesPlayed             = 0;
+                    gamesWon                = 0;
+                    gamesLost               = 0;
+                    energyGenerated         = 0;
+                    energyUsed              = 0;
+                    energyWasted            = 0;
+                    totalDamageDealt        = 0;
+                    totalDamageTaken        = 0;
+                    totalDamageCrit         = 0;
+                    totalDamageEvaded       = 0;
+                    totalXpEarned           = 0;
+                    totalGamesWithFaction   = [];
+                    totalGamesGameMode      = [];
+                    totalGamesWithCharacter = [];
+                };
+                return ?_playerStats;
+            };
+            case(?_p){
+                return playerGamesStats.get(_player);
+            };
+        };
+        return playerGamesStats.get(_player);
+    };
+
+    public query func getPlayerAverageStats (_player : Principal) : async ?AverageStats {
+        switch(playerGamesStats.get(_player)){
+            case(null){
+                let _newAverageStats : AverageStats = {
+                    averageEnergyGenerated  = 0;
+                    averageEnergyUsed       = 0;
+                    averageEnergyWasted     = 0;
+                    averageDamageDealt      = 0;
+                    averageKills            = 0;
+                    averageXpEarned         = 0;
+                };
+                return ?_newAverageStats;
+            };
+            case(?_p){
+                let _averageStats : AverageStats = {
+                    averageEnergyGenerated  = _p.energyGenerated  / Float.fromInt64(Int64.fromNat64(Nat64.fromNat(_p.gamesPlayed)));
+                    averageEnergyUsed       = _p.energyUsed       / Float.fromInt64(Int64.fromNat64(Nat64.fromNat(_p.gamesPlayed)));
+                    averageEnergyWasted     = _p.energyWasted     / Float.fromInt64(Int64.fromNat64(Nat64.fromNat(_p.gamesPlayed)));
+                    averageDamageDealt      = _p.totalDamageDealt / Float.fromInt64(Int64.fromNat64(Nat64.fromNat(_p.gamesPlayed)));
+                    averageKills            = _p.totalDamageDealt / Float.fromInt64(Int64.fromNat64(Nat64.fromNat(_p.gamesPlayed)));
+                    averageXpEarned         = _p.totalXpEarned    / Float.fromInt64(Int64.fromNat64(Nat64.fromNat(_p.gamesPlayed)));
+                };
+                return ?_averageStats;
+            };
+        }
     };
 
 

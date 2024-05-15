@@ -33,6 +33,8 @@ actor class PlayersCanister() {
 
     let cosmicraftsCanister : Cosmicrafts.Cosmicrafts = actor("woimf-oyaaa-aaaan-qegia-cai"); /// cosmicrafts canister data
 
+    private var ONE_SECOND : Nat64 = 1_000_000_000; // 1 second in nanoseconds
+
     /// Functions for finding Ships IDs
     func _natEqual (a : Nat, b : Nat) : Bool {
         return a == b;
@@ -43,7 +45,7 @@ actor class PlayersCanister() {
 
     private stable var _matchID : Nat = 1;
 
-    private var inactiveSeconds : Nat64 = 25 * 1_000_000_000;
+    private var inactiveSeconds : Nat64 = 30 * ONE_SECOND;
     private var NULL_PRINCIPAL: Principal = Principal.fromText("aaaaa-aa");
     private var ANON_PRINCIPAL: Principal = Principal.fromText("2vxsx-fae");
 
@@ -448,55 +450,21 @@ actor class PlayersCanister() {
         // ws := IcWebSocketCdk.IcWebSocket(ws_state, params);
     };
 
-    /// Search if player has already a search in progress or wheter there's a match available or not
-    // public shared query(msg) func getMatchSearching() : async (SearchStatus, Nat, Text){
-        //     switch(playerStatus.get(msg.caller)){
-        //         case (null) { }; /// Continue with search as this player is not currently in any status
-        //         case (?_p) {
-        //             switch(_p.status){
-        //                 case(#Searching){
-        //                     return(#Assigned, _p.matchID, "Searching for game");
-        //                 };
-        //                 case(#Reserved){
-        //                     return(#Assigned, _p.matchID, "Game found");
-        //                 };
-        //                 case(#Accepting){
-        //                     return(#Assigned, _p.matchID, "Accepting game");
-        //                 };
-        //                 case(#Accepted){
-        //                     return(#Assigned, _p.matchID, "Game accepted");
-        //                 };
-        //                 case(#InGame){
-        //                     return(#Assigned, _p.matchID, "In game");
-        //                 };
-        //                 case(#Ended){
-        //                     /// Game ended, should remove from list or add the next match
-        //                 };
-        //             };
-        //         };
-        //     };
-        //     for(m in searching.vals()){
-        //         if(m.player2 == null){
-        //             return(#Available, m.gameId, "ID Available");
-        //         };
-        //     };
-        //     return (#NotAvailable, 0, "Not found game to match");
-    // };
-
-    
-    /*
-    ** When the player sends the setActive message and if the match is already made, continue to the next step
-    */
-
     public shared(msg) func setPlayerActive() : async Bool {
-        assert(msg.caller != NULL_PRINCIPAL and msg.caller != ANON_PRINCIPAL);
+        assert(Principal.notEqual(msg.caller, NULL_PRINCIPAL));
+        assert(Principal.notEqual(msg.caller, ANON_PRINCIPAL));
         switch(playerStatus.get(msg.caller)){
             case (null) { return false; };
             case (?_ps) {
                 switch(searching.get(_ps.matchID)){
                     case (null) { return false; };
                     case (?_m) {
+                        let _now = Nat64.fromIntWrap(Time.now());
                         if(_m.player1.id == msg.caller){
+                            /// Check if the time of expiration have passed already and return false
+                            if((_m.player1.lastPlayerActive + inactiveSeconds) < _now){
+                                return false;
+                            };
                             let _p : PlayerInfo = _m.player1;
                             let _p1 : PlayerInfo = structPlayerActiveNow(_p);
                             let _gameData : MatchData = structMatchData(_p1, _m.player2, _m);
@@ -506,6 +474,9 @@ actor class PlayersCanister() {
                             let _p : PlayerInfo = switch(_m.player2){
                                 case (null) { return false; };
                                 case (?_p) { _p; };
+                            };
+                            if((_p.lastPlayerActive + inactiveSeconds) < _now){
+                                return false;
                             };
                             let _p2 : PlayerInfo = structPlayerActiveNow(_p);
                             let _gameData : MatchData = structMatchData(_m.player1, ?_p2, _m);
@@ -546,6 +517,10 @@ actor class PlayersCanister() {
         switch(searching.get(matchID)){
             case (null) { return false; };
             case (?_m) {
+                if(_m.status != #Searching){
+                    return false;
+                };
+                let _now = Nat64.fromIntWrap(Time.now());
                 if(_m.player1.id == player){
                     let _p : PlayerInfo = _m.player1;
                     let _p1 : PlayerInfo = structPlayerActiveNow(_p);
@@ -557,6 +532,12 @@ actor class PlayersCanister() {
                         case (null) { return false; };
                         case (?_p) { _p; };
                     };
+                    if(player != _p.id){
+                        return false;
+                    };
+                    if((_p.lastPlayerActive + inactiveSeconds) < _now){
+                        return false;
+                    };
                     let _p2 : PlayerInfo = structPlayerActiveNow(_p);
                     let _gameData : MatchData = structMatchData(_m.player1, ?_p2, _m);
                     searching.put(_m.gameId, _gameData);
@@ -564,7 +545,6 @@ actor class PlayersCanister() {
                 };
             };
         };
-        return false;
     };
 
     func _floatSort (a : Float, b : Float) : Float {
@@ -579,30 +559,35 @@ actor class PlayersCanister() {
 
     func getGamesByELOsorted(targetELO : Float, maxELO : Float) : [MatchData]{
         var _gamesByELO : [MatchData] = [];
+        var _now : Nat64 = Nat64.fromIntWrap(Time.now());
         for(m in searching.vals()){
-            if(m.player1.elo >= (targetELO - maxELO) and m.player1.elo <= (targetELO + maxELO)){
-                /// To-Do: Add other loop to sort asc by ELO where all registries are passed and the new one is added in the right place
-                if(Array.size(_gamesByELO) == 0){
-                    _gamesByELO := [m];
-                } else {
-                    var _orderedGamesByELO : [MatchData] = [];
-                    var _added : Bool = false;
-                    for(n in _gamesByELO.vals()){
-                        if(n.player1.elo > m.player1.elo){
-                            /// Add the new match in the right place
-                            _orderedGamesByELO := Array.append(_gamesByELO, [m]);
-                            _added := true;
-                            /// Also add the current registry
-                            _orderedGamesByELO := Array.append(_gamesByELO, [n]);
-                        } else {
-                            /// Only add the current registry
-                            _orderedGamesByELO := Array.append(_gamesByELO, [n]);
+            /// Validate game is active
+            if((m.player1.lastPlayerActive + inactiveSeconds) >= _now){
+                /// Validate game is within the ELO range
+                if(m.player1.elo >= (targetELO - maxELO) and m.player1.elo <= (targetELO + maxELO)){
+                    /// To-Do: Add other loop to sort asc by ELO where all registries are passed and the new one is added in the right place
+                    if(Array.size(_gamesByELO) == 0){
+                        _gamesByELO := [m];
+                    } else {
+                        var _orderedGamesByELO : [MatchData] = [];
+                        var _added : Bool = false;
+                        for(n in _gamesByELO.vals()){
+                            if(n.player1.elo > m.player1.elo){
+                                /// Add the new match in the right place
+                                _orderedGamesByELO := Array.append(_gamesByELO, [m]);
+                                _added := true;
+                                /// Also add the current registry
+                                _orderedGamesByELO := Array.append(_gamesByELO, [n]);
+                            } else {
+                                /// Only add the current registry
+                                _orderedGamesByELO := Array.append(_gamesByELO, [n]);
+                            };
                         };
+                        if(_added == false){
+                            _orderedGamesByELO := Array.append(_gamesByELO, [m]);
+                        };
+                        _gamesByELO := _orderedGamesByELO;
                     };
-                    if(_added == false){
-                        _orderedGamesByELO := Array.append(_gamesByELO, [m]);
-                    };
-                    _gamesByELO := _orderedGamesByELO;
                 };
             };
         };
@@ -610,48 +595,16 @@ actor class PlayersCanister() {
     };
 
     public shared(msg) func getMatchSearching(pgd : Text) : async (SearchStatus, Nat, Text){
-        assert(msg.caller != NULL_PRINCIPAL and msg.caller != ANON_PRINCIPAL);
-        /// First we check if the player is already in a match
-        switch(playerStatus.get(msg.caller)){
-            case (null) { }; /// Continue with search as this player is not currently in any status
-            case (?_p) {
-                ///  The player has a status, check which one
-                switch(_p.status){
-                    case(#Searching){
-                        /// The player was already searching, return the status
-                        let _active : Bool = activatePlayerSearching(msg.caller, _p.matchID);
-                        return(#Assigned, _p.matchID, "Searching for game");
-                    };
-                    case(#Reserved){
-                        /// The player has found a match but hasn't accepted it yet
-                        //return(#Assigned, _p.matchID, "Game found");
-                    };
-                    case(#Accepting){
-                        /// The game is being accepted, ask the player for this
-                        //return(#Assigned, _p.matchID, "Accepting game");
-                    };
-                    case(#Accepted){
-                        /// The game was accepted, return the status
-                        //return(#Assigned, _p.matchID, "Game accepted");
-                    };
-                    case(#InGame){
-                        /// The game is in progress, return the status
-                        /// return(#Assigned, _p.matchID, "In game");
-                        /// Will comment this until we have a end game function and a way to check if a game is still active
-                    };
-                    case(#Ended){
-                        /// Game ended, should remove from list or add the next match
-                    };
-                };
-            };
-        };
+        assert(Principal.notEqual(msg.caller, NULL_PRINCIPAL));
+        assert(Principal.notEqual(msg.caller, ANON_PRINCIPAL));
         /// Get Now Time
         let _now : Nat64 = Nat64.fromIntWrap(Time.now());
         let _pELO : Float = await cosmicraftsCanister.getPlayerElo(msg.caller);
         /// If the player wasn't on a game aleady, check if there's a match available
-        var _gamesByELO : [MatchData] = getGamesByELOsorted(_pELO, 100.0); // To-Do: Sort by ELO
+        //// var _gamesByELO : [MatchData] = getGamesByELOsorted(_pELO, 1000.0); // To-Do: Sort by ELO
+        var _gamesByELO : [MatchData] = Iter.toArray(searching.vals());
         for(m in _gamesByELO.vals()){
-            if(m.player2 == null and m.player1.id != msg.caller /*and (m.player1.lastPlayerActive + inactiveSeconds) < _now*/){
+            if(m.player2 == null and Principal.notEqual(m.player1.id, msg.caller) and (m.player1.lastPlayerActive + inactiveSeconds) > _now){
                 /// There's a match available, add the player to this match
                 let _p2 : PlayerInfo = {
                     id                = msg.caller;
@@ -659,8 +612,6 @@ actor class PlayersCanister() {
                     matchAccepted     = true; /// Force true for now
                     playerGameData    = pgd;
                     lastPlayerActive  = Nat64.fromIntWrap(Time.now());
-                    // characterSelected = 0;
-                    // deckSavedKeyIds   = [];
                 };
                 let _p1 : PlayerInfo = {
                     id               = m.player1.id;
@@ -679,11 +630,33 @@ actor class PlayersCanister() {
                     status  = #Accepted;
                     matchID = m.gameId;
                 };
-                searching.put(m.gameId, _gameData);
+                inProgress.put(m.gameId, _gameData);
+                let _removedSearching = searching.remove(m.gameId);
+                removePlayersFromSearching(m.player1.id, msg.caller, m.gameId);
                 playerStatus.put(msg.caller, _p_s);
                 playerStatus.put(m.player1.id, _p_s);
                 return(#Assigned, _matchID, "Game found");
-                //return(#Available, m.gameId, "ID Available");
+            };
+        };
+        /// First we check if the player is already in a match
+        switch(playerStatus.get(msg.caller)){
+            case (null) { }; /// Continue with search as this player is not currently in any status
+            case (?_p) {
+                ///  The player has a status, check which one
+                switch(_p.status){
+                    case(#Searching){
+                        /// The player was already searching, return the status
+                        let _active : Bool = activatePlayerSearching(msg.caller, _p.matchID);
+                        if(_active == true){
+                            return(#Assigned, _p.matchID, "Searching for game");
+                        };
+                    };
+                    case(#Reserved){};
+                    case(#Accepting){};
+                    case(#Accepted){};
+                    case(#InGame){};
+                    case(#Ended){};
+                };
             };
         };
         /// Continue with search as this player is not currently in any status
@@ -694,8 +667,6 @@ actor class PlayersCanister() {
             matchAccepted     = false;
             playerGameData    = pgd;
             lastPlayerActive  = Nat64.fromIntWrap(Time.now());
-            // characterSelected = 0;
-            // deckSavedKeyIds   = [];
         };
         let _match : MatchData = {
             gameId  = _matchID;
@@ -709,307 +680,28 @@ actor class PlayersCanister() {
             matchID = _matchID;
         };
         playerStatus.put(msg.caller, _ps);
-        return(#Assigned, _matchID, "Game found");
-        //return (#NotAvailable, 0, "Not found game to match");
+        return(#Assigned, _matchID, "Lobby created");
     };
 
-    // public shared query func getAllSearchingMatches() : async [(Nat, MatchData)] {
-    //     return Iter.toArray(searching.entries());
-    // };
-
-    // /// Create a new registry ("lobby") for the player searching for a match
-    // public shared(msg) func addPlayerSearching() : async (Bool, Nat){
-        //     assert(msg.caller != NULL_PRINCIPAL and msg.caller != ANON_PRINCIPAL);
-        //     switch(playerStatus.get(msg.caller)){
-        //         case (null) { 
-        //             /// Continue with search as this player is not currently in any status
-        //             _matchID := _matchID + 1;
-        //             let _player : PlayerInfo = {
-        //                 id                = msg.caller;
-        //                 elo               = 0; /// TO-DO: ELO System; Also TO-DO: Ping system
-        //                 matchAccepted     = false;
-        //                 playerGameData    = "";
-        //                 lastPlayerActive  = Nat64.fromIntWrap(Time.now());
-        //                 // characterSelected = 0;
-        //                 // deckSavedKeyIds   = [];
-        //             };
-        //             let _match : MatchData = {
-        //                 gameId  = _matchID;
-        //                 player1 = _player;
-        //                 player2 = null;
-        //                 status  = #Searching;
-        //             };
-        //             searching.put(_matchID, _match);
-        //             let _ps : PlayerStatus = {
-        //                 status  = #Searching;
-        //                 matchID = _matchID;
-        //             };
-        //             playerStatus.put(msg.caller, _ps);
-        //             return(true, _matchID);
-        //         };
-        //         case (?_p) {
-        //             return(true, _p.matchID);
-        //         };
-        //     };
-    // };
-
-    // /// Match found, set player as rival for the matchID received
-    // public shared(msg) func assignPlayer2(matchID : Nat) : async (Bool, Text){
-        //     switch(searching.get(matchID)){
-        //         case (null){
-        //             return (false, "Game Not Available");
-        //         };
-        //         case (?_m){
-        //             if(_m.player2 == null){
-        //                 let _p2 : PlayerInfo = {
-        //                     id                = msg.caller;
-        //                     elo               = 0; /// TO-DO
-        //                     matchAccepted     = false;
-        //                     playerGameData    = "";
-        //                     lastPlayerActive  = Nat64.fromIntWrap(Time.now());
-        //                     // characterSelected = 0;
-        //                     // deckSavedKeyIds   = [];
-        //                 };
-        //                 let _gameData : MatchData = {
-        //                     gameId  = matchID;
-        //                     player1 = _m.player1;
-        //                     player2 = ?_p2;
-        //                     status  = #Reserved;
-        //                 };
-        //                 let _p_s : PlayerStatus = {
-        //                     status  = #Reserved;
-        //                     matchID = matchID;
-        //                 };
-        //                 searching.put(matchID, _gameData);
-        //                 playerStatus.put(msg.caller, _p_s);
-        //                 playerStatus.put(_m.player1.id, _p_s);
-        //                 //// TO-TEST: With Web Sockets Notify the other user that a match was found and both need to accept it
-        //                 // await send_app_message(_m.player1.id, { message = "Game found"; data = matchID });
-        //                 // await send_app_message(msg.caller, { message = "Game found"; data = matchID });
-        //                 return(true, "Assigned");
-        //             };
-        //             return(false, "Game Is Not Available");
-        //         };
-        //     }
-    // };
-
-    // /// User accepted match found
-    // public shared(msg) func acceptMatch(/*c : Nat, deckSaved : [Text]*/ pgd : Text) : async (Bool, Text){
-        //     switch(playerStatus.get(msg.caller)){
-        //         case(null){
-        //             return(false, "Game not found for this player");
-        //         };
-        //         case(?_s){
-        //             if(_s.status == #Reserved or _s.status == #Accepting){
-        //                 switch(searching.get(_s.matchID)){
-        //                     case(null){
-        //                         return(false, "Game not found for this player");
-        //                     };
-        //                     case(?_m){
-        //                         /// Check if caller is player 1 or 2
-        //                         if(_m.player1.id == msg.caller){
-        //                             /// Check if other player already accepted the game
-        //                             let _status : MatchmakingStatus = switch(_m.player2){
-        //                                 case(null){
-        //                                     /// If is not set the other player, set as searching /// DEBUG THIS
-        //                                     #Searching;
-        //                                 };
-        //                                 case(?_st){
-        //                                     /// If player is set check if it already accepted, in that case set as Accepted, if not as Accepting
-        //                                     if(_st.matchAccepted == true){
-        //                                         #Accepted;
-        //                                     } else {
-        //                                         #Accepting;
-        //                                     }
-        //                                 };
-        //                             };
-        //                             let _player1 : PlayerInfo = {
-        //                                 id                = _m.player1.id;
-        //                                 matchAccepted     = true;
-        //                                 elo               = _m.player1.elo;
-        //                                 playerGameData    = pgd;
-        //                                 lastPlayerActive  = Nat64.fromIntWrap(Time.now());
-        //                                 // characterSelected = c;
-        //                                 // deckSavedKeyIds   = deckSaved;
-        //                             };
-        //                             let m : MatchData = {
-        //                                 gameId  = _s.matchID;
-        //                                 player1 = _player1;
-        //                                 player2 = _m.player2;
-        //                                 status  = _status;
-        //                             };
-        //                             if(_status == #Accepted){
-        //                                 /// Move the match from searching to "in progress"
-        //                                     // searching.delete(_s.matchID);
-        //                                     // inProgress.put(_s.matchID, m);
-        //                                 /// Set both players as "In Game"
-        //                                 let _p_s : PlayerStatus = {
-        //                                     status  = #InGame;
-        //                                     matchID = _s.matchID;
-        //                                 };
-        //                                 playerStatus.put(msg.caller, _p_s);
-        //                                 switch(_m.player2){
-        //                                     case(null){};
-        //                                     case(?_p2){
-        //                                         //// TO-TEST: USE WEB HOOKS TO NOTIFY THE OTHER PLAYER THAT THE MATCH WAS ACCEPTED
-        //                                         playerStatus.put(_p2.id, _p_s);
-        //                                         // await send_app_message(_player1.id, { message = "Game accepted"; data = _s.matchID });
-        //                                         // await send_app_message(_p2.id, { message = "Game accepted"; data = _s.matchID });
-        //                                     };
-        //                                 };
-        //                                 return(true, "Accepted and In Progress");
-        //                             } else {
-        //                                 /// Set searching status
-        //                                 searching.put(_s.matchID, m);
-        //                                 /// Set Player as status
-        //                                 let _p_s : PlayerStatus = {
-        //                                     status  = _status;
-        //                                     matchID = _s.matchID;
-        //                                 };
-        //                                 playerStatus.put(msg.caller, _p_s);
-        //                                 return(true, "Accepted");
-        //                             };
-        //                         };
-        //                         /// It wasn't p1, check if it is p2
-        //                         let _p2 = switch(_m.player2){
-        //                             case(null){
-        //                                 return(false, "Game not found for this player");
-        //                             };
-        //                             case(?_p2){
-        //                                 _p2;
-        //                             };
-        //                         };
-        //                         if(_p2.id == msg.caller){
-        //                             /// Check if other player already accepted the game
-        //                             let _status : MatchmakingStatus = switch(_m.player1.matchAccepted){
-        //                                 case(false){
-        //                                     #Accepting;
-        //                                 };
-        //                                 case(true){
-        //                                     #Accepted;
-        //                                 };
-        //                             };
-        //                             let _player2 : PlayerInfo = {
-        //                                 id                = _p2.id;
-        //                                 matchAccepted     = true;
-        //                                 elo               = _p2.elo;
-        //                                 playerGameData    = pgd;
-        //                                 lastPlayerActive  = Nat64.fromIntWrap(Time.now());
-        //                                 // characterSelected = c;
-        //                                 // deckSavedKeyIds   = deckSaved;
-        //                             };
-        //                             let m : MatchData = {
-        //                                 gameId  = _s.matchID;
-        //                                 player1 = _m.player1;
-        //                                 player2 = ?_p2;
-        //                                 status  = _status;
-        //                             };
-        //                             if(_status == #Accepted){
-        //                                 //// TO-TEST: USE WEB HOOKS TO NOTIFY BOTH PLAYERS THAT THE MATCH WAS ACCEPTED
-        //                                 // await send_app_message(_m.player1.id, { message = "Game accepted"; data = _s.matchID });
-        //                                 // await send_app_message(_p2.id, { message = "Game accepted"; data = _s.matchID });
-        //                                 /// Move the match from searching to "in progress"
-        //                                     // searching.delete(_s.matchID);
-        //                                     // inProgress.put(_s.matchID, m);
-        //                                 /// Set both players as "In Game"
-        //                                 let _p_s : PlayerStatus = {
-        //                                     status  = #InGame;
-        //                                     matchID = _s.matchID;
-        //                                 };
-        //                                 playerStatus.put(msg.caller, _p_s);
-        //                                 playerStatus.put(_m.player1.id, _p_s);
-        //                                 return(true, "Accepted and In Progress");
-        //                             } else {
-        //                                 /// Set searching status
-        //                                 searching.put(_s.matchID, m);
-        //                                 /// Set Player as status
-        //                                 let _p_s : PlayerStatus = {
-        //                                     status  = _status;
-        //                                     matchID = _s.matchID;
-        //                                 };
-        //                                 playerStatus.put(msg.caller, _p_s);
-        //                                 return(true, "Accepted");
-        //                             };
-        //                         } else {
-        //                             return (false, "Invalid Game");
-        //                         }
-        //                     };
-        //                 };
-        //             }
-        //         };
-        //     };
-        //     return(false, "Not Accepted");
-    // };
-
-    // /// User didn't accept the match found
-    // public shared(msg) func rejectMatch() : async (Bool, Text){
-        //     switch(playerStatus.get(msg.caller)){
-        //         case(null){
-        //             return(false, "Game not found for this player");
-        //         };
-        //         case(?_s){
-        //             if(_s.status != #Searching){
-        //                 switch(searching.get(_s.matchID)){
-        //                     case(null){
-        //                         return(false, "Game not found for this player");
-        //                     };
-        //                     case(?_m){
-        //                         /// Check if caller is player 1 or 2
-        //                         if(_m.player1.id == msg.caller){
-        //                             /// Remove player from searching status
-        //                             playerStatus.delete(msg.caller);
-        //                             /// Check if other player already accepted the game
-        //                             switch(_m.player2){
-        //                                 case(null){
-        //                                     /// If is not set the other player, remove this player from list as the other didn't accept and was already removed
-        //                                     searching.delete(_s.matchID);
-        //                                     return(true, "Player removed from matchmaking");
-        //                                 };
-        //                                 case(?_st){
-        //                                     // Set the player 2 as player 1, remove this player from searching and set the match as searching again
-        //                                     let m : MatchData = {
-        //                                         gameId  = _s.matchID;
-        //                                         player1 = _st;
-        //                                         player2 = null;
-        //                                         status  = #Searching;
-        //                                     };
-        //                                     searching.put(_s.matchID, m);
-        //                                     //// TO-TEST: USE WEB HOOKS TO NOTIFY THE OTHER PLAYER THAT THEY WERE RETURNED TO SEARCHING
-        //                                     // await send_app_message(_st.id, { message = "Returning to search"; data = 0; });
-        //                                     return(true, "Player removed from matchmaking");
-        //                                 };
-        //                             };
-        //                         };
-        //                         /// It wasn't p1, check if it is p2
-        //                         switch(_m.player2){
-        //                             case(null){
-        //                                 return(false, "Game not found for this player");
-        //                             };
-        //                             case(?_p2){
-        //                                 if(_p2.id == msg.caller){
-        //                                     /// Remove player from searching status
-        //                                     playerStatus.delete(msg.caller);
-        //                                     /// Check if other player already accepted the game
-        //                                     let m : MatchData = {
-        //                                         gameId  = _s.matchID;
-        //                                         player1 = _m.player1;
-        //                                         player2 = null;
-        //                                         status  = #Searching;
-        //                                     };
-        //                                     searching.put(_s.matchID, m);
-        //                                     //// TO-TEST: USE WEB HOOKS TO NOTIFY THE OTHER PLAYER THAT THEY WERE RETURNED TO SEARCHING
-        //                                     // await send_app_message(_m.player1.id, { message = "Returning to search"; data = 0; });
-        //                                     return(true, "Player removed from matchmaking");
-        //                                 };
-        //                             };
-        //                         };
-        //                     };
-        //                 };
-        //             }
-        //         };
-        //     };
-        //     return(false, "Game not found for this player");
-    // };
+    func removePlayersFromSearching(p1 : Principal, p2 : Principal, matchID : Nat){
+        /// Check if player1 or player2 MatchID are different and remove them from the searching list
+        switch(playerStatus.get(p1)){
+            case(null){};
+            case(?_p1){
+                if(_p1.matchID != matchID){
+                    searching.delete(_p1.matchID);
+                };
+            };
+        };
+        switch(playerStatus.get(p2)){
+            case(null){};
+            case(?_p2){
+                if(_p2.matchID != matchID){
+                    searching.delete(_p2.matchID);
+                };
+            };
+        };
+    };
 
     /// Cancel search on user's request
     public shared(msg) func cancelMatchmaking() : async (Bool, Text){
@@ -1060,9 +752,16 @@ actor class PlayersCanister() {
                     case(null){
                         switch(searching.get(_s.matchID)){
                             case(null){
-                                /// Game is not on the searching on inProgress, so we just remove the status from the player
-                                playerStatus.delete(caller);
-                                return(false, false, null);
+                                switch(finishedGames.get(_s.matchID)){
+                                    case(null){
+                                        return(false, false, null);
+                                    };
+                                    case(?_m){
+                                        /// Game is not on the searching on inProgress, so we just remove the status from the player
+                                        playerStatus.delete(caller);
+                                        return(true, caller == _m.player1.id, getOtherPlayer(_m, caller));
+                                    };
+                                };
                             };
                             case(?_m){
                                 /// Game is on Searching list, so we remove it, add it to the finished list and remove the status from the player
@@ -1072,7 +771,6 @@ actor class PlayersCanister() {
                                 return(true, caller == _m.player1.id, getOtherPlayer(_m, caller));
                             };
                         };
-                        
                     };
                     case(?_m){
                         /// Game is on inProgress list, so we remove it, add it to the finished list and remove the status from the player
@@ -1094,7 +792,14 @@ actor class PlayersCanister() {
             case(?_s){
                 switch(searching.get(_s.matchID)){
                     case(null){
-                        return(false, "Game not found for this player");
+                        switch(inProgress.get(_s.matchID)){
+                            case(null){
+                                return(false, "Game not found for this player");
+                            };
+                            case(?_m){
+                                return(true, "Game matched");
+                            };
+                        };
                     };
                     case(?_m){
                         switch(_m.player2){
@@ -1110,35 +815,6 @@ actor class PlayersCanister() {
             };
         };
     };
-
-    // public shared query(msg) func isGameAccepted() : async (Nat, Text){
-        //     switch(playerStatus.get(msg.caller)){
-        //         case(null){
-        //             return(3, "Game not found for this player");
-        //         };
-        //         case(?_s){
-        //             switch(searching.get(_s.matchID)){
-        //                 case(null){
-        //                     return(3, "Game not found for this player");
-        //                 };
-        //                 case(?_m){
-        //                     switch(_m.player2){
-        //                         case(null){
-        //                             return(2, "Other player rejected the game");
-        //                         };
-        //                         case(?_p2){
-        //                             if(_p2.matchAccepted == true and _m.player1.matchAccepted == true){
-        //                                 return(1, "Game accepted");
-        //                             } else {
-        //                                 return(0, "Game not accepted yet");
-        //                             };
-        //                         };
-        //                     };
-        //                 };
-        //             };
-        //         };
-        //     };
-    // };
 
     public query func getMatchData(matchID : Nat) : async ?MatchData{
 
@@ -1325,77 +1001,13 @@ actor class PlayersCanister() {
         };
     };
 
-    // public shared(msg) func addMatchPlayerData(pgd : Text) : async Bool{
-        //     switch(playerStatus.get(msg.caller)){
-        //         case(null){
-        //             return false;
-        //         };
-        //         case(?_p){
-        //             switch(searching.get(_p.matchID)){
-        //                 case(null){
-        //                     return false;
-        //                 };
-        //                 case(?_m){
-        //                     if(_m.player1.id == msg.caller){
-        //                         let _p1 : PlayerInfo = {
-        //                             id                = _m.player1.id;
-        //                             elo               = _m.player1.elo;
-        //                             matchAccepted     = true;
-        //                             playerGameData    = pgd;
-        //                             lastPlayerActive  = Nat64.fromIntWrap(Time.now());
-        //                         };
-        //                         let _md : MatchData = {
-        //                             gameId  = _m.gameId;
-        //                             player1 = _p1;
-        //                             player2 = _m.player2;
-        //                             status  = #InGame;
-        //                         };
-        //                         let _p_s : PlayerStatus = {
-        //                             status  = #InGame;
-        //                             matchID = _p.matchID;
-        //                         };
-        //                         playerStatus.put(msg.caller, _p_s);
-        //                         searching.put(_p.matchID, _md);
-        //                         return true;
-        //                     };
-        //                     switch(_m.player2){
-        //                         case(null){
-        //                             return false;
-        //                         };
-        //                         case(?_p2){
-        //                             if(_p2.id == msg.caller){
-        //                                 let _p2d : PlayerInfo = {
-        //                                     id                = _p2.id;
-        //                                     elo               = _p2.elo;
-        //                                     matchAccepted     = true;
-        //                                     playerGameData    = pgd;
-        //                                     lastPlayerActive  = Nat64.fromIntWrap(Time.now());
-        //                                 };
-        //                                 let _md : MatchData = {
-        //                                     gameId  = _m.gameId;
-        //                                     player1 = _m.player1;
-        //                                     player2 = ?_p2d;
-        //                                     status  = #InGame;
-        //                                 };
-        //                                 let _p_s : PlayerStatus = {
-        //                                     status  = #InGame;
-        //                                     matchID = _p.matchID;
-        //                                 };
-        //                                 playerStatus.put(msg.caller, _p_s);
-        //                                 searching.put(_p.matchID, _md);
-        //                                 return true;
-        //                             };
-        //                             return false;
-        //                         };
-        //                     };
-        //                 };
-        //             };
-        //         };
-        //     };
-    // };
-
-
-
+    public query func getAllSearching() : async [MatchData]{
+        var _searchingList : [MatchData] = [];
+        for(m in searching.vals()){
+            _searchingList := Array.append(_searchingList, [m]);
+        };
+        return _searchingList;
+    };
 
     // let handlers = IcWebSocketCdk.WsHandlers(
         //     ?on_open,
