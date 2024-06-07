@@ -1,19 +1,12 @@
 # Cosmicrafts Backend
 
-This project contains the backend of cosmicrafts developen on Motoko for the Internet Computer.
-
-Here we can find the multiplayer matchmaking logic as it is develop and improved along with the implementation of IC-Websockets.
-
-Also the statistics logic is in this repo, where all the data from the matches will be stored and validated from any cheat.
-
+This project contains the backend canisters of Cosmicrafts on Motoko for the Internet Computer.
 
 Try with the following commands:
-`dfxvm default 0.17.0`
-`dfx start --clean --background`
-`dfx canister create --all`
-`dfx deploy`
-
-
+```dfxvm default 0.17.0```
+```dfx start --clean --background```
+```dfx canister create --all```
+```dfx deploy```
 
 
 ## Multiplayer Matchmaking
@@ -158,6 +151,3 @@ getAllOnValidation()
 setGameValid()
 /// This call is going to be only by the DAO once is developed, for the moment we decide it
 ```
-
-## `In the Roadmap`
-In a near future we plan to implement websockets to distribute the rewards for the users of the matches
