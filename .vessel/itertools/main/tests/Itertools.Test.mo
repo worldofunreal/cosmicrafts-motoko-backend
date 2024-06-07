@@ -15,9 +15,10 @@ import Trie "mo:base/Trie";
 
 import ActorSpec "./utils/ActorSpec";
 
-import DoubleEndedIter "../src/Deiter";
+import RevIter "../src/RevIter";
 import Itertools "../src/Iter";
 import PeekableIter "../src/PeekableIter";
+import DequeUtils "../src/Utils/Deque";
 
 let {
     assertTrue;
@@ -559,10 +560,10 @@ let success = run([
 
                     assertTrue(
                         res == [
-                            ("m", 1),
                             ("o", 3),
-                            ("t", 1),
                             ("k", 1),
+                            ("t", 1),
+                            ("m", 1),
                         ],
                     );
                 },
@@ -1428,7 +1429,7 @@ let success = run([
             it(
                 "range",
                 do {
-                    let iter = DoubleEndedIter.range(0, 5);
+                    let iter = RevIter.range(0, 5);
 
                     assertAllTrue([
                         iter.next() == ?0,
@@ -1443,7 +1444,7 @@ let success = run([
             it(
                 "intRange",
                 do {
-                    let iter = DoubleEndedIter.intRange(0, 5);
+                    let iter = RevIter.intRange(0, 5);
 
                     assertAllTrue([
                         iter.next() == ?0,
@@ -1902,8 +1903,7 @@ let success = run([
                         Trie.iter<Char, ()>(trieSet),
                         func((c, _) : (Char, ())) : Char { c },
                     );
-
-                    assertTrue(Iter.toArray(setIter) == ['a', 'b', 'c', 'd']);
+                    assertTrue(Iter.toArray(setIter) == ['d', 'c', 'b', 'a']);
                 },
             ),
 
@@ -1913,7 +1913,7 @@ let success = run([
                     let set = Itertools.toTrieSet([1, 1, 3, 2, 3, 4].vals(), Hash.hash, Nat.equal);
                     let iter = Itertools.fromTrieSet(set);
 
-                    assertTrue(Iter.toArray(iter) == [1, 3, 2, 4]);
+                    assertTrue(Iter.toArray(iter) == [4, 2, 3, 1]);
                 },
             ),
         ],

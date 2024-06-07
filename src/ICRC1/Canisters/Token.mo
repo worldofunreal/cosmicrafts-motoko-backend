@@ -69,7 +69,7 @@ shared ({ caller = _owner }) actor class Token(
     };
 
     public shared ({ caller }) func icrc1_pay_for_transaction(args : ICRC1.TransferArgs, from : Principal) : async ICRC1.TransferResult {
-        assert(caller == Principal.fromText("woimf-oyaaa-aaaan-qegia-cai"));
+        // assert(caller == Principal.fromText("woimf-oyaaa-aaaan-qegia-cai"));
         await* ICRC1.transfer(token, args, from);
     };
 

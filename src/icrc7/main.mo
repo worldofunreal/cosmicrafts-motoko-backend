@@ -872,9 +872,11 @@ shared actor class Collection(collectionOwner: Types.Account, init: Types.Collec
         metadata = mintArgs.metadata;
       };
       //update the token metadata
+      tokens := Trie.put(tokens, _keyFromTokenId tokenId, Nat.equal, newToken).0;
       _addTokenToOwners(acceptedTo, mintArgs.token_id);
       _incrementBalance(acceptedTo);
       _incrementTotalSupply(1);
+      _deck := Utils.pushIntoArray<Types.TokenId>(tokenId, _deck);
       lastTokenMinted := tokenId;
     };
     let transaction: Types.Transaction = _addTransaction(#mint, now, ?_deck, ?acceptedTo, null, null, null, null, null);

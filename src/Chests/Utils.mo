@@ -13,7 +13,7 @@ import Option "mo:base/Option";
 import Nat32 "mo:base/Nat32";
 import Iter "mo:base/Iter";
 import Text "mo:base/Text";
-import Types "../chests/types";
+import Types "./types";
 
 module {
 	private let symbols = [

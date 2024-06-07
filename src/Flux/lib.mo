@@ -59,6 +59,8 @@ module {
     public type ArchivedTransaction = T.ArchivedTransaction;
 
     public type TransferResult = T.TransferResult;
+    
+    public type MintResult = T.MintResult;
 
     public let MAX_TRANSACTIONS_IN_LEDGER = 2000;
     public let MAX_TRANSACTION_BYTES : Nat64 = 196;

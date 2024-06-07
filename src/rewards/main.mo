@@ -204,8 +204,12 @@ actor class Rewards() {
                 } else {
                     for(rp in rewardsProgress.vals()){
                         if(r.rewardType == rp.rewardType){
-                            let _progress = r.progress;
+                            let _progress = r.progress + rp.progress;
                             var _finishedDate = r.finish_date;
+                            if(_progress >= r.total){
+                                _finished := true;
+                                _finishedDate := _now;
+                            };
                             let _r_u : Types.RewardsUser = {
                                 expiration   = r.expiration;
                                 start_date   = r.start_date;

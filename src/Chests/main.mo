@@ -13,8 +13,8 @@ import Buffer "mo:base/Buffer";
 import HashMap "mo:base/HashMap";
 import Time "mo:base/Time";
 import Random "mo:base/Random";
-import Types "../chests/types";
-import Utils "../chests/utils";
+import Types "./Types";
+import Utils "./Utils";
 
 shared actor class Chests(collectionOwner: Types.Account, init: Types.CollectionInitArgs) = Self {
   private stable var owner: Types.Account = collectionOwner;

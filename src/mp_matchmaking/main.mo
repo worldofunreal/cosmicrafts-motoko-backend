@@ -522,6 +522,10 @@ actor class PlayersCanister() {
                 };
                 let _now = Nat64.fromIntWrap(Time.now());
                 if(_m.player1.id == player){
+                    /// Check if the time of expiration have passed already and return false
+                    if((_m.player1.lastPlayerActive + inactiveSeconds) < _now){
+                        return false;
+                    };
                     let _p : PlayerInfo = _m.player1;
                     let _p1 : PlayerInfo = structPlayerActiveNow(_p);
                     let _gameData : MatchData = structMatchData(_p1, _m.player2, _m);

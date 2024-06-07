@@ -166,6 +166,8 @@ actor class Statistics() {
                     };
                     _progressRewards := Array.append(_progressRewards, [_wonProgress]);
                 };
+                let _progressAdded = await rewardsCanister.addProgressToRewards(msg.caller, _progressRewards);
+                _txt := _progressAdded.1;
                 switch(playerGamesStats.get(msg.caller)){
                     case(null) {
                         let _gs : PlayerGamesStats = {

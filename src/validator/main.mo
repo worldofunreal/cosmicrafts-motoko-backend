@@ -30,18 +30,18 @@ actor class Validator() {
     public shared query(msg) func validateGame(timeInSeconds : Float, energySpent : Float, score : Float, efficiencyThreshold : Float) : async (Bool, Text) {
         let maxScore             : Float = maxPlausibleScore(timeInSeconds);
         let isScoreValid         : Bool  = score <= maxScore;
-        let isEnergyBalanceValid : Bool  = validateEnergyBalance(timeInSeconds, energySpent);
-        let isEfficiencyValid    : Bool  = validateEfficiency(score, energySpent, efficiencyThreshold);
-        if(isScoreValid and isEnergyBalanceValid and isEfficiencyValid){
+        //let isEnergyBalanceValid : Bool  = validateEnergyBalance(timeInSeconds, energySpent);
+        //let isEfficiencyValid    : Bool  = validateEfficiency(score, energySpent, efficiencyThreshold);
+        if(isScoreValid /* and isEnergyBalanceValid and isEfficiencyValid*/){
             return (true, "Game is valid");
         } else {
             // onValidation.put(gameID, _basicStats);
             if(isScoreValid == false){
                 return (false, "Score is not valid");
-            } else if(isEnergyBalanceValid == false){
-                return (false, "Energy balance is not valid");
-            } else if(isEfficiencyValid == false){
-                return (false, "Efficiency is not valid");
+            // } else if(isEnergyBalanceValid == false){
+            //     return (false, "Energy balance is not valid");
+            // } else if(isEfficiencyValid == false){
+            //     return (false, "Efficiency is not valid");
             } else {
                 return (false, "Game is not valid");
             };

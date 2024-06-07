@@ -129,6 +129,11 @@ module {
         #Err : TransferError;
     };
 
+    public type MintResult = {
+        #Ok : { transaction_id : TxIndex; amount_minted : Balance };
+        #Err : TransferError;
+    };
+
     /// Interface for the ICRC token canister
     public type TokenInterface = actor {
 
