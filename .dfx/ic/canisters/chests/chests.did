@@ -1,0 +1,249 @@
+type TransferReceipt = 
+ variant {
+   Err: TransferError;
+   Ok: TransferId;
+ };
+type TransferId = nat;
+type TransferError = 
+ variant {
+   CreatedInFuture: record {ledger_time: nat64;};
+   Duplicate: record {duplicate_of: TransferId;};
+   GenericError: record {
+                   error_code: nat;
+                   message: text;
+                 };
+   TemporarilyUnavailable: record {};
+   TooOld;
+   Unauthorized: record {token_ids: vec TokenId;};
+ };
+type TransferArgs = 
+ record {
+   created_at_time: opt nat64;
+   from: opt Account;
+   is_atomic: opt bool;
+   memo: opt blob;
+   spender_subaccount: opt Subaccount;
+   to: Account;
+   token_ids: vec TokenId;
+ };
+type Transaction = 
+ record {
+   icrc7_approve:
+    opt
+     record {
+       created_at_time: opt nat64;
+       expires_at: opt nat64;
+       from: Account;
+       memo: opt blob;
+       spender: Account;
+       token_ids: opt vec TokenId;
+     };
+   icrc7_transfer:
+    opt
+     record {
+       created_at_time: opt nat64;
+       from: Account;
+       memo: opt blob;
+       spender: opt Account;
+       to: Account;
+       token_ids: vec TokenId;
+     };
+   kind: text;
+   mint: opt record {
+               to: Account;
+               token_ids: vec TokenId;
+             };
+   timestamp: nat64;
+   upgrade:
+    opt
+     record {
+       memo: opt blob;
+       new_metadata: vec record {
+                           text;
+                           Metadata;
+                         };
+       prev_metadata: vec record {
+                            text;
+                            Metadata;
+                          };
+       token_id: opt TokenId;
+       upgraded_at: opt nat64;
+     };
+ };
+type TokensOfResult = 
+ variant {
+   Err: CallError;
+   Ok: vec TokenId;
+ };
+type TokenId = nat;
+type SupportedStandard = 
+ record {
+   name: text;
+   url: text;
+ };
+type Subaccount = blob;
+type OwnerResult = 
+ variant {
+   Err: CallError;
+   Ok: Account;
+ };
+type OpenReceipt = 
+ variant {
+   Err: TransferError;
+   Ok: vec record {
+             text;
+             nat;
+           };
+ };
+type OpenArgs = 
+ record {
+   from: Account;
+   token_id: TokenId;
+ };
+type MintReceipt = 
+ variant {
+   Err: MintError;
+   Ok: TokenId;
+ };
+type MintError = 
+ variant {
+   AlreadyExistTokenId;
+   GenericError: record {
+                   error_code: nat;
+                   message: text;
+                 };
+   InvalidRecipient;
+   SupplyCapOverflow;
+   Unauthorized;
+ };
+type MintArgs = 
+ record {
+   metadata: vec record {
+                   text;
+                   Metadata;
+                 };
+   to: Account;
+   token_id: TokenId;
+ };
+type MetadataResult = 
+ variant {
+   Err: CallError;
+   Ok: vec record {
+             text;
+             Metadata;
+           };
+ };
+type MetadataArray = 
+ vec record {
+       text;
+       Metadata;
+     };
+type Metadata = 
+ variant {
+   Blob: blob;
+   Int: int;
+   MetadataArray: MetadataArray;
+   Nat: nat;
+   Text: text;
+ };
+type GetTransactionsResult = 
+ record {
+   total: nat;
+   transactions: vec Transaction;
+ };
+type GetTransactionsArgs = 
+ record {
+   account: opt Account;
+   limit: nat;
+   offset: nat;
+ };
+type CollectionMetadata = 
+ record {
+   description: opt text;
+   image: opt blob;
+   name: text;
+   royalties: opt nat16;
+   royaltyRecipient: opt Account;
+   supplyCap: opt nat;
+   symbol: text;
+   totalSupply: nat;
+ };
+type CollectionInitArgs = 
+ record {
+   description: opt text;
+   image: opt blob;
+   name: text;
+   royalties: opt nat16;
+   royaltyRecipient: opt Account;
+   supplyCap: opt nat;
+   symbol: text;
+ };
+type Chests = 
+ service {
+   get_collection_owner: () -> (Account) query;
+   get_transactions: (GetTransactionsArgs) -> (GetTransactionsResult);
+   icrc7_approve: (ApprovalArgs) -> (ApprovalReceipt);
+   icrc7_balance_of: (Account) -> (BalanceResult) query;
+   icrc7_collection_metadata: () -> (CollectionMetadata) query;
+   icrc7_description: () -> (opt text) query;
+   icrc7_image: () -> (opt blob) query;
+   icrc7_metadata: (TokenId) -> (MetadataResult) query;
+   icrc7_name: () -> (text) query;
+   icrc7_owner_of: (TokenId) -> (OwnerResult) query;
+   icrc7_royalties: () -> (opt nat16) query;
+   icrc7_royalty_recipient: () -> (opt Account) query;
+   icrc7_supply_cap: () -> (opt nat) query;
+   icrc7_supported_standards: () -> (vec SupportedStandard) query;
+   icrc7_symbol: () -> (text) query;
+   icrc7_tokens_of: (Account) -> (TokensOfResult) query;
+   icrc7_total_supply: () -> (nat) query;
+   icrc7_transfer: (TransferArgs) -> (TransferReceipt);
+   /// Mint NFT
+   mint: (MintArgs) -> (MintReceipt);
+   openChest: (OpenArgs) -> (OpenReceipt);
+ };
+type CallError = 
+ variant {
+   AlreadyExistTokenId;
+   GenericError;
+   InvalidRecipient;
+   InvalidTokenId;
+   SupplyCapOverflow;
+   Unauthorized;
+ };
+type BalanceResult = 
+ variant {
+   Err: CallError;
+   Ok: nat;
+ };
+type ApprovalReceipt = 
+ variant {
+   Err: ApprovalError;
+   Ok: ApprovalId;
+ };
+type ApprovalId = nat;
+type ApprovalError = 
+ variant {
+   GenericError: record {
+                   error_code: nat;
+                   message: text;
+                 };
+   TemporarilyUnavailable: record {};
+   TooOld;
+   Unauthorized: record {token_ids: vec TokenId;};
+ };
+type ApprovalArgs = 
+ record {
+   created_at_time: opt nat64;
+   expires_at: opt nat64;
+   from_subaccount: opt Subaccount;
+   memo: opt blob;
+   spender: Account;
+   token_ids: opt vec TokenId;
+ };
+type Account = 
+ record {
+   owner: principal;
+   subaccount: opt blob;
+ };
+service : (Account, CollectionInitArgs) -> Chests

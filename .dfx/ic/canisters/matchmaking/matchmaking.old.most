@@ -1,0 +1,30 @@
+// Version: 1.0.0
+type MatchData =
+  {
+    gameId : Nat;
+    player1 : PlayerInfo;
+    player2 : ?PlayerInfo;
+    status : MatchmakingStatus
+  };
+type MatchData__1 = MatchData;
+type MatchmakingStatus =
+  {#Accepted; #Accepting; #Ended; #InGame; #Reserved; #Searching};
+type PlayerInfo =
+  {
+    elo : Float;
+    id : UserId;
+    lastPlayerActive : Nat64;
+    matchAccepted : Bool;
+    playerGameData : Text
+  };
+type PlayerStatus = {matchID : Nat; status : MatchmakingStatus};
+type PlayerStatus__1 = PlayerStatus;
+type UserId = Principal;
+type UserId__1 = UserId;
+actor {
+  stable var _finishedGames : [(Nat, MatchData__1)];
+  stable var _inProgress : [(Nat, MatchData__1)];
+  stable var _matchID : Nat;
+  stable var _playerStatus : [(UserId__1, PlayerStatus__1)];
+  stable var _searching : [(Nat, MatchData__1)]
+};

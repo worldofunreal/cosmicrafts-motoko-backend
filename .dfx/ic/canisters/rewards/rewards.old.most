@@ -1,0 +1,41 @@
+// Version: 1.0.0
+type PlayerID = Principal;
+type PlayerID__1 = PlayerID;
+type PrizeType = {#Chest; #Flux; #Shards};
+type Reward =
+  {
+    end_date : Nat64;
+    id : Nat;
+    name : Text;
+    prize_amount : Nat;
+    prize_type : PrizeType;
+    rewardType : RewardType;
+    start_date : Nat64;
+    total : Float
+  };
+type RewardType = {#GamesCompleted; #GamesWon; #LevelReached};
+type RewardsUser =
+  {
+    expiration : Nat64;
+    finish_date : Nat64;
+    finished : Bool;
+    id_reward : Nat;
+    prize_amount : Nat;
+    prize_type : PrizeType;
+    progress : Float;
+    rewardType : RewardType;
+    start_date : Nat64;
+    total : Float
+  };
+actor {
+  stable var _activeRewards : [(Nat, Reward)];
+  stable var _cosmicraftsPrincipal : Principal;
+  stable var _expiredRewards : [(Nat, Reward)];
+  stable var _expiredRewardsUsers : [(PlayerID__1, [RewardsUser])];
+  stable var _finishedRewardsUsers : [(PlayerID__1, [RewardsUser])];
+  stable var _rewardsUsers : [(PlayerID__1, [RewardsUser])];
+  stable var _statisticsPrincipal : Principal;
+  stable var _unclaimedRewardsUsers : [(PlayerID__1, [RewardsUser])];
+  stable var _userLastReward : [(PlayerID__1, Nat)];
+  stable var rewardID : Nat
+};

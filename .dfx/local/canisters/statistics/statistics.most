@@ -1,0 +1,73 @@
+// Version: 1.0.0
+type BasicStats =
+  {
+    botDifficulty : Nat;
+    botMode : Nat;
+    characterID : Text;
+    damageCritic : Float;
+    damageDealt : Float;
+    damageEvaded : Float;
+    damageTaken : Float;
+    deploys : Float;
+    energyChargeRate : Float;
+    energyGenerated : Float;
+    energyUsed : Float;
+    energyWasted : Float;
+    faction : Nat;
+    gameMode : Nat;
+    kills : Float;
+    secRemaining : Float;
+    wonGame : Bool;
+    xpEarned : Float
+  };
+type BasicStats__1 = BasicStats;
+type GameID__2 = Nat;
+type GameID__3 = GameID__2;
+type GamesWithCharacter =
+  {characterID : Text; gamesPlayed : Nat; gamesWon : Nat};
+type GamesWithFaction = {factionID : Nat; gamesPlayed : Nat; gamesWon : Nat};
+type GamesWithGameMode =
+  {gameModeID : Nat; gamesPlayed : Nat; gamesWon : Nat};
+type PlayerGamesStats =
+  {
+    energyGenerated : Float;
+    energyUsed : Float;
+    energyWasted : Float;
+    gamesLost : Nat;
+    gamesPlayed : Nat;
+    gamesWon : Nat;
+    totalDamageCrit : Float;
+    totalDamageDealt : Float;
+    totalDamageEvaded : Float;
+    totalDamageTaken : Float;
+    totalGamesGameMode : [GamesWithGameMode];
+    totalGamesWithCharacter : [GamesWithCharacter];
+    totalGamesWithFaction : [GamesWithFaction];
+    totalXpEarned : Float
+  };
+type PlayerGamesStats__1 = PlayerGamesStats;
+type PlayerID__2 = Principal;
+type PlayerID__3 = PlayerID__2;
+actor {
+  stable var _basicStats : [(GameID__3, BasicStats__1)];
+  stable var _cosmicraftsPrincipal : Principal;
+  stable var _onValidation : [(GameID__3, BasicStats__1)];
+  stable var _playerGamesStats : [(PlayerID__3, PlayerGamesStats__1)];
+  stable var k : Int;
+  stable var overallStats :
+    {
+      totalDamageDealt : Float;
+      totalEnergyGenerated : Float;
+      totalEnergyUsed : Float;
+      totalEnergyWasted : Float;
+      totalGamesGameMode : [GamesWithGameMode];
+      totalGamesMP : Nat;
+      totalGamesPlayed : Nat;
+      totalGamesSP : Nat;
+      totalGamesWithCharacter : [GamesWithCharacter];
+      totalGamesWithFaction : [GamesWithFaction];
+      totalKills : Float;
+      totalTimePlayed : Float;
+      totalXpEarned : Float
+    }
+};
