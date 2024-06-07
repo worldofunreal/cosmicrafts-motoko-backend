@@ -60,4 +60,4 @@ export interface RewardsUser {
 export type TokenID = bigint;
 export interface _SERVICE extends Cosmicrafts {}
 export declare const idlFactory: IDL.InterfaceFactory;
-export declare const init: ({ IDL }: { IDL: IDL }) => IDL.Type[];
+export declare const init: (args: { IDL: typeof IDL }) => IDL.Type[];
