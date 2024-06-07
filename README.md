@@ -7,6 +7,14 @@ Here we can find the multiplayer matchmaking logic as it is develop and improved
 Also the statistics logic is in this repo, where all the data from the matches will be stored and validated from any cheat.
 
 
+Try with the following commands:
+`dfxvm default 0.17.0`
+`dfx start --clean --background`
+`dfx canister create --all`
+`dfx deploy`
+
+
+
 
 ## Multiplayer Matchmaking
 
