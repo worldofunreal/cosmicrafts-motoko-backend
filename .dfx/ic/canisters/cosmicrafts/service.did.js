@@ -54,11 +54,7 @@ export const idlFactory = ({ IDL }) => {
     'getUserRewards' : IDL.Func([], [IDL.Vec(RewardsUser)], []),
     'mergeSkinNFTs' : IDL.Func([IDL.Nat, IDL.Nat], [IDL.Bool, IDL.Text], []),
     'mintChest' : IDL.Func([IDL.Principal, IDL.Nat], [IDL.Bool, IDL.Text], []),
-    'mintDeck' : IDL.Func(
-        [IDL.Principal, IDL.Tuple(IDL.Nat, IDL.Nat)],
-        [IDL.Bool, IDL.Text],
-        [],
-      ),
+    'mintDeck' : IDL.Func([IDL.Principal], [IDL.Bool, IDL.Text], []),
     'mintNFT' : IDL.Func(
         [IDL.Principal, IDL.Nat, IDL.Nat],
         [IDL.Bool, IDL.Text],

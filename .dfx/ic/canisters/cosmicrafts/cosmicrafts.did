@@ -59,10 +59,7 @@ type Cosmicrafts =
    /// Mint Chests
    mintChest: (principal, nat) -> (bool, text);
    /// Mint deck with 8 units and random rarity within a range provided
-   mintDeck: (principal, record {
-                           nat;
-                           nat;
-                         }) -> (bool, text);
+   mintDeck: (principal) -> (bool, text);
    mintNFT: (principal, nat, nat) -> (bool, text);
    /// Open chests
    openChests: (nat) -> (bool, text);

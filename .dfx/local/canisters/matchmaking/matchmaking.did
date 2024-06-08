@@ -1,0 +1,60 @@
+type UserId = principal;
+type SearchStatus = 
+ variant {
+   Assigned;
+   Available;
+   NotAvailable;
+ };
+type PlayersCanister = 
+ service {
+   /// Cancel search on user's request
+   cancelMatchmaking: () -> (bool, text);
+   getAllSearching: () -> (vec MatchData) query;
+   getMatchData: (nat) -> (opt MatchData) query;
+   getMatchSearching: (text) -> (SearchStatus, nat, text);
+   getMyMatchData: () -> (opt FullMatchData, nat) composite_query;
+   isGameMatched: () -> (bool, text) query;
+   /// Move game from "In Progress" to "Finished"
+   setGameOver: (principal) -> (bool, bool, opt principal);
+   setPlayerActive: () -> (bool);
+ };
+type PlayerInfo = 
+ record {
+   elo: float64;
+   id: UserId;
+   lastPlayerActive: nat64;
+   matchAccepted: bool;
+   playerGameData: text;
+ };
+type MatchmakingStatus = 
+ variant {
+   Accepted;
+   Accepting;
+   Ended;
+   InGame;
+   Reserved;
+   Searching;
+ };
+type MatchData = 
+ record {
+   gameId: nat;
+   player1: PlayerInfo;
+   player2: opt PlayerInfo;
+   status: MatchmakingStatus;
+ };
+type FullPlayerInfo = 
+ record {
+   elo: float64;
+   id: UserId;
+   matchAccepted: bool;
+   playerGameData: text;
+   playerName: text;
+ };
+type FullMatchData = 
+ record {
+   gameId: nat;
+   player1: FullPlayerInfo;
+   player2: opt FullPlayerInfo;
+   status: MatchmakingStatus;
+ };
+service : () -> PlayersCanister

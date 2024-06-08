@@ -54,10 +54,7 @@ service : {
   getUserRewards: () -> (vec RewardsUser);
   mergeSkinNFTs: (nat, nat) -> (bool, text);
   mintChest: (principal, nat) -> (bool, text);
-  mintDeck: (principal, record {
-                          nat;
-                          nat;
-                        }) -> (bool, text);
+  mintDeck: (principal) -> (bool, text);
   mintNFT: (principal, nat, nat) -> (bool, text);
   openChests: (nat) -> (bool, text);
   savePlayerChar: (text) -> (bool, text);

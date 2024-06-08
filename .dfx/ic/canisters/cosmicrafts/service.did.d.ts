@@ -17,7 +17,7 @@ export interface Cosmicrafts {
   'getUserRewards' : ActorMethod<[], Array<RewardsUser>>,
   'mergeSkinNFTs' : ActorMethod<[bigint, bigint], [boolean, string]>,
   'mintChest' : ActorMethod<[Principal, bigint], [boolean, string]>,
-  'mintDeck' : ActorMethod<[Principal, [bigint, bigint]], [boolean, string]>,
+  'mintDeck' : ActorMethod<[Principal], [boolean, string]>,
   'mintNFT' : ActorMethod<[Principal, bigint, bigint], [boolean, string]>,
   'openChests' : ActorMethod<[bigint], [boolean, string]>,
   'savePlayerChar' : ActorMethod<[string], [boolean, string]>,

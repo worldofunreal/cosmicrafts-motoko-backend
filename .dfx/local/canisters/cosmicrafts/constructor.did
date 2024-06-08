@@ -1,0 +1,50 @@
+type Balance = nat;
+type Cosmicrafts = service {
+  claimReward : (nat) -> (bool, text);
+  createPlayer : (text) -> (bool, text);
+  getAllPlayers : () -> (vec Player) query;
+  getICPBalance : () -> (record { e8s : nat64 });
+  getMyPlayerData : () -> (opt Player) query;
+  getNFTUpgradeCost : () -> (Balance) query;
+  getPlayer : () -> (opt Player);
+  getPlayerData : (principal) -> (opt Player) composite_query;
+  getPlayerElo : (principal) -> (float64) query;
+  getPlayerPreferences : () -> (opt PlayerPreferences);
+  getUserRewards : () -> (vec RewardsUser);
+  mergeSkinNFTs : (nat, nat) -> (bool, text);
+  mintChest : (principal, nat) -> (bool, text);
+  mintDeck : (principal, record { nat; nat }) -> (bool, text);
+  mintNFT : (principal, nat, nat) -> (bool, text);
+  openChests : (nat) -> (bool, text);
+  savePlayerChar : (text) -> (bool, text);
+  savePlayerLanguage : (nat) -> (bool, text);
+  savePlayerName : (text) -> (bool);
+  updatePlayerElo : (principal, float64) -> (bool);
+  upgradeNFT : (TokenID) -> (bool, text);
+};
+type Level = nat;
+type Player = record {
+  id : PlayerId;
+  elo : float64;
+  name : PlayerName;
+  level : Level;
+};
+type PlayerId = principal;
+type PlayerName = text;
+type PlayerPreferences = record { language : nat; playerChar : text };
+type PrizeType = variant { Flux; Shards; Chest };
+type RewardType = variant { LevelReached; GamesCompleted; GamesWon };
+type RewardsUser = record {
+  total : float64;
+  id_reward : nat;
+  prize_amount : nat;
+  start_date : nat64;
+  progress : float64;
+  finish_date : nat64;
+  expiration : nat64;
+  rewardType : RewardType;
+  finished : bool;
+  prize_type : PrizeType;
+};
+type TokenID = nat;
+service : () -> Cosmicrafts

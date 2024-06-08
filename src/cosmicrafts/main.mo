@@ -1104,47 +1104,101 @@ shared actor class Cosmicrafts() {
     };
 
     /// Mint deck with 8 units and random rarity within a range provided
-    public shared(msg) func mintDeck(player : Principal, rarityRange : (Nat, Nat)) : async (Bool, Text) {
-        var _deck : [TypesICRC7.MintArgs] = [];
-        for(i in Iter.range(1, 8)){
-            let _seed : Blob = Blob.fromArray([Nat8.fromNat(rarityRange.0)]);
-            let _ran : Nat = Random.rangeFrom(Nat8.fromNat(rarityRange.0), _seed);
-            let _rarity : Nat = if(_ran > rarityRange.1){ rarityRange.1 } else { _ran };
-            let _mintArgs : TypesICRC7.MintArgs = {
-                to : Account = { owner = player; subaccount = null };
-                token_id = nftID;
-                metadata = getBaseMetadata(_rarity, i);
-                date_time = ?{ timestamp_nanos = Nat64.fromNat(Int.abs(Time.now())) };
-            };
-            _deck := Array.append(_deck, [_mintArgs]);
-            nftID := nftID + 1;
+   public shared(msg) func mintDeck(player : Principal) : async (Bool, Text) {
+    let units = [
+        ("Blackbird", 30, 120, 3),
+        ("Predator", 20, 140, 2),
+        ("Warhawk", 30, 180, 4),
+        ("Tigershark", 10, 100, 1),
+        ("Devastator", 20, 120, 2),
+        ("Pulverizer", 10, 180, 3),
+        ("Barracuda", 20, 140, 2),
+        ("Farragut", 10, 220, 4)
+    ];
+
+    var _deck: [TypesICRC7.MintArgs] = [];
+
+    for (i in Iter.range(0, 7)) {
+        let (name, damage, hp, rarity) = units[i];
+        let _mintArgs: TypesICRC7.MintArgs = {
+            to = { owner = player; subaccount = null };
+            token_id = nftID;
+            metadata = getBaseMetadataWithAttributes(rarity, i + 1, name, damage, hp);
+            date_time = ?{ timestamp_nanos = Nat64.fromNat(Int.abs(Time.now())) };
         };
-        let mint : TypesICRC7.MintReceipt = await nftsToken.mintDeck(_deck);
-        switch(mint){
-            case(#Ok(_transactionID)){
-                return (true, "Deck minted. # NFTs: " # Nat.toText(_transactionID));
-            };
-            case(#Err(_e)){
-                switch(_e){
-                    case(#AlreadyExistTokenId){
-                        return (false, "Deck mint failed: Token ID already exists");
-                    };
-                    case(#GenericError(_g)){
-                        return (false, "Deck mint failed: GenericError: " # _g.message);
-                    };
-                    case(#InvalidRecipient){
-                        return (false, "Deck mint failed: InvalidRecipient");
-                    };
-                    case(#Unauthorized){
-                        return (false, "Deck mint failed: Unauthorized");
-                    };
-                    case(#SupplyCapOverflow){
-                        return (false, "Deck mint failed: SupplyCapOverflow");
-                    };
+        _deck := Array.append(_deck, [_mintArgs]);
+        nftID := nftID + 1;
+    };
+
+    let mint: TypesICRC7.MintReceipt = await nftsToken.mintDeck(_deck);
+    switch (mint) {
+        case (#Ok(_transactionID)) {
+            return (true, "Deck minted. # NFTs: " # Nat.toText(_transactionID));
+        };
+        case (#Err(_e)) {
+            switch (_e) {
+                case (#AlreadyExistTokenId) {
+                    return (false, "Deck mint failed: Token ID already exists");
+                };
+                case (#GenericError(_g)) {
+                    return (false, "Deck mint failed: GenericError: " # _g.message);
+                };
+                case (#InvalidRecipient) {
+                    return (false, "Deck mint failed: InvalidRecipient");
+                };
+                case (#Unauthorized) {
+                    return (false, "Deck mint failed: Unauthorized");
+                };
+                case (#SupplyCapOverflow) {
+                    return (false, "Deck mint failed: SupplyCapOverflow");
                 };
             };
         };
     };
+};
+
+func getBaseMetadataWithAttributes(rarity: Nat, unit_id: Nat, name: Text, damage: Nat, hp: Nat) : [(Text, TypesICRC7.Metadata)] {
+    let baseMetadata = getBaseMetadata(rarity, unit_id);
+
+    var updatedMetadata: [(Text, TypesICRC7.Metadata)] = [];
+
+    for ((key, value) in baseMetadata.vals()) {
+        switch (key) {
+            case ("general") {
+                let generalArray = switch (value) {
+                    case (#MetadataArray(arr)) arr;
+                    case (_) [];
+                };
+                var newGeneralArray: TypesICRC7.MetadataArray = [];
+                for ((gKey, gValue) in generalArray.vals()) {
+                    switch (gKey) {
+                        case "name" newGeneralArray := Array.append(newGeneralArray, [(gKey, #Text(name))]);
+                        case "description" newGeneralArray := Array.append(newGeneralArray, [(gKey, #Text(name # " NFT"))]);
+                        case _ newGeneralArray := Array.append(newGeneralArray, [(gKey, gValue)]);
+                    };
+                };
+                updatedMetadata := Array.append(updatedMetadata, [(key, #MetadataArray(newGeneralArray))]);
+            };
+            case ("basic_stats") {
+                let basicStatsArray = switch (value) {
+                    case (#MetadataArray(arr)) arr;
+                    case (_) [];
+                };
+                var newBasicStatsArray: TypesICRC7.MetadataArray = [];
+                for ((bKey, bValue) in basicStatsArray.vals()) {
+                    switch (bKey) {
+                        case "health" newBasicStatsArray := Array.append(newBasicStatsArray, [(bKey, #Int(hp))]);
+                        case "damage" newBasicStatsArray := Array.append(newBasicStatsArray, [(bKey, #Int(damage))]);
+                        case _ newBasicStatsArray := Array.append(newBasicStatsArray, [(bKey, bValue)]);
+                    };
+                };
+                updatedMetadata := Array.append(updatedMetadata, [(key, #MetadataArray(newBasicStatsArray))]);
+            };
+            case _ updatedMetadata := Array.append(updatedMetadata, [(key, value)]);
+        };
+    };
+    return updatedMetadata;
+};
 
 
     /// Rewards for users
