@@ -794,110 +794,73 @@ shared actor class Cosmicrafts() {
         };
     };
 
-    func updateBasicStats(basicStats : TypesICRC7.Metadata) : TypesICRC7.Metadata {
-        let _data : TypesICRC7.Metadata = switch(basicStats){
-            case(#Nat(_)){
-                basicStats;
-            };
-            case(#Text(_)){
-                basicStats
-            };
-            case(#Blob(_)){
-                basicStats
-            };
-            case(#Int(_)){
-                basicStats
-            };
-            case(#MetadataArray(_a)){
-                // Upgrade the metadata array
-                /// Iterate in the array and upgrade the values
-                /*
-                    Basic Stats:
-                        - Level
-                        - Health
-                        - Damage
-                */
-                var _newArray : TypesICRC7.MetadataArray = [];
-                for (_md in _a.vals()) {
-                    let _mdKey : Text = _md.0;
-                    let _mdValue : TypesICRC7.Metadata = _md.1;
-                    switch(_mdKey){
-                        case("level"){
-                            let _level : Nat = switch(_mdValue){
-                                case(#Nat(level)){
-                                    level + 1;
-                                };
-                                case(#Text(_)){
-                                    0;
-                                };
-                                case(#Blob(_)){
-                                    0;
-                                };
-                                case(#Int(_)){
-                                    0;
-                                };
-                                case(#MetadataArray(_)){
-                                    0;
-                                };
-                            };
-                            let _newLevel : Nat = _level;
-                            let _newLevelMetadata : TypesICRC7.Metadata = #Nat(_newLevel);
-                            _newArray := Array.append(_newArray, [("level", _newLevelMetadata)]);
+    func updateBasicStats(basicStats: TypesICRC7.Metadata) : TypesICRC7.Metadata {
+    let _data: TypesICRC7.Metadata = switch (basicStats) {
+        case (#Nat(_)) basicStats;
+        case (#Text(_)) basicStats;
+        case (#Blob(_)) basicStats;
+        case (#Int(_)) basicStats;
+        case (#MetadataArray(_a)) {
+            // Upgrade the metadata array
+            /// Iterate in the array and upgrade the values
+            /*
+                Basic Stats:
+                    - Level
+                    - Health
+                    - Damage
+            */
+            var _newArray = Buffer.Buffer<(Text, TypesICRC7.Metadata)>(_a.size());
+
+            for (_md in _a.vals()) {
+                let _mdKey: Text = _md.0;
+                let _mdValue: TypesICRC7.Metadata = _md.1;
+                switch (_mdKey) {
+                    case "level" {
+                        let _level: Nat = switch (_mdValue) {
+                            case (#Nat(level)) level + 1;
+                            case (#Text(_)) 0;
+                            case (#Blob(_)) 0;
+                            case (#Int(_)) 0;
+                            case (#MetadataArray(_)) 0;
                         };
-                        case("health"){
-                            let _health : Float = switch(_mdValue){
-                                case(#Int(health)){
-                                    Float.fromInt64(Int64.fromInt(health)) / 100;
-                                };
-                                case(#Text(_)){
-                                    0;
-                                };
-                                case(#Blob(_)){
-                                    0;
-                                };
-                                case (#Nat(_)){
-                                    0;
-                                };
-                                case(#MetadataArray(_)){
-                                    0;
-                                };
-                            };
-                            let _newHealth : Float = _health * 1.1 * 100;
-                            let _newHealthMetadata : TypesICRC7.Metadata = #Int(Int64.toInt(Float.toInt64(_newHealth)));
-                            _newArray := Array.append(_newArray, [("health", _newHealthMetadata)]);
+                        let _newLevelMetadata: TypesICRC7.Metadata = #Nat(_level);
+                        _newArray.add(("level", _newLevelMetadata));
+                    };
+                    case "health" {
+                        let _health: Float = switch (_mdValue) {
+                            case (#Int(health)) Float.fromInt64(Int64.fromInt(health)) / 100;
+                            case (#Text(_)) 0;
+                            case (#Blob(_)) 0;
+                            case (#Nat(_)) 0;
+                            case (#MetadataArray(_)) 0;
                         };
-                        case("damage"){
-                            let _damage : Float = switch(_mdValue){
-                                case(#Int(damage)){
-                                    Float.fromInt64(Int64.fromInt(damage)) / 100;
-                                };
-                                case(#Text(_)){
-                                    0;
-                                };
-                                case(#Blob(_)){
-                                    0;
-                                };
-                                case (#Nat(_)){
-                                    0;
-                                };
-                                case(#MetadataArray(_)){
-                                    0;
-                                };
-                            };
-                            let _newDamage : Float = _damage * 1.1 * 100;
-                            let _newDamageMetadata : TypesICRC7.Metadata = #Int(Int64.toInt(Float.toInt64(_newDamage)));
-                            _newArray := Array.append(_newArray, [("damage", _newDamageMetadata)]);
+                        let _newHealth: Float = _health * 1.1 * 100;
+                        let _newHealthMetadata: TypesICRC7.Metadata = #Int(Int64.toInt(Float.toInt64(_newHealth)));
+                        _newArray.add(("health", _newHealthMetadata));
+                    };
+                    case "damage" {
+                        let _damage: Float = switch (_mdValue) {
+                            case (#Int(damage)) Float.fromInt64(Int64.fromInt(damage)) / 100;
+                            case (#Text(_)) 0;
+                            case (#Blob(_)) 0;
+                            case (#Nat(_)) 0;
+                            case (#MetadataArray(_)) 0;
                         };
-                        case(_){
-                            _newArray := Array.append(_newArray, [(_mdKey, _mdValue)]);
-                        };
+                        let _newDamage: Float = _damage * 1.1 * 100;
+                        let _newDamageMetadata: TypesICRC7.Metadata = #Int(Int64.toInt(Float.toInt64(_newDamage)));
+                        _newArray.add(("damage", _newDamageMetadata));
+                    };
+                    case (_) {
+                        _newArray.add((_mdKey, _mdValue));
                     };
                 };
-                return #MetadataArray(_newArray);
             };
+            return #MetadataArray(_newArray.toArray());
         };
-        return _data;
     };
+    return _data;
+};
+
 
     func getBaseMetadata(rarity : Nat, unit_id : Nat) : [(Text, TypesICRC7.Metadata)] {
         /* Basic Stats */
@@ -1107,7 +1070,7 @@ shared actor class Cosmicrafts() {
     };
 
     /// Mint deck with 8 units and random rarity within a range provided
-   public shared(msg) func mintDeck(player : Principal) : async (Bool, Text) {
+   public shared(msg) func mintDeck(player: Principal) : async (Bool, Text) {
     let units = [
         ("Blackbird", 30, 120, 3),
         ("Predator", 20, 140, 2),
@@ -1119,7 +1082,7 @@ shared actor class Cosmicrafts() {
         ("Farragut", 10, 220, 4)
     ];
 
-    var _deck: [TypesICRC7.MintArgs] = [];
+    var _deck = Buffer.Buffer<TypesICRC7.MintArgs>(8);
 
     for (i in Iter.range(0, 7)) {
         let (name, damage, hp, rarity) = units[i];
@@ -1130,11 +1093,11 @@ shared actor class Cosmicrafts() {
             metadata = getBaseMetadataWithAttributes(rarity, i + 1, name, damage, hp);
             date_time = ?{ timestamp_nanos = Nat64.fromNat(Int.abs(Time.now())) };
         };
-        _deck := Array.append(_deck, [_mintArgs]);
+        _deck.add(_mintArgs);
         nftID := nftID + 1;
     };
 
-    let mint: TypesICRC7.MintReceipt = await nftsToken.mintDeck(_deck);
+    let mint: TypesICRC7.MintReceipt = await nftsToken.mintDeck(_deck.toArray());
     switch (mint) {
         case (#Ok(_transactionID)) {
             return (true, "Deck minted. # NFTs: " # Nat.toText(_transactionID));
@@ -1160,6 +1123,7 @@ shared actor class Cosmicrafts() {
         };
     };
 };
+
 
 func getBaseMetadataWithAttributes(rarity: Nat, unit_id: Nat, name: Text, damage: Nat, hp: Nat) : [(Text, TypesICRC7.Metadata)] {
     let baseMetadata = getBaseMetadata(rarity, unit_id);
@@ -1348,6 +1312,9 @@ public shared func generateUUID64() : async Nat {
     for (i in Iter.range(0, 7)) {
         uuid := Nat.add(Nat.bitshiftLeft(uuid, 8), Nat8.toNat(byteArray[i]));
     };
+    
+    // Ensure the generated Nat value is within the desired range
+    uuid := uuid % 2147483647;
 
     return uuid;
 };
