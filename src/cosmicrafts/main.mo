@@ -24,6 +24,7 @@ import Random "mo:base/Random";
 import Result "mo:base/Result";
 import Text "mo:base/Text";
 import Time "mo:base/Time";
+import Buffer "mo:base/Buffer";
 
 import Token "../ICRC1/Canisters/Token";
 import Flux "../Flux/Canisters/Token";
@@ -720,9 +721,10 @@ shared actor class Cosmicrafts() {
 
     public shared(msg) func mintNFT(player : Principal, rarity : Nat, unit_id : Nat) : async (Bool, Text){
         /// Call the NFT contract to mint a new NFT
+        let uuid = await generateUUID();
         let _mintArgs : TypesICRC7.MintArgs = {
             to = {owner = player; subaccount = null};
-            token_id = nftID;
+            token_id = uuid;
             metadata = getBaseMetadata(rarity, unit_id);
             date_time = ?{ timestamp_nanos = Nat64.fromNat(Int.abs(Time.now())) };
         };
@@ -757,9 +759,10 @@ shared actor class Cosmicrafts() {
     /// Mint Chests
     public shared(msg) func mintChest(player : Principal, rarity : Nat) : async (Bool, Text){
         /// Call the NFT contract to mint a new NFT
+        let uuid = await generateUUID();
         let _mintArgs : TypesICRC7.MintArgs = {
             to = {owner = player; subaccount = null};
-            token_id = chestID;
+            token_id = uuid;
             metadata = getChestMetadata(rarity);
             date_time = ?{ timestamp_nanos = Nat64.fromNat(Int.abs(Time.now())) };
         };
@@ -1120,9 +1123,10 @@ shared actor class Cosmicrafts() {
 
     for (i in Iter.range(0, 7)) {
         let (name, damage, hp, rarity) = units[i];
+        let uuid = await generateUUID();
         let _mintArgs: TypesICRC7.MintArgs = {
             to = { owner = player; subaccount = null };
-            token_id = nftID;
+            token_id = uuid;
             metadata = getBaseMetadataWithAttributes(rarity, i + 1, name, damage, hp);
             date_time = ?{ timestamp_nanos = Nat64.fromNat(Int.abs(Time.now())) };
         };
@@ -1332,4 +1336,17 @@ func getBaseMetadataWithAttributes(rarity: Nat, unit_id: Nat, name: Text, damage
         };
     };
 
+public func getRandomThreeDigits() : async Nat {
+    let blob = await Random.blob();
+    let rand = Random.rangeFrom(255, blob);  // Generate a random number between 0 and 255
+    return rand;
+};
+
+public shared func generateUUID() : async Nat {
+    let timestamp : Int = Time.now();
+    let timestampNat: Nat = Nat64.toNat(Nat64.fromIntWrap(timestamp));
+    let randomThreeDigits : Nat = await getRandomThreeDigits();
+    let uuid: Nat = timestampNat + randomThreeDigits;
+    return uuid;
+};
 };
