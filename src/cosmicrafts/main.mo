@@ -721,7 +721,7 @@ shared actor class Cosmicrafts() {
 
     public shared(msg) func mintNFT(player : Principal, rarity : Nat, unit_id : Nat) : async (Bool, Text){
         /// Call the NFT contract to mint a new NFT
-        let uuid = await generateUUID();
+        let uuid = await generateUUID64();
         let _mintArgs : TypesICRC7.MintArgs = {
             to = {owner = player; subaccount = null};
             token_id = uuid;
@@ -759,7 +759,7 @@ shared actor class Cosmicrafts() {
     /// Mint Chests
     public shared(msg) func mintChest(player : Principal, rarity : Nat) : async (Bool, Text){
         /// Call the NFT contract to mint a new NFT
-        let uuid = await generateUUID();
+        let uuid = await generateUUID64();
         let _mintArgs : TypesICRC7.MintArgs = {
             to = {owner = player; subaccount = null};
             token_id = uuid;
@@ -1123,7 +1123,7 @@ shared actor class Cosmicrafts() {
 
     for (i in Iter.range(0, 7)) {
         let (name, damage, hp, rarity) = units[i];
-        let uuid = await generateUUID();
+        let uuid = await generateUUID64();
         let _mintArgs: TypesICRC7.MintArgs = {
             to = { owner = player; subaccount = null };
             token_id = uuid;
@@ -1335,18 +1335,21 @@ func getBaseMetadataWithAttributes(rarity: Nat, unit_id: Nat, name: Text, damage
             };
         };
     };
+    
+public shared func generateUUID64() : async Nat {
+    // Generate a random blob of 8 bytes
+    let randomBytes = await Random.blob();
+    var uuid : Nat = 0;
 
-public func getRandomThreeDigits() : async Nat {
-    let blob = await Random.blob();
-    let rand = Random.rangeFrom(255, blob);  // Generate a random number between 0 and 255
-    return rand;
-};
+    // Convert the blob to an array of bytes
+    let byteArray = Blob.toArray(randomBytes);
 
-public shared func generateUUID() : async Nat {
-    let timestamp : Int = Time.now();
-    let timestampNat: Nat = Nat64.toNat(Nat64.fromIntWrap(timestamp));
-    let randomThreeDigits : Nat = await getRandomThreeDigits();
-    let uuid: Nat = timestampNat + randomThreeDigits;
+    // Convert the array of bytes to Nat
+    for (i in Iter.range(0, 7)) {
+        uuid := Nat.add(Nat.bitshiftLeft(uuid, 8), Nat8.toNat(byteArray[i]));
+    };
+
     return uuid;
 };
+
 };
