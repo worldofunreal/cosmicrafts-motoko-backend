@@ -266,8 +266,8 @@ func getNFTLevel(metadata: [(Text, TypesICRC7.Metadata)]) : Nat {
 
     // Prepare for upgrade
     let _newArgsBuffer = Buffer.Buffer<(Text, TypesICRC7.Metadata)>(_nftMetadata.size());
-    let _nftLevel: Nat = getNFTLevel(_nftMetadata);
-    let upgradeCost = calculateCost(_nftLevel);
+    let nftLevel: Nat = getNFTLevel(_nftMetadata);
+    let upgradeCost = calculateCost(nftLevel);
 
     // Update metadata
     for (_md in _nftMetadata.vals()) {
@@ -276,7 +276,7 @@ func getNFTLevel(metadata: [(Text, TypesICRC7.Metadata)]) : Nat {
         switch (_mdKey) {
             case ("skin") _newArgsBuffer.add(("skin", _mdValue));
             case ("skills") {
-                let _upgradedAdvanced = upgradeAdvancedAttributes(_nftLevel, _mdValue);
+                let _upgradedAdvanced = upgradeAdvancedAttributes(nftLevel, _mdValue);
                 _newArgsBuffer.add(("skills", _upgradedAdvanced));
             };
             case ("souls") _newArgsBuffer.add(("souls", _mdValue));
@@ -338,7 +338,6 @@ func getNFTLevel(metadata: [(Text, TypesICRC7.Metadata)]) : Nat {
         };
     };
 };
-
 
     func upgradeAdvancedAttributes(nft_level : Nat, currentValue : TypesICRC7.Metadata) : TypesICRC7.Metadata {
         /// Upgrade the Skills value
