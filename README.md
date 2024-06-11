@@ -3,10 +3,15 @@
 This project contains the backend canisters of Cosmicrafts on Motoko for the Internet Computer.
 
 Try with the following commands:
-```dfxvm default 0.17.0```
+
 ```dfx start --clean --background```
+
 ```dfx canister create --all```
+
 ```dfx deploy```
+
+- **Works with dfx 0.20.1
+
 # Overview of `upgradeNFT` Function
 
 ## Verify Ownership
