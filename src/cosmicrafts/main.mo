@@ -215,14 +215,6 @@ shared actor class Cosmicrafts() {
         return (true, "Work In Progress");
     };
 
-    func calculateCost(level: Nat): Nat {
-        var cost = 9;
-        for (i in Iter.range(1, level)) {
-            cost := Nat.mul(cost, 11) / 10; // Increase by 10% and round up
-        };
-        return cost;
-    };
-
     // Add this function definition within the Cosmicrafts actor class
 func getNFTLevel(metadata: [(Text, TypesICRC7.Metadata)]) : Nat {
     for ((key, value) in metadata.vals()) {
@@ -233,17 +225,28 @@ func getNFTLevel(metadata: [(Text, TypesICRC7.Metadata)]) : Nat {
             };
             for ((bKey, bValue) in basicStatsArray.vals()) {
                 if (bKey == "level") {
-                    return switch (bValue) {
+                    let level = switch (bValue) {
                         case (#Nat(level)) level;
                         case (_) 0;
                     };
+                    Debug.print("Level found: " # Nat.toText(level));
+                    return level;
                 };
             };
         };
     };
+    Debug.print("No level found, defaulting to 0");
     return 0;
 };
 
+// Function to calculate the upgrade cost
+func calculateCost(level: Nat) : Nat {
+    var cost: Nat = 9;
+    for (i in Iter.range(2, level)) {
+        cost := cost + (Nat.div(cost, 3)); // Increase cost by ~33%
+    };
+    return cost;
+};
     public shared(msg) func upgradeNFT(nftID: TokenID) : async (Bool, Text) {
     // Verify ownership
     let ownerof: OwnerResult = await nftsToken.icrc7_owner_of(nftID);
@@ -268,6 +271,7 @@ func getNFTLevel(metadata: [(Text, TypesICRC7.Metadata)]) : Nat {
     let _newArgsBuffer = Buffer.Buffer<(Text, TypesICRC7.Metadata)>(_nftMetadata.size());
     let nftLevel: Nat = getNFTLevel(_nftMetadata);
     let upgradeCost = calculateCost(nftLevel);
+    Debug.print("Upgrade Cost: " # Nat.toText(upgradeCost));
 
     // Update metadata
     for (_md in _nftMetadata.vals()) {
@@ -338,6 +342,7 @@ func getNFTLevel(metadata: [(Text, TypesICRC7.Metadata)]) : Nat {
         };
     };
 };
+
 
     func upgradeAdvancedAttributes(nft_level : Nat, currentValue : TypesICRC7.Metadata) : TypesICRC7.Metadata {
         /// Upgrade the Skills value
