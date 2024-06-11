@@ -219,134 +219,98 @@ shared actor class Cosmicrafts() {
         return (true, "Work In Progress");
     };
 
-    public shared(msg) func upgradeNFT(nftID : TokenID) : async (Bool, Text){
-        /// First we need to verify the user owns the NFT
-        let ownerof : OwnerResult = await nftsToken.icrc7_owner_of(nftID);
-        let _owner : Account = switch(ownerof){
-            case(#Ok(owner)){
-                owner;
+    public shared(msg) func upgradeNFT(nftID: TokenID) : async (Bool, Text) {
+    // First, we need to verify the user owns the NFT
+    let ownerof: OwnerResult = await nftsToken.icrc7_owner_of(nftID);
+    let _owner: Account = switch (ownerof) {
+        case (#Ok(owner)) owner;
+         case (#Err(_)) {
+            { owner = Principal.fromText("aaaaa-aa"); subaccount = null };
+        };
+    };
+    if (Principal.notEqual(_owner.owner, msg.caller)) {
+        return (false, "You do not own this NFT. Caller: " # Principal.toText(msg.caller) # " Owner: " # Principal.toText(_owner.owner));
+    };
+
+    // Then we need to get the NFT Metadata
+    let metadataResult: TypesICRC7.MetadataResult = await nftsToken.icrc7_metadata(nftID);
+    let _nftMetadata: [(Text, TypesICRC7.Metadata)] = switch (metadataResult) {
+        case (#Ok(metadata)) metadata;
+        case (#Err(_)) return (false, "NFT not found");
+    };
+
+    let _newArgsBuffer = Buffer.Buffer<(Text, TypesICRC7.Metadata)>(_nftMetadata.size());
+    let _nftLevel: Nat = getNFTLevel(_nftMetadata);
+
+    for (_md in _nftMetadata.vals()) {
+        let _mdKey: Text = _md.0;
+        let _mdValue: TypesICRC7.Metadata = _md.1;
+        switch (_mdKey) {
+            case ("skin") _newArgsBuffer.add(("skin", _mdValue));
+            case ("skills") {
+                let _upgradedAdvanced = upgradeAdvancedAttributes(_nftLevel, _mdValue);
+                _newArgsBuffer.add(("skills", _upgradedAdvanced));
             };
-            case(#Err(_)){
-                {owner = Principal.fromText("aaaaa-aa"); subaccount = null};
+            case ("souls") _newArgsBuffer.add(("souls", _mdValue));
+            case ("basic_stats") {
+                let _basic_stats = updateBasicStats(_mdValue);
+                _newArgsBuffer.add(("basic_stats", _basic_stats));
+            };
+            case ("general") _newArgsBuffer.add(("general", _mdValue));
+            case (_) _newArgsBuffer.add((_mdKey, _mdValue));
+        };
+    };
+
+    // Create the transaction arguments
+    let _transactionsArgs = {
+        amount: TypesICRC1.Balance = upgrade_cost;
+        created_at_time: ?Nat64 = ?Nat64.fromNat(Int.abs(Time.now()));
+        fee: ?TypesICRC1.Balance = ?Nat64.toNat(icrc1_fee);
+        from_subaccount: ?TypesICRC1.Subaccount = null;
+        memo: ?Blob = null;
+        to: TypesICRC1.Account = { owner = Principal.fromText("3a6n7-myvuc-huq2n-dgpjx-fxa7y-4pteq-epbjf-sdeis-mqq5z-ak6ff-jqe"); subaccount = null; };
+    };
+
+    let transfer: TransferResult = await shardsToken.icrc1_pay_for_transaction(_transactionsArgs, msg.caller);
+
+    switch (transfer) {
+        case (#Ok(_tok)) {
+            let _upgradeArgs: TypesICRC7.UpgradeArgs = {
+                from = { owner = msg.caller; subaccount = null };
+                token_id = nftID;
+                metadata = _newArgsBuffer.toArray();
+                date_time = ?{ timestamp_nanos = Nat64.fromNat(Int.abs(Time.now())) };
+            };
+            let upgrade: TypesICRC7.UpgradeReceipt = await nftsToken.upgradeNFT(_upgradeArgs);
+            switch (upgrade) {
+                case (#Ok(_)) {
+                    return (true, "NFT upgraded. Transaction ID: " # Nat.toText(_tok));
+                };
+                case (#Err(_e)) {
+                    switch (_e) {
+                        case (#DoesntExistTokenId) return (false, "NFT upgrade failed: NFT not found");
+                        case (#GenericError(_g)) return (false, "NFT upgrade failed: GenericError: " # _g.message);
+                        case (#InvalidRecipient) return (false, "NFT upgrade failed: InvalidRecipient");
+                        case (#Unauthorized) return (false, "NFT upgrade failed: Unauthorized");
+                    };
+                };
             };
         };
-        assert(_owner.owner == msg.caller);
-        /// Then we need to get the NFT Metadata
-        let metadata : TypesICRC7.MetadataResult = await nftsToken.icrc7_metadata(nftID);
-        let _nftMetadata : [(Text, TypesICRC7.Metadata )] = switch(metadata){
-            case(#Ok(metadata)){
-                metadata;
-            };
-            case(#Err(_)){
-                return (false, "NFT not found");
-            };
-        };
-        var _newArgs : [(Text, TypesICRC7.Metadata)] = [];
-        let _nftLevel : Nat = getNFTLevel(_nftMetadata);
-        for (_md in _nftMetadata.vals()) {
-            let _mdKey : Text = _md.0;
-            let _mdValue : TypesICRC7.Metadata = _md.1;
-            switch(_mdKey){
-                case("skin"){
-                    /// Skins do not upgrade with the NFT
-                    _newArgs := Array.append(_newArgs, [("skin", _mdValue)]);
-                };
-                case("skills"){
-                    let _upgradedAdvanced = upgradeAdvancedAttributes(_nftLevel, _mdValue);
-                    _newArgs := Array.append(_newArgs, [("skills", _upgradedAdvanced)]);
-                };
-                case("souls"){
-                    /// Souls do not upgrade with the NFT
-                    _newArgs := Array.append(_newArgs, [("souls", _mdValue)]);
-                };
-                case("basic_stats"){
-                    /// Basic stats do not upgrade with the NFT
-                    let _basic_stats = updateBasicStats(_mdValue);
-                    _newArgs := Array.append(_newArgs, [("basic_stats", _basic_stats)]);
-                };
-                case("general"){
-                    /// General does not upgrade with the NFT
-                    _newArgs := Array.append(_newArgs, [("general", _mdValue)]);
-                };
-                case(_){
-                    /// Other attributes do not upgrade with the NFT
-                    _newArgs := Array.append(_newArgs, [(_mdKey, _mdValue)]);
-                };
-            };
-        };
-        /// Then we need to take the amount of ICRC1 from the user's tokens to pay for this upgrade
-        let _transactionsArgs = {
-            amount : TypesICRC1.Balance = upgrade_cost;
-            created_at_time : ?Nat64 = ?Nat64.fromNat(Int.abs(Time.now()));
-            fee : ?TypesICRC1.Balance = ?Nat64.toNat(icrc1_fee);
-            from_subaccount : ?TypesICRC1.Subaccount = null;//?getUserSubaccount(msg.caller);
-            memo : ?Blob = null;
-            // to : TypesICRC1.Account = { owner = _cosmicPrincipal; subaccount = null; };
-            to : TypesICRC1.Account = { owner = Principal.fromText("3a6n7-myvuc-huq2n-dgpjx-fxa7y-4pteq-epbjf-sdeis-mqq5z-ak6ff-jqe"); subaccount = null; };
-        };
-        let transfer : TransferResult = await shardsToken.icrc1_pay_for_transaction(_transactionsArgs, msg.caller);
-        /// Finally we need to call the upgrade funciton on the NFT contract
-        switch(transfer){
-            case(#Ok(_tok)){
-                let _upgradeArgs : TypesICRC7.UpgradeArgs = {
-                    from     = { owner = msg.caller; subaccount = null; };
-                    token_id = nftID;
-                    metadata = _newArgs;
-                    date_time = ?{ timestamp_nanos = Nat64.fromNat(Int.abs(Time.now())) };
-                };
-                let upgrade : TypesICRC7.UpgradeReceipt = await nftsToken.upgradeNFT(_upgradeArgs);
-                switch(upgrade){
-                    case(#Ok(_)){
-                        return (true, "NFT upgraded. Transaction ID: " # Nat.toText(_tok));
-                    };
-                    case(#Err(_e)){
-                        switch(_e){
-                            case(#DoesntExistTokenId){
-                                return (false, "NFT upgrade failed: NFT not found");
-                            };
-                            case(#GenericError(_g)){
-                                return (false, "NFT upgrade failed: GenericError: " # _g.message);
-                            };
-                            case(#InvalidRecipient){
-                                return (false, "NFT upgrade failed: InvalidRecipient");
-                            };
-                            case(#Unauthorized){
-                                return (false, "NFT upgrade failed: Unauthorized");
-                            };
-                        };
-                    };
-                };
-            };
-            case(#Err(_e)){
-                switch(_e){
-                    case(#BadBurn(_)){
-                        return (false, "BadBurn");
-                    };
-                    case(#BadFee(_)){
-                        return (false, "BadFee");
-                    };
-                    case(#CreatedInFuture(_)){
-                        return (false, "CreatedInFuture");
-                    };
-                    case(#Duplicate(_)){
-                        return (false, "Duplicate");
-                    };
-                    case(#GenericError(_g)){
-                        return (false, "GenericError: " # _g.message);
-                    };
-                    case(#InsufficientFunds(_b)){
-                        return (false, "InsufficientFunds: " # Nat.toText(_b.balance));
-                    };
-                    case(#TemporarilyUnavailable){
-                        return (false, "TemporarilyUnavailable");
-                    };
-                    case(#TooOld){
-                        return (false, "TooOld");
-                    };
-                };
+        case (#Err(_e)) {
+            switch (_e) {
+                case (#BadBurn(_)) return (false, "BadBurn");
+                case (#BadFee(_)) return (false, "BadFee");
+                case (#CreatedInFuture(_)) return (false, "CreatedInFuture");
+                case (#Duplicate(_)) return (false, "Duplicate");
+                case (#GenericError(_g)) return (false, "GenericError: " # _g.message);
+                case (#InsufficientFunds(_b)) return (false, "InsufficientFunds: " # Nat.toText(_b.balance));
+                case (#TemporarilyUnavailable) return (false, "TemporarilyUnavailable");
+                case (#TooOld) return (false, "TooOld");
             };
         };
     };
+};
+
 
     public query func getNFTUpgradeCost() : async TypesICRC1.Balance {
         return upgrade_cost;
