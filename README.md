@@ -7,6 +7,128 @@ Try with the following commands:
 ```dfx start --clean --background```
 ```dfx canister create --all```
 ```dfx deploy```
+# Overview of `upgradeNFT` Function
+
+## Verify Ownership
+
+- **Function**: `icrc7_owner_of` from `nftsToken`
+- **Variable**: `ownerof` of type `OwnerResult`
+- **Purpose**: Checks if the caller owns the specified NFT.
+- **Outcome**: If the caller does not own the NFT, the function returns an error message.
+
+## Retrieve NFT Metadata
+
+- **Function**: `icrc7_metadata` from `nftsToken`
+- **Variable**: `metadataResult` of type `TypesICRC7.MetadataResult`
+- **Purpose**: Gets the current metadata of the specified NFT.
+- **Outcome**: If the metadata is not found, the function returns an error message.
+
+## Prepare Metadata for Upgrade
+
+- **Buffer**: `_newArgsBuffer` initialized with the size of the existing metadata.
+- **Function**: `getNFTLevel`
+  - **Purpose**: Determines the current level of the NFT.
+  - **Called With**: `_nftMetadata` (metadata retrieved earlier)
+  - **Returns**: The level of the NFT.
+- **Function**: `calculateCost`
+  - **Purpose**: Calculates the cost for upgrading the NFT based on its current level.
+  - **Called With**: `_nftLevel` (level determined earlier)
+  - **Returns**: The upgrade cost.
+
+## Update Metadata
+
+- **Loop**: Iterates through the existing metadata and updates it as follows:
+  - **Function**: `updateBasicStats`
+    - **Purpose**: Updates basic stats like level, health, and damage.
+    - **Called With**: `_mdValue` (current metadata value)
+    - **Returns**: Updated metadata.
+  - **Function**: `upgradeAdvancedAttributes`
+    - **Purpose**: Upgrades advanced attributes like shield capacity, impairment resistance, etc.
+    - **Called With**: `_nftLevel` (current level) and `_mdValue` (current metadata value)
+    - **Returns**: Updated advanced attributes.
+
+## Create Transaction Arguments
+
+- **Structure**: `_transactionsArgs`
+- **Variables Used**: `upgradeCost`, `icrc1_fee`
+- **Purpose**: Prepares the arguments for the transaction required to pay for the upgrade.
+
+## Execute Transaction
+
+- **Function**: `icrc1_pay_for_transaction` from `shardsToken`
+- **Variable**: `transfer` of type `TransferResult`
+- **Purpose**: Performs the transaction to pay for the NFT upgrade.
+- **Outcome**: If the transaction fails, the function returns an error message.
+
+## Upgrade NFT
+
+- **Structure**: `_upgradeArgs`
+- **Buffer Method**: `toArray` to convert `_newArgsBuffer` to an array.
+- **Function**: `upgradeNFT` from `nftsToken`
+- **Variable**: `upgrade` of type `TypesICRC7.UpgradeReceipt`
+- **Purpose**: Upgrades the NFT with the new metadata.
+- **Outcome**: If the upgrade fails, the function returns an error message.
+
+## Return Result
+
+- **Success**: Returns a success message with the transaction ID.
+- **Failure**: Returns an appropriate error message.
+
+# Involved Functions and Variables
+
+## Functions
+
+### `icrc7_owner_of`
+
+- **Variable**: `ownerof` of type `OwnerResult`
+- **Returns**: Owner information for the specified NFT.
+
+### `icrc7_metadata`
+
+- **Variable**: `metadataResult` of type `TypesICRC7.MetadataResult`
+- **Returns**: Metadata for the specified NFT.
+
+### `getNFTLevel`
+
+- **Input**: `_nftMetadata` (metadata retrieved)
+- **Returns**: The current level of the NFT.
+
+### `calculateCost`
+
+- **Input**: `_nftLevel` (determined level)
+- **Returns**: The cost for upgrading the NFT.
+
+### `updateBasicStats`
+
+- **Input**: `_mdValue` (current metadata value)
+- **Returns**: Updated basic stats.
+
+### `upgradeAdvancedAttributes`
+
+- **Input**: `_nftLevel` (current level), `_mdValue` (current metadata value)
+- **Returns**: Updated advanced attributes.
+
+### `icrc1_pay_for_transaction`
+
+- **Variable**: `transfer` of type `TransferResult`
+- **Returns**: Result of the payment transaction.
+
+### `upgradeNFT`
+
+- **Variable**: `upgrade` of type `TypesICRC7.UpgradeReceipt`
+- **Returns**: Result of the NFT upgrade.
+
+## Variables
+
+- **`ownerof`**: Ownership result of the specified NFT.
+- **`metadataResult`**: Metadata result of the specified NFT.
+- **`_newArgsBuffer`**: Buffer to hold the new metadata arguments.
+- **`_nftLevel`**: Current level of the NFT.
+- **`upgradeCost`**: Cost for upgrading the NFT.
+- **`_transactionsArgs`**: Arguments for the payment transaction.
+- **`transfer`**: Result of the payment transaction.
+- **`_upgradeArgs`**: Arguments for upgrading the NFT.
+- **`upgrade`**: Result of the NFT upgrade.
 
 
 ## Multiplayer Matchmaking
