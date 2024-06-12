@@ -845,138 +845,154 @@ func calculateCost(level: Nat) : Nat {
     };
 
     /// Open chests
-    public shared(msg) func openChests(chestID : Nat) : async (Bool, Text) {
-        let ownerof : OwnerResult = await chestsToken.icrc7_owner_of(chestID);
-        let _owner : Account = switch(ownerof){
-            case(#Ok(owner)){
-                owner;
-            };
-            case(#Err(_)){
-                return (false, "{\"error\":true, \"message\":\"Chest not found\"}");
-            };
-        };
-        if(Principal.notEqual(_owner.owner, msg.caller)){
-            return (false, "{\"error\":true, \"message\":\"Not the owner of the chest\"}");
-        };
-        let _chestArgs : TypesChests.OpenArgs = {
-            from     = _owner;
-            token_id = chestID;
-        };
-        let _tokens : TypesChests.OpenReceipt = await chestsToken.openChest(_chestArgs);
-        var _tokensResults : Text = "";
-        switch(_tokens){
-            case(#Ok(_t)){
-                for(_token in _t.vals()){
-                    switch(_token.0){
-                        case("shards"){
-                            let _shardsArgs : TypesICRC1.Mint = {
-                                to = { owner = msg.caller; subaccount = null };
-                                amount = _token.1;
-                                memo = null;
-                                created_at_time = ?Nat64.fromNat(Int.abs(Time.now()));
+    public shared(msg) func openChests(chestID: Nat): async (Bool, Text) {
+    let ownerof: OwnerResult = await chestsToken.icrc7_owner_of(chestID);
+    let _owner: Account = switch (ownerof) {
+        case (#Ok(owner)) owner;
+        case (#Err(_)) return (false, "{\"error\":true, \"message\":\"Chest not found\"}");
+    };
+
+    if (Principal.notEqual(_owner.owner, msg.caller)) {
+        return (false, "{\"error\":true, \"message\":\"Not the owner of the chest\"}");
+    };
+
+    let _chestArgs: TypesChests.OpenArgs = {
+        from = _owner;
+        token_id = chestID;
+    };
+
+    let _tokens: TypesChests.OpenReceipt = await chestsToken.openChest(_chestArgs);
+    var _tokensResults: Text = "";
+    switch (_tokens) {
+        case (#Ok(_t)) {
+            for (_token in _t.vals()) {
+                switch (_token.0) {
+                    case ("shards") {
+                        let _shardsArgs: TypesICRC1.Mint = {
+                            to = { owner = msg.caller; subaccount = null };
+                            amount = _token.1;
+                            memo = null;
+                            created_at_time = ?Nat64.fromNat(Int.abs(Time.now()));
+                        };
+                        let _tokenMinted: TypesICRC1.TransferResult = await shardsToken.mint(_shardsArgs);
+                        switch (_tokenMinted) {
+                            case (#Ok(_tid)) {
+                                _tokensResults := _tokensResults # "{\"token\":\"Shards\", \"transaction_id\": " # Nat.toText(_tid) # ", \"amount\": " # Nat.toText(_token.1) # "}";
                             };
-                            let _tokenMinted : TypesICRC1.TransferResult = await shardsToken.mint(_shardsArgs);
-                            switch(_tokenMinted){
-                                case(#Ok(_tid)){
-                                    _tokensResults := _tokensResults # "{\"token\":\"Shards\", \"transaction_id\": " # Nat.toText(_tid) # ", \"amount\": " # Nat.toText(_token.1) # "}";
+                            case (#Err(_e)) {
+                                if (_tokensResults != "") {
+                                    _tokensResults := _tokensResults # ", ";
                                 };
-                                case(#Err(_e)){
-                                    if(_tokensResults != ""){
-                                        _tokensResults := _tokensResults # ", ";
+                                switch (_e) {
+                                    case (#Duplicate(_d)) {
+                                        _tokensResults := _tokensResults # "{\"token\":\"Shards\", \"error\":true, \"message\":\"Chest open failed: Shards mint failed: Duplicate\"}";
                                     };
-                                    switch(_e){
-                                        case(#Duplicate(_d)){
-                                            _tokensResults := _tokensResults # "{\"token\":\"Shards\", \"error\":true, \"message\":\"Chest open failed: Shards mint failed: Duplicate\"}";
-                                        };
-                                        case(#GenericError(_g)){
-                                            _tokensResults := _tokensResults # "{\"token\":\"Shards\", \"error\":true, \"message\":\"Chest open failed: Shards mint failed: GenericError: " # _g.message # "\"}";
-                                        };
-                                        case(#CreatedInFuture(_cif)){
-                                            _tokensResults := _tokensResults # "{\"token\":\"Shards\", \"error\":true, \"message\":\"Chest open failed: Shards mint failed: CreatedInFuture\"}";
-                                        };
-                                        case(#BadFee(_bf)){
-                                            _tokensResults := _tokensResults # "{\"token\":\"Shards\", \"error\":true, \"message\":\"Chest open failed: Shards mint failed: BadFee\"}";
-                                        };
-                                        case(#BadBurn(_bb)){
-                                            _tokensResults := _tokensResults # "{\"token\":\"Shards\", \"error\":true, \"message\":\"Chest open failed: Shards mint failed: BadBurn\"}";
-                                        };
-                                        case(_){
-                                            _tokensResults := _tokensResults # "{\"token\":\"Shards\", \"error\":true, \"message\":\"Chest open failed: Shards mint failed: Other error\"}";
-                                        };
+                                    case (#GenericError(_g)) {
+                                        _tokensResults := _tokensResults # "{\"token\":\"Shards\", \"error\":true, \"message\":\"Chest open failed: Shards mint failed: GenericError: " # _g.message # "\"}";
+                                    };
+                                    case (#CreatedInFuture(_cif)) {
+                                        _tokensResults := _tokensResults # "{\"token\":\"Shards\", \"error\":true, \"message\":\"Chest open failed: Shards mint failed: CreatedInFuture\"}";
+                                    };
+                                    case (#BadFee(_bf)) {
+                                        _tokensResults := _tokensResults # "{\"token\":\"Shards\", \"error\":true, \"message\":\"Chest open failed: Shards mint failed: BadFee\"}";
+                                    };
+                                    case (#BadBurn(_bb)) {
+                                        _tokensResults := _tokensResults # "{\"token\":\"Shards\", \"error\":true, \"message\":\"Chest open failed: BadBurn\"}";
+                                    };
+                                    case (_) {
+                                        _tokensResults := _tokensResults # "{\"token\":\"Shards\", \"error\":true, \"message\":\"Chest open failed: Other error\"}";
                                     };
                                 };
                             };
                         };
-                        case("flux"){
-                            let _fluxArgs : TypesICRC1.Mint = {
-                                to = { owner = msg.caller; subaccount = null };
-                                amount = _token.1;
-                                memo = null;
-                                created_at_time = ?Nat64.fromNat(Int.abs(Time.now()));
+                    };
+                    case ("flux") {
+                        let _fluxArgs: TypesICRC1.Mint = {
+                            to = { owner = msg.caller; subaccount = null };
+                            amount = _token.1;
+                            memo = null;
+                            created_at_time = ?Nat64.fromNat(Int.abs(Time.now()));
+                        };
+                        let _tokenMinted: TypesICRC1.TransferResult = await fluxToken.mint(_fluxArgs);
+                        switch (_tokenMinted) {
+                            case (#Ok(_tid)) {
+                                _tokensResults := _tokensResults # "{\"token\":\"Flux\", \"transaction_id\": " # Nat.toText(_tid) # ", \"amount\": " # Nat.toText(_token.1) # "}";
                             };
-                            let _tokenMinted : TypesICRC1.TransferResult = await fluxToken.mint(_fluxArgs);
-                            switch(_tokenMinted){
-                                case(#Ok(_tid)){
-                                    _tokensResults := _tokensResults # "{\"token\":\"Flux\", \"transaction_id\": " # Nat.toText(_tid) # ", \"amount\": " # Nat.toText(_token.1) # "}";
+                            case (#Err(_e)) {
+                                if (_tokensResults != "") {
+                                    _tokensResults := _tokensResults # ", ";
                                 };
-                                case(#Err(_e)){
-                                    if(_tokensResults != ""){
-                                        _tokensResults := _tokensResults # ", ";
+                                switch (_e) {
+                                    case (#Duplicate(_d)) {
+                                        _tokensResults := _tokensResults # "{\"token\":\"Flux\", \"error\":true, \"message\":\"Chest open failed: Flux mint failed: Duplicate\"}";
                                     };
-                                    switch(_e){
-                                        case(#Duplicate(_d)){
-                                            _tokensResults := _tokensResults # "{\"token\":\"Flux\", \"error\":true, \"message\":\"Chest open failed: Flux mint failed: Duplicate\"}";
-                                        };
-                                        case(#GenericError(_g)){
-                                            _tokensResults := _tokensResults # "{\"token\":\"Flux\", \"error\":true, \"message\":\"Chest open failed: Flux mint failed: GenericError: " # _g.message # "\"}";
-                                        };
-                                        case(#CreatedInFuture(_cif)){
-                                            _tokensResults := _tokensResults # "{\"token\":\"Flux\", \"error\":true, \"message\":\"Chest open failed: Flux mint failed: CreatedInFuture\"}";
-                                        };
-                                        case(#BadFee(_bf)){
-                                            _tokensResults := _tokensResults # "{\"token\":\"Flux\", \"error\":true, \"message\":\"Chest open failed: Flux mint failed: BadFee\"}";
-                                        };
-                                        case(#BadBurn(_bb)){
-                                            _tokensResults := _tokensResults # "{\"token\":\"Flux\", \"error\":true, \"message\":\"Chest open failed: Flux mint failed: BadBurn\"}";
-                                        };
-                                        case(_){
-                                            _tokensResults := _tokensResults # "{\"token\":\"Flux\", \"error\":true, \"message\":\"Chest open failed: Flux mint failed: Other error\"}";
-                                        };
+                                    case (#GenericError(_g)) {
+                                        _tokensResults := _tokensResults # "{\"token\":\"Flux\", \"error\":true, \"message\":\"Chest open failed: Flux mint failed: GenericError: " # _g.message # "\"}";
+                                    };
+                                    case (#CreatedInFuture(_cif)) {
+                                        _tokensResults := _tokensResults # "{\"token\":\"Flux\", \"error\":true, \"message\":\"Chest open failed: Flux mint failed: CreatedInFuture\"}";
+                                    };
+                                    case (#BadFee(_bf)) {
+                                        _tokensResults := _tokensResults # "{\"token\":\"Flux\", \"error\":true, \"message\":\"Chest open failed: Flux mint failed: BadFee\"}";
+                                    };
+                                    case (#BadBurn(_bb)) {
+                                        _tokensResults := _tokensResults # "{\"token\":\"Flux\", \"error\":true, \"message\":\"Chest open failed: BadBurn\"}";
+                                    };
+                                    case (_) {
+                                        _tokensResults := _tokensResults # "{\"token\":\"Flux\", \"error\":true, \"message\":\"Chest open failed: Other error\"}";
                                     };
                                 };
                             };
                         };
-                        case(_){
-                            /// Unknown token
-                        };
+                    };
+                    case (_) {
+                        /// Unknown token
                     };
                 };
             };
-            case(#Err(_e)){
-                switch(_e){
-                    case(#GenericError(_g)){
-                        return (false, "{\"error\":true, \"message\":\"Chest open failed: GenericError: " # _g.message # "\"}");
-                    };
-                    case(#CreatedInFuture(_cif)){
-                        return (false, "{\"error\":true, \"message\":\"Chest open failed: CreatedInFuture\"}");
-                    };
-                    case(#Duplicate(_d)){
-                        return (false, "{\"error\":true, \"message\":\"Chest open failed: Duplicate\"}");
-                    };
-                    case(#TemporarilyUnavailable(_tu)){
-                        return (false, "{\"error\":true, \"message\":\"Chest open failed: TemporarilyUnavailable\"}");
-                    };
-                    case(#TooOld){
-                        return (false, "{\"error\":true, \"message\":\"Chest open failed: TooOld\"}");
-                    };
-                    case(#Unauthorized(_u)){
-                        return (false, "{\"error\":true, \"message\":\"Chest open failed: Unauthorized\"}");
-                    };
-                }
+
+            // Update the chest metadata to 0 after opening
+            let updateArgs: TypesChests.UpdateArgs = {
+                from = _owner;
+                token_id = chestID;
+                metadata = [("opened", #Nat(0))]
+            };
+            let updateResult = await chestsToken.updateChestMetadata(updateArgs);
+            switch (updateResult) {
+                case (#Ok(_)) {
+                    _tokensResults := _tokensResults # ", \"chest_metadata_updated\":true";
+                };
+                case (#Err(_e)) {
+                    _tokensResults := _tokensResults # ", \"chest_metadata_updated\":false";
+                };
             };
         };
-        return (true, _tokensResults);
+        case (#Err(_e)) {
+            switch (_e) {
+                case (#GenericError(_g)) {
+                    return (false, "{\"error\":true, \"message\":\"Chest open failed: GenericError: " # _g.message # "\"}");
+                };
+                case (#CreatedInFuture(_cif)) {
+                    return (false, "{\"error\":true, \"message\":\"Chest open failed: CreatedInFuture\"}");
+                };
+                case (#Duplicate(_d)) {
+                    return (false, "{\"error\":true, \"message\":\"Chest open failed: Duplicate\"}");
+                };
+                case (#TemporarilyUnavailable(_tu)) {
+                    return (false, "{\"error\":true, \"message\":\"Chest open failed: TemporarilyUnavailable\"}");
+                };
+                case (#TooOld) {
+                    return (false, "{\"error\":true, \"message\":\"Chest open failed: TooOld\"}");
+                };
+                case (#Unauthorized(_u)) {
+                    return (false, "{\"error\":true, \"message\":\"Chest open failed: Unauthorized\"}");
+                };
+            }
+        };
     };
+    return (true, _tokensResults);
+};
+
 
     /// Mint deck with 8 units and random rarity within a range provided
    public shared(msg) func mintDeck(player: Principal) : async (Bool, Text) {

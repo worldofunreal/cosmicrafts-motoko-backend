@@ -218,4 +218,17 @@ module {
     transactions : [Transaction];
   };
 
+public type UpdateArgs = {
+    from     : Account;
+    token_id : TokenId;
+    metadata : [(Text, Metadata)];
+};
+
+public type UpdateError = {
+    #Unauthorized;
+    #InvalidRecipient;
+    #DoesntExistTokenId;
+    #GenericError: { error_code: Nat; message: Text };
+};
+public type UpdateReceipt = Result<Nat, UpdateError>;
 };

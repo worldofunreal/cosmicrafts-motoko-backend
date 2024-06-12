@@ -816,8 +816,6 @@ shared actor class Chests(collectionOwner: Types.Account, init: Types.Collection
     transactionSequentialIndex := transactionSequentialIndex + 1;
   };
 
-
-
   public shared({ caller }) func openChest(args : Types.OpenArgs): async Types.OpenReceipt {
     /// Check if the caller is authorized
     if (Principal.notEqual(caller, Principal.fromText("woimf-oyaaa-aaaan-qegia-cai")) ) {
@@ -894,9 +892,46 @@ shared actor class Chests(collectionOwner: Types.Account, init: Types.Collection
     let _seed : Blob = Blob.fromArray([Nat8.fromNat(rarity)]);
     let _ran : Nat = Random.rangeFrom(Nat8.fromNat(rarity), _seed);
     let _tokens : [(Text, Nat)] = [
-      ("shards", _ran * 6),
-      ("flux", (_ran * 4) + rarity - _ran)
+      ("shards", _ran * 10),
+      ("flux", (_ran * 5) + rarity - _ran)
     ];
   };
+
+  public shared(msg) func updateChestMetadata(updateArgs: Types.UpdateArgs): async Types.Result<Types.TokenId, Types.UpdateError> {
+    /// Validate caller
+    if (Principal.notEqual(msg.caller, _cosmicraftsPrincipal)) {
+        return #Err(#Unauthorized);
+    };
+
+    // Ensure the recipient is not the null principal
+    if (Principal.equal(updateArgs.from.owner, NULL_PRINCIPAL)) {
+        return #Err(#InvalidRecipient);
+    };
+
+    // Ensure the token exists
+    let alreadyExists = _exists(updateArgs.token_id);
+    if (not alreadyExists) {
+        return #Err(#DoesntExistTokenId);
+    };
+
+    let now = Nat64.fromIntWrap(Time.now());
+
+    // Create the updated token metadata
+    let updatedToken: Types.TokenMetadata = {
+        tokenId = updateArgs.token_id;
+        owner = updateArgs.from;
+        metadata = updateArgs.metadata;
+    };
+
+    // Update the token metadata in the Trie
+    tokens := Trie.put(tokens, _keyFromTokenId(updateArgs.token_id), Nat.equal, updatedToken).0;
+
+    _addTokenToOwners(updateArgs.from, updateArgs.token_id);
+
+    let transaction: Types.Transaction = _addTransaction(#upgrade, now, ?[updateArgs.token_id], ?updateArgs.from, null, null, null, null, null);
+
+    return #Ok(updateArgs.token_id);
+};
+
 
 };
