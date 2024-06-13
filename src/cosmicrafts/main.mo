@@ -845,8 +845,9 @@ func calculateCost(level: Nat) : Nat {
     };
 
 public shared(msg) func openChests(chestID: Nat): async (Bool, Text) {
-    let ownerof: OwnerResult = await chestsToken.icrc7_owner_of(chestID);
-    let _owner: Account = switch (ownerof) {
+    // Perform ownership check
+    let ownerof: TypesChests.OwnerResult = await chestsToken.icrc7_owner_of(chestID);
+    let _owner: TypesChests.Account = switch (ownerof) {
         case (#Ok(owner)) owner;
         case (#Err(_)) return (false, "{\"success\":false, \"message\":\"Chest not found\"}");
     };
@@ -861,22 +862,16 @@ public shared(msg) func openChests(chestID: Nat): async (Bool, Text) {
     // Schedule background processing without waiting
     ignore _processChestContents(chestID, msg.caller);
 
-    // Burn the chest token to remove it from the user's wallet
-    let _chestArgs: TypesChests.OpenArgs = {
-        from = _owner;
-        token_id = chestID;
-    };
-    let _burnResult = await chestsToken.openChest(_chestArgs);
-    switch (_burnResult) {
-        case (#Err(_e)) {
-            Debug.print("Failed to burn chest: ");
-            return (false, "{\"success\":false, \"message\":\"Failed to burn chest\"}");
+    // Burn the chest token asynchronously without waiting for the result
+    ignore async {
+        let _chestArgs: TypesChests.OpenArgs = {
+            from = _owner;
+            token_id = chestID;
         };
-        case (#Ok(_)) {
-            Debug.print("Chest burned successfully");
-            return (true, placeholderResponse);
-        };
+        await chestsToken.openChest(_chestArgs);
     };
+
+    return (true, placeholderResponse);
 };
 
 // Function to process chest contents in the background
@@ -890,45 +885,53 @@ private func _processChestContents(chestID: Nat, caller: Principal): async () {
 
     let (shardsAmount, fluxAmount) = getTokensAmount(rarity);
 
-    // Mint shards tokens
-    let _shardsArgs: TypesICRC1.Mint = {
-        to = { owner = caller; subaccount = null };
-        amount = shardsAmount;
-        memo = null;
-        created_at_time = ?Nat64.fromNat(Int.abs(Time.now()));
-    };
-    let _shardsMinted: TypesICRC1.TransferResult = await shardsToken.mint(_shardsArgs);
+    // Mint tokens in parallel
+    let shardsMinting = async {
+        // Mint shards tokens
+        let _shardsArgs: TypesICRC1.Mint = {
+            to = { owner = caller; subaccount = null };
+            amount = shardsAmount;
+            memo = null;
+            created_at_time = ?Nat64.fromNat(Int.abs(Time.now()));
+        };
+        let _shardsMinted: TypesICRC1.TransferResult = await shardsToken.mint(_shardsArgs);
 
-    switch (_shardsMinted) {
-        case (#Ok(_tid)) {
-            Debug.print("Shards minted successfully: " # Nat.toText(_tid));
-        };
-        case (#Err(_e)) {
-            Debug.print("Error minting shards: " # errorToString(_e));
+        switch (_shardsMinted) {
+            case (#Ok(_tid)) {
+                Debug.print("Shards minted successfully: " # Nat.toText(_tid));
+            };
+            case (#Err(_e)) {
+                Debug.print("Error minting shards: " # errorToString(_e));
+            };
         };
     };
 
-    // Mint flux tokens
-    let _fluxArgs: TypesICRC1.Mint = {
-        to = { owner = caller; subaccount = null };
-        amount = fluxAmount;
-        memo = null;
-        created_at_time = ?Nat64.fromNat(Int.abs(Time.now()));
-    };
-    let _fluxMinted: TypesICRC1.TransferResult = await fluxToken.mint(_fluxArgs);
+    let fluxMinting = async {
+        // Mint flux tokens
+        let _fluxArgs: TypesICRC1.Mint = {
+            to = { owner = caller; subaccount = null };
+            amount = fluxAmount;
+            memo = null;
+            created_at_time = ?Nat64.fromNat(Int.abs(Time.now()));
+        };
+        let _fluxMinted: TypesICRC1.TransferResult = await fluxToken.mint(_fluxArgs);
 
-    switch (_fluxMinted) {
-        case (#Ok(_tid)) {
-            Debug.print("Flux minted successfully: " # Nat.toText(_tid));
-        };
-        case (#Err(_e)) {
-            Debug.print("Error minting flux: " # errorToString(_e));
+        switch (_fluxMinted) {
+            case (#Ok(_tid)) {
+                Debug.print("Flux minted successfully: " # Nat.toText(_tid));
+            };
+            case (#Err(_e)) {
+                Debug.print("Error minting flux: " # errorToString(_e));
+            };
         };
     };
+
+    await shardsMinting;
+    await fluxMinting;
 };
 
 // Function to get rarity from metadata
-private func getRarityFromMetadata(metadata: [(Text, TypesICRC7.Metadata)]): Nat {
+private func getRarityFromMetadata(metadata: [(Text, TypesChests.Metadata)]): Nat {
     for ((key, value) in metadata.vals()) {
         if (key == "rarity") {
             return switch (value) {
@@ -942,8 +945,20 @@ private func getRarityFromMetadata(metadata: [(Text, TypesICRC7.Metadata)]): Nat
 
 // Function to get token amounts based on rarity
 private func getTokensAmount(rarity: Nat): (Nat, Nat) {
-    let shardsAmount = rarity * 10;
-    let fluxAmount = (rarity * 5) + rarity - 1;
+    var factor: Nat = 1;
+    if (rarity <= 5) {
+        factor := Nat.pow(2, rarity - 1);
+    } else if (rarity <= 10) {
+        factor := Nat.mul(Nat.pow(2, 5), Nat.div(Nat.pow(3, rarity - 6), Nat.pow(2, rarity - 6)));
+    } else if (rarity <= 15) {
+        factor := Nat.mul(Nat.mul(Nat.pow(2, 5), Nat.div(Nat.pow(3, 5), Nat.pow(2, 5))), Nat.div(Nat.pow(5, rarity - 11), Nat.pow(4, rarity - 11)));
+    } else if (rarity <= 20) {
+        factor := Nat.mul(Nat.mul(Nat.mul(Nat.pow(2, 5), Nat.div(Nat.pow(3, 5), Nat.pow(2, 5))), Nat.div(Nat.pow(5, 5), Nat.pow(4, 5))), Nat.div(Nat.pow(11, rarity - 16), Nat.pow(10, rarity - 16)));
+    } else {
+        factor := Nat.mul(Nat.mul(Nat.mul(Nat.mul(Nat.pow(2, 5), Nat.div(Nat.pow(3, 5), Nat.pow(2, 5))), Nat.div(Nat.pow(5, 5), Nat.pow(4, 5))), Nat.div(Nat.pow(11, 5), Nat.pow(10, 5))), Nat.div(Nat.pow(21, rarity - 21), Nat.pow(20, rarity - 21)));
+    };
+    let shardsAmount = Nat.mul(12, factor);
+    let fluxAmount = Nat.mul(4, factor);
     return (shardsAmount, fluxAmount);
 };
 
@@ -960,7 +975,6 @@ private func errorToString(error: TypesICRC1.TransferError): Text {
         case (#TooOld) return "TooOld";
     }
 };
-
 
     /// Mint deck with 8 units and random rarity within a range provided
    public shared(msg) func mintDeck(player: Principal) : async (Bool, Text) {
