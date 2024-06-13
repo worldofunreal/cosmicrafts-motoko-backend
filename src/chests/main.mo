@@ -519,29 +519,42 @@ shared actor class Chests(collectionOwner: Types.Account, init: Types.Collection
     return null;
   };
 
-  private func _burnToken(caller: ?Types.Account, from: Types.Account, tokenId: Types.TokenId, now: Nat64): ?Types.TransferError {
-    //check if token exists
+private func _burnToken(caller: ?Types.Account, from: Types.Account, tokenId: Types.TokenId, now: Nat64): ?Types.TransferError {
+    // Check if token exists
     if (_exists(tokenId) == false) {
       return ?#Unauthorized({
         token_ids = [tokenId];
       });
     };
 
-    // //check if the from is owner of transferred token
+    // Check if the from is owner of the token
     if (_isOwner(from, tokenId) == false) {
       return ?#Unauthorized({
         token_ids = [tokenId];
       });
     };
 
+    // Delete all token approvals
     _deleteAllTokenApprovals(tokenId);
+
+    // Remove the token from the owner's list
     _removeTokenFromOwners(from, tokenId);
+
+    // Decrement the owner's balance
     _decrementBalance(from);
 
-    return null;
-  };
+    // Update the token ownership to the null principal
+    let nullOwner: Types.Account = {
+      owner = NULL_PRINCIPAL;
+      subaccount = null;
+    };
 
-  private func _updateToken(tokenId: Types.TokenId, newOwner: ?Types.Account, newMetadata: ?[(Text, Types.Metadata)]) {
+    _updateToken(tokenId, ?nullOwner, null);
+
+    return null;
+};
+
+private func _updateToken(tokenId: Types.TokenId, newOwner: ?Types.Account, newMetadata: ?[(Text, Types.Metadata)]) {
     let item = Trie.get(tokens, _keyFromTokenId tokenId, Nat.equal);
 
     switch (item) {
@@ -549,19 +562,19 @@ shared actor class Chests(collectionOwner: Types.Account, init: Types.Collection
         return;
       };
       case (?_elem) {
-        //update owner
+        // Update owner
         let newToken: Types.TokenMetadata = {
           tokenId = _elem.tokenId;
           owner = Utils.nullishCoalescing<Types.Account>(newOwner, _elem.owner);
           metadata = Utils.nullishCoalescing<[(Text, Types.Metadata)]>(newMetadata, _elem.metadata);
         };
 
-        //update the token metadata
+        // Update the token metadata
         tokens := Trie.put(tokens, _keyFromTokenId tokenId, Nat.equal, newToken).0;
         return;
       }
     };
-  };
+};
 
   private func _isApprovedOrOwner(spender: Types.Account, tokenId: Types.TokenId, now: Nat64): Bool {
     return _isOwner(spender, tokenId) or _isApproved(spender, tokenId, now);
