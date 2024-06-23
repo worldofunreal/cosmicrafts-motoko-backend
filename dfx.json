@@ -35,6 +35,14 @@
     "rewards": {
       "main": "src/rewards/main.mo",
       "type": "motoko"
+    },
+    "player": {
+      "main": "src/player/main.mo",
+      "type": "motoko"
+    },
+    "tournaments": {
+      "main": "src/tournaments/main.mo",
+      "type": "motoko"
     }
   },
   "defaults": {
