@@ -2,10 +2,9 @@ import Array "mo:base/Array";
 import Principal "mo:base/Principal";
 import Buffer "mo:base/Buffer";
 import Time "mo:base/Time";
-import Order "mo:base/Order";
+import Random "mo:base/Random";
 
 actor Backend {
-    stable var users: [{ principal: Principal; username: Text; elo: Nat; avatarId: Nat }] = [];
     stable var tournaments: [Tournament] = [];
     stable var matches: [Match] = [];
     stable var feedback: [{ principal: Principal; tournamentId: Nat; feedback: Text }] = [];
@@ -56,14 +55,14 @@ actor Backend {
         if (tournamentId >= tournaments.size()) {
             return false;
         };
-        
+
         let tournament = tournaments[tournamentId];
-        
+
         // Check if the user is already a participant
         if (Array.indexOf<Principal>(caller, tournament.participants, func (a: Principal, b: Principal) : Bool { a == b }) != null) {
             return false;
         };
-        
+
         // Add the user to the tournament participants
         var updatedParticipants = Buffer.Buffer<Principal>(tournament.participants.size() + 1);
         for (participant in tournament.participants.vals()) {
@@ -92,6 +91,15 @@ actor Backend {
         return true;
     };
 
+    public query func getRegisteredUsers(tournamentId: Nat) : async [Principal] {
+        if (tournamentId >= tournaments.size()) {
+            return [];
+        };
+
+        let tournament: Tournament = tournaments[tournamentId];
+        return tournament.participants;
+    };
+
     public shared ({caller}) func submitFeedback(_tournamentId: Nat, feedbackText: Text) : async Bool {
         let newFeedback = Buffer.Buffer<{principal: Principal; tournamentId: Nat; feedback: Text}>(feedback.size() + 1);
         for (entry in feedback.vals()) {
@@ -115,8 +123,8 @@ actor Backend {
         };
 
         let matchIndex = Array.indexOf<Match>(
-            { id = matchId; participants = []; result = null; status = "" }, 
-            matches, 
+            { id = matchId; participants = []; result = null; status = "" },
+            matches,
             func (a: Match, b: Match) : Bool { a.id == b.id }
         );
         switch (matchIndex) {
@@ -175,47 +183,42 @@ actor Backend {
         return true;
     };
 
-    public query func getRegisteredUsers(tournamentId: Nat) : async [{ principal: Principal; username: Text; elo: Nat; avatarId: Nat }] {
-        return Array.filter<{ principal: Principal; username: Text; elo: Nat; avatarId: Nat }>(users, func (user: { principal: Principal; username: Text; elo: Nat; avatarId: Nat }) : Bool {
-            Array.indexOf<Principal>(user.principal, tournaments[tournamentId].participants, func (a: Principal, b: Principal) : Bool { a == b }) != null
-        });
-    };
-
     public shared func updateBracket(tournamentId: Nat) : async Bool {
         if (tournamentId < tournaments.size()) {
             var tournament = tournaments[tournamentId];
             let participants = tournament.participants;
 
-            // Sort participants by their ELO in descending order
-            let sortedParticipants = Array.sort<Principal>(participants, func (a: Principal, b: Principal) : Order.Order {
-                let eloA = switch (Array.find(users, func (user: { principal: Principal; username: Text; elo: Nat; avatarId: Nat }) : Bool { user.principal == a })) {
-                    case (?user) { user.elo };
-                    case null { 0 };
-                };
-                let eloB = switch (Array.find(users, func (user: { principal: Principal; username: Text; elo: Nat; avatarId: Nat }) : Bool { user.principal == b })) {
-                    case (?user) { user.elo };
-                    case null { 0 };
-                };
-                if (eloA > eloB) {
-                    #greater
-                } else if (eloA < eloB) {
-                    #less
-                } else {
-                    #equal
-                }
-            });
+            // Obtain a fresh blob of entropy
+            let entropy = await Random.blob();
+            let random = Random.Finite(entropy);
 
-            // Create matches based on sorted participants
-            var newMatches = Buffer.Buffer<Match>(sortedParticipants.size() / 2);
-            var i = 0;
-            while (i < (sortedParticipants.size() / 2)) {
+            // Shuffle participants randomly using Fisher-Yates shuffle algorithm
+            let shuffledParticipants = Array.thaw<Principal>(participants);
+            let n = shuffledParticipants.size();
+            var i = n;
+            while (i > 1) {
+                i -= 1;
+                let j = switch (random.range(32)) {
+                    case (?value) { value % (i + 1) };
+                    case null { i }
+                };
+                let temp = shuffledParticipants[i];
+                shuffledParticipants[i] := shuffledParticipants[j];
+                shuffledParticipants[j] := temp;
+            };
+
+
+            // Create matches based on shuffled participants
+            var newMatches = Buffer.Buffer<Match>(shuffledParticipants.size() / 2);
+            var k = 0;
+            while (k < (shuffledParticipants.size() / 2)) {
                 newMatches.add({
-                    id = matches.size() + i;
-                    participants = [sortedParticipants[2 * i], sortedParticipants[2 * i + 1]];
+                    id = matches.size() + k;
+                    participants = [shuffledParticipants[2 * k], shuffledParticipants[2 * k + 1]];
                     result = null;
                     status = "scheduled";
                 });
-                i += 1;
+                k += 1;
             };
 
             // Update the stable variable matches and the tournament
