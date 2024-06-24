@@ -327,7 +327,7 @@ actor Backend {
         };
 
         // Recursive function to create matches for all rounds
-        func createMatches(participants: [Principal], matchId: Nat, round: Nat) : (Buffer.Buffer<Match>, Nat) {
+        func createMatches(participants: [Principal], matchId: Nat) : (Buffer.Buffer<Match>, Nat) {
             var newMatches = Buffer.Buffer<Match>(0);
             var currentMatchId = matchId;
             let numMatches = participants.size() / 2;
@@ -362,16 +362,18 @@ actor Backend {
             if (numMatches > 1 or (participants.size() % 2 == 1 and participants.size() > 1)) {
                 var nextRoundParticipants = Buffer.Buffer<Principal>(0);
                 for (match in newMatches.vals()) {
-                    if (match.status == "verified") {
+                    if (match.result != null) {
                         switch (match.result) {
                             case (?res) {
                                 nextRoundParticipants.add(res.winner);
                             };
                             case null {};
                         }
+                    } else {
+                        nextRoundParticipants.add(match.participants[0]);
                     }
                 };
-                let nextRoundResult = createMatches(Buffer.toArray(nextRoundParticipants), currentMatchId, round + 1);
+                let nextRoundResult = createMatches(Buffer.toArray(nextRoundParticipants), currentMatchId);
                 let nextRoundMatches = nextRoundResult.0;
                 let finalMatchId = nextRoundResult.1;
                 for (nextMatch in nextRoundMatches.vals()) {
@@ -384,7 +386,7 @@ actor Backend {
         };
 
         // Start creating matches from round 0
-        let roundMatchesResult = createMatches(Array.freeze(shuffledParticipants), 0, 0);
+        let roundMatchesResult = createMatches(Array.freeze(shuffledParticipants), 0);
         let roundMatches = roundMatchesResult.0;
 
         // Update the stable variable matches and the tournament

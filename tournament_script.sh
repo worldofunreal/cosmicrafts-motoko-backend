@@ -6,7 +6,7 @@ NETWORK="ic"
 
 # Define identities
 ADMIN_IDENTITY="bizkit"
-IDENTITIES=("player1" "player2" "player3" "player4")
+IDENTITIES=("player1" "player2" "player3" "player4" "player5" "player6" "player7" "player8")
 declare -A PRINCIPALS
 
 # Create a tournament and capture the tournament ID
@@ -56,22 +56,6 @@ fetch_and_parse_bracket() {
 
 # Fetch the initial bracket
 fetch_and_parse_bracket
-
-# Simulate match results submission by different identities
-echo "Submitting match results..."
-for match_id in "${MATCH_IDS[@]}"; do
-  for identity in "${IDENTITIES[@]}"; do
-    dfx identity use $identity
-    PRINCIPAL=${PRINCIPALS[$identity]}
-    if [[ " ${MATCH_PARTICIPANTS[$match_id]} " =~ " $PRINCIPAL " ]]; then
-      echo "Using identity: \"$identity\" to submit match result for match $match_id."
-      SUBMIT_RESULT=$(dfx canister --network $NETWORK call $CANISTER_ID submitMatchResult "($match_id, \"3-2\")")
-      echo "Submit result for $identity and match $match_id: $SUBMIT_RESULT"
-    else
-      echo "Identity: \"$identity\" is not a participant in match $match_id."
-    fi
-  done
-done
 
 # Switch to admin identity to verify and update matches
 echo "Verifying and updating matches as admin..."
