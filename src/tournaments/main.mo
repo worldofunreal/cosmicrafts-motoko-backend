@@ -18,10 +18,12 @@ actor Backend {
         expirationDate: Time.Time;
         participants: [Principal];
         isActive: Bool;
+        bracketCreated: Bool;
     };
 
     type Match = {
         id: Nat;
+        tournamentId: Nat;
         participants: [Principal];
         result: ?{winner: Principal; score: Text};
         status: Text;
@@ -44,7 +46,8 @@ actor Backend {
             prizePool = prizePool;
             expirationDate = expirationDate;
             participants = [];
-            isActive = true
+            isActive = true;
+            bracketCreated = false
         });
         tournaments := Buffer.toArray(buffer);
         return id;
@@ -78,6 +81,7 @@ actor Backend {
             expirationDate = tournament.expirationDate;
             participants = Buffer.toArray(updatedParticipants);
             isActive = tournament.isActive;
+            bracketCreated = tournament.bracketCreated
         };
 
         tournaments := Array.tabulate(tournaments.size(), func(i: Nat): Tournament {
@@ -110,41 +114,40 @@ actor Backend {
         return true;
     };
 
-    public shared ({caller}) func submitMatchResult(matchId: Nat, winner: Principal, score: Text) : async Bool {
-        // Ensure the caller is authorized to submit match results
-        let authorized = switch (Array.find(matches, func (m: Match) : Bool {
-            m.id == matchId and Array.find(m.participants, func (p: Principal) : Bool { p == caller }) != null
-        })) {
-            case (?_) { true };
-            case null { false };
-        };
-        if (not authorized) {
-            return false;
-        };
-
-        let matchIndex = Array.indexOf<Match>(
-            { id = matchId; participants = []; result = null; status = "" },
-            matches,
-            func (a: Match, b: Match) : Bool { a.id == b.id }
-        );
-        switch (matchIndex) {
-            case (?idx) {
-                var updatedMatches = Buffer.Buffer<Match>(matches.size());
-                for (m in matches.vals()) {
-                    if (m.id == matchId) {
-                        updatedMatches.add({ id = m.id; participants = m.participants; result = ?{winner = winner; score = score}; status = "pending verification" });
-                    } else {
-                        updatedMatches.add(m);
-                    }
-                };
-                matches := Buffer.toArray(updatedMatches);
-                return true;
-            };
-            case null {
+    public shared ({caller}) func submitMatchResult(matchId: Nat, score: Text) : async Bool {
+    // Find the match with the given ID
+    let matchOpt = Array.find<Match>(matches, func (m: Match) : Bool { m.id == matchId });
+    switch (matchOpt) {
+        case (?match) {
+            // Ensure the caller is a participant in the match
+            let isParticipant = Array.find<Principal>(match.participants, func (p: Principal) : Bool { p == caller }) != null;
+            if (not isParticipant) {
                 return false;
             };
-        }
-    };
+
+            // Update the match with the result
+            var updatedMatches = Buffer.Buffer<Match>(matches.size());
+            for (m in matches.vals()) {
+                if (m.id == matchId) {
+                    updatedMatches.add({
+                        id = m.id;
+                        tournamentId = m.tournamentId;
+                        participants = m.participants;
+                        result = ?{winner = caller; score = score};
+                        status = "pending verification";
+                    });
+                } else {
+                    updatedMatches.add(m);
+                }
+            };
+            matches := Buffer.toArray(updatedMatches);
+            return true;
+        };
+        case null {
+            return false;
+        };
+    }
+};
 
     public shared ({caller}) func disputeMatch(matchId: Nat, reason: Text) : async Bool {
         // Check if the match exists
@@ -165,28 +168,140 @@ actor Backend {
         return true;
     };
 
-    public shared ({caller}) func resolveDispute(matchId: Nat, resolution: Text) : async Bool {
+    public shared ({caller}) func adminUpdateMatch(matchId: Nat, score: Text) : async Bool {
         if (caller != Principal.fromText("vam5o-bdiga-izgux-6cjaz-53tck-eezzo-fezki-t2sh6-xefok-dkdx7-pae")) {
             return false;
         };
 
-        let updatedDisputes = Buffer.Buffer<{ principal: Principal; matchId: Nat; reason: Text; status: Text }>(disputes.size());
-        for (dispute in disputes.vals()) {
-            if (dispute.matchId == matchId) {
-                updatedDisputes.add({ principal = dispute.principal; matchId = dispute.matchId; reason = dispute.reason; status = resolution });
-            } else {
-                updatedDisputes.add(dispute);
-            }
-        };
-        disputes := Buffer.toArray(updatedDisputes);
+        let matchIndex = Array.find<Match>(matches, func (m: Match) : Bool { m.id == matchId });
+        switch (matchIndex) {
+            case (?match) {
+                var updatedMatches = Buffer.Buffer<Match>(matches.size());
+                for (m in matches.vals()) {
+                    if (m.id == matchId) {
+                        updatedMatches.add({
+                            id = m.id;
+                            tournamentId = m.tournamentId;
+                            participants = m.participants;
+                            result = ?{winner = m.participants[0]; score = score};
+                            status = "verified";
+                        });
+                    } else {
+                        updatedMatches.add(m);
+                    }
+                };
+                matches := Buffer.toArray(updatedMatches);
 
-        return true;
+                // Handle progress to next round or declare winner
+                var foundTournament: ?Tournament = null;
+                for (t in tournaments.vals()) {
+                    if (Array.find(t.participants, func (p: Principal) : Bool { p == match.participants[0] or p == match.participants[1] }) != null) {
+                        foundTournament := ?t;
+                    }
+                };
+
+                switch (foundTournament) {
+                    case (?t) {
+                        var allMatchesVerified = true;
+                        var winners = Buffer.Buffer<Principal>(0);
+                        for (m in matches.vals()) {
+                            if (m.tournamentId == t.id and Array.find(t.participants, func (p: Principal) : Bool { p == m.participants[0] or p == m.participants[1] }) != null) {
+                                if (m.status != "verified") {
+                                    allMatchesVerified := false;
+                                } else {
+                                    switch (m.result) {
+                                        case (?res) {
+                                            winners.add(res.winner);
+                                        };
+                                        case null {};
+                                    }
+                                }
+                            }
+                        };
+
+                        if (allMatchesVerified) {
+                            if (winners.size() == 1) {
+                                let updatedTournaments = Buffer.Buffer<Tournament>(tournaments.size());
+                                for (tournament in tournaments.vals()) {
+                                    if (tournament.id == t.id) {
+                                        updatedTournaments.add({
+                                            id = tournament.id;
+                                            name = tournament.name;
+                                            startDate = tournament.startDate;
+                                            prizePool = tournament.prizePool;
+                                            expirationDate = tournament.expirationDate;
+                                            participants = tournament.participants;
+                                            isActive = false; // We have a champion
+                                            bracketCreated = tournament.bracketCreated
+                                        });
+                                    } else {
+                                        updatedTournaments.add(tournament);
+                                    }
+                                };
+                                tournaments := Buffer.toArray(updatedTournaments);
+                            } else {
+                                // Create next round
+                                let nextParticipants = Buffer.toArray(winners);
+                                let updatedTournaments = Buffer.Buffer<Tournament>(tournaments.size());
+                                for (tournament in tournaments.vals()) {
+                                    if (tournament.id == t.id) {
+                                        updatedTournaments.add({
+                                            id = tournament.id;
+                                            name = tournament.name;
+                                            startDate = tournament.startDate;
+                                            prizePool = tournament.prizePool;
+                                            expirationDate = tournament.expirationDate;
+                                            participants = nextParticipants;
+                                            isActive = true;
+                                            bracketCreated = true
+                                        });
+                                    } else {
+                                        updatedTournaments.add(tournament);
+                                    }
+                                };
+                                tournaments := Buffer.toArray(updatedTournaments);
+                                ignore await updateBracket(t.id);
+                            }
+                        }
+                    };
+                    case null {};
+                };
+
+                return true;
+            };
+            case null {
+                return false;
+            };
+        }
     };
 
     public shared func updateBracket(tournamentId: Nat) : async Bool {
         if (tournamentId < tournaments.size()) {
             var tournament = tournaments[tournamentId];
+            if (tournament.bracketCreated) {
+                return false;
+            };
             let participants = tournament.participants;
+
+            // Close registration
+            let updatedTournament = {
+                id = tournament.id;
+                name = tournament.name;
+                startDate = tournament.startDate;
+                prizePool = tournament.prizePool;
+                expirationDate = tournament.expirationDate;
+                participants = tournament.participants;
+                isActive = false;
+                bracketCreated = true;
+            };
+
+            tournaments := Array.tabulate(tournaments.size(), func(i: Nat): Tournament {
+                if (i == tournamentId) {
+                    updatedTournament
+                } else {
+                    tournaments[i]
+                }
+            });
 
             // Obtain a fresh blob of entropy
             let entropy = await Random.blob();
@@ -207,13 +322,13 @@ actor Backend {
                 shuffledParticipants[j] := temp;
             };
 
-
             // Create matches based on shuffled participants
-            var newMatches = Buffer.Buffer<Match>(shuffledParticipants.size() / 2);
+            var newMatches = Buffer.Buffer<Match>(0);
             var k = 0;
-            while (k < (shuffledParticipants.size() / 2)) {
+            while (k < n / 2) {
                 newMatches.add({
-                    id = matches.size() + k;
+                    id = k; // Start match IDs from 0
+                    tournamentId = tournamentId;
                     participants = [shuffledParticipants[2 * k], shuffledParticipants[2 * k + 1]];
                     result = null;
                     status = "scheduled";
@@ -231,147 +346,9 @@ actor Backend {
             };
             matches := Buffer.toArray(updatedMatches);
 
-            let updatedTournament = {
-                id = tournament.id;
-                name = tournament.name;
-                startDate = tournament.startDate;
-                prizePool = tournament.prizePool;
-                expirationDate = tournament.expirationDate;
-                participants = tournament.participants;
-                isActive = true;
-            };
-
-            tournaments := Array.tabulate(tournaments.size(), func (i: Nat) : Tournament {
-                if (i == tournamentId) {
-                    updatedTournament
-                } else {
-                    tournaments[i]
-                }
-            });
-
             return true;
         };
         return false;
-    };
-
-    public shared func closeRegistration(tournamentId: Nat) : async Bool {
-        if (tournamentId < tournaments.size()) {
-            let updatedTournament = {
-                id = tournaments[tournamentId].id;
-                name = tournaments[tournamentId].name;
-                startDate = tournaments[tournamentId].startDate;
-                prizePool = tournaments[tournamentId].prizePool;
-                expirationDate = tournaments[tournamentId].expirationDate;
-                participants = tournaments[tournamentId].participants;
-                isActive = false;
-            };
-
-            tournaments := Array.tabulate(tournaments.size(), func(i: Nat): Tournament {
-                if (i == tournamentId) {
-                    updatedTournament
-                } else {
-                    tournaments[i]
-                }
-            });
-
-            return true;
-        };
-        return false;
-    };
-
-    public shared ({caller}) func adminUpdateMatchResult(matchId: Nat, winner: Principal, score: Text) : async Bool {
-        if (caller != Principal.fromText("vam5o-bdiga-izgux-6cjaz-53tck-eezzo-fezki-t2sh6-xefok-dkdx7-pae")) {
-            return false;
-        };
-
-        let matchIndex = Array.indexOf<Match>(
-            {id = matchId; participants = []; result = null; status = ""},
-            matches,
-            func (m1: Match, m2: Match): Bool { m1.id == m2.id }
-        );
-
-        switch (matchIndex) {
-            case (?idx) {
-                let buffer = Buffer.Buffer<Match>(matches.size());
-                for (match in matches.vals()) {
-                    if (match.id == matchId) {
-                        buffer.add({id = match.id; participants = match.participants; result = ?{winner = winner; score = score}; status = "verified"});
-                    } else {
-                        buffer.add(match);
-                    }
-                };
-                matches := Buffer.toArray(buffer);
-                return true;
-            };
-            case null {
-                return false;
-            };
-        }
-    };
-
-    public shared ({caller}) func manageDispute(matchId: Nat, resolution: Text) : async Bool {
-        if (caller != Principal.fromText("vam5o-bdiga-izgux-6cjaz-53tck-eezzo-fezki-t2sh6-xefok-dkdx7-pae")) {
-            return false;
-        };
-
-        let matchIndex = Array.find<Match>(matches, func (m: Match) : Bool { m.id == matchId });
-        switch (matchIndex) {
-            case (?match) {
-                var updatedMatches = Buffer.Buffer<Match>(matches.size());
-                for (m in matches.vals()) {
-                    if (m.id == matchId) {
-                        updatedMatches.add({
-                            id = m.id;
-                            participants = m.participants;
-                            result = m.result;
-                            status = resolution;
-                        });
-                    } else {
-                        updatedMatches.add(m);
-                    }
-                };
-                matches := Buffer.toArray(updatedMatches);
-                return true;
-            };
-            case null {
-                return false;
-            };
-        }
-    };
-
-    public shared ({caller}) func forfeitMatch(matchId: Nat, _player: Principal) : async Bool {
-        if (caller != Principal.fromText("vam5o-bdiga-izgux-6cjaz-53tck-eezzo-fezki-t2sh6-xefok-dkdx7-pae")) {
-            return false;
-        };
-
-        let matchIndex = Array.find<Match>(matches, func (m: Match) : Bool { m.id == matchId });
-        switch (matchIndex) {
-            case (?match) {
-                var updatedMatches = Buffer.Buffer<Match>(matches.size());
-                for (m in matches.vals()) {
-                    if (m.id == matchId) {
-                        var newStatus = if (Array.indexOf<Principal>(_player, m.participants, func (a: Principal, b: Principal) : Bool { a == b }) != null) {
-                            "forfeited by " # Principal.toText(_player)
-                        } else {
-                            m.status
-                        };
-                        updatedMatches.add({
-                            id = m.id;
-                            participants = m.participants;
-                            result = m.result;
-                            status = newStatus;
-                        });
-                    } else {
-                        updatedMatches.add(m);
-                    }
-                };
-                matches := Buffer.toArray(updatedMatches);
-                return true;
-            };
-            case null {
-                return false;
-            };
-        }
     };
 
     public query func getActiveTournaments() : async [Tournament] {
@@ -388,7 +365,7 @@ actor Backend {
 
     public query func getTournamentBracket(tournamentId: Nat) : async {matches: [Match]} {
         return {
-            matches = Array.filter<Match>(matches, func (m: Match) : Bool { m.id == tournamentId })
+            matches = Array.filter<Match>(matches, func (m: Match) : Bool { m.tournamentId == tournamentId })
         };
     };
 
