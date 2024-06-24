@@ -30,6 +30,7 @@ for identity in "${IDENTITIES[@]}"; do
   echo "Join result for $identity: $JOIN_RESULT"
   PRINCIPAL=$(dfx identity get-principal | grep -oP '(?<=Principal\s\").*?(?=\")')
   PRINCIPALS[$identity]=$PRINCIPAL
+  echo "Principal for $identity: $PRINCIPAL"
 done
 
 # Switch to admin identity and update the bracket
@@ -42,6 +43,7 @@ echo "Bracket update result: $BRACKET_UPDATE_RESULT"
 fetch_and_parse_bracket() {
   TOURNAMENT_BRACKET=$(dfx canister --network $NETWORK call $CANISTER_ID getTournamentBracket "($TOURNAMENT_ID)")
   echo "Updated tournament bracket: $TOURNAMENT_BRACKET"
+
   MATCH_PARTICIPANTS=()
   MATCH_IDS=($(echo "$TOURNAMENT_BRACKET" | grep -oP '(?<=id = )\d+'))
   MATCH_PARTICIPANT_BLOCKS=($(echo "$TOURNAMENT_BRACKET" | grep -oP '(?<=participants = vec \{).*?(?=\};)'))
