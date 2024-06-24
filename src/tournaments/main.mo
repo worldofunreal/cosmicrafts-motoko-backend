@@ -115,39 +115,39 @@ actor Backend {
     };
 
     public shared ({caller}) func submitMatchResult(matchId: Nat, score: Text) : async Bool {
-    // Find the match with the given ID
-    let matchOpt = Array.find<Match>(matches, func (m: Match) : Bool { m.id == matchId });
-    switch (matchOpt) {
-        case (?match) {
-            // Ensure the caller is a participant in the match
-            let isParticipant = Array.find<Principal>(match.participants, func (p: Principal) : Bool { p == caller }) != null;
-            if (not isParticipant) {
+        // Find the match with the given ID
+        let matchOpt = Array.find<Match>(matches, func (m: Match) : Bool { m.id == matchId });
+        switch (matchOpt) {
+            case (?match) {
+                // Ensure the caller is a participant in the match
+                let isParticipant = Array.find<Principal>(match.participants, func (p: Principal) : Bool { p == caller }) != null;
+                if (not isParticipant) {
+                    return false;
+                };
+
+                // Update the match with the result
+                var updatedMatches = Buffer.Buffer<Match>(matches.size());
+                for (m in matches.vals()) {
+                    if (m.id == matchId) {
+                        updatedMatches.add({
+                            id = m.id;
+                            tournamentId = m.tournamentId;
+                            participants = m.participants;
+                            result = ?{winner = caller; score = score};
+                            status = "pending verification";
+                        });
+                    } else {
+                        updatedMatches.add(m);
+                    }
+                };
+                matches := Buffer.toArray(updatedMatches);
+                return true;
+            };
+            case null {
                 return false;
             };
-
-            // Update the match with the result
-            var updatedMatches = Buffer.Buffer<Match>(matches.size());
-            for (m in matches.vals()) {
-                if (m.id == matchId) {
-                    updatedMatches.add({
-                        id = m.id;
-                        tournamentId = m.tournamentId;
-                        participants = m.participants;
-                        result = ?{winner = caller; score = score};
-                        status = "pending verification";
-                    });
-                } else {
-                    updatedMatches.add(m);
-                }
-            };
-            matches := Buffer.toArray(updatedMatches);
-            return true;
-        };
-        case null {
-            return false;
-        };
-    }
-};
+        }
+    };
 
     public shared ({caller}) func disputeMatch(matchId: Nat, reason: Text) : async Bool {
         // Check if the match exists
@@ -276,79 +276,128 @@ actor Backend {
     };
 
     public shared func updateBracket(tournamentId: Nat) : async Bool {
-        if (tournamentId < tournaments.size()) {
-            var tournament = tournaments[tournamentId];
-            if (tournament.bracketCreated) {
-                return false;
+        if (tournamentId >= tournaments.size()) {
+            return false;
+        };
+
+        var tournament = tournaments[tournamentId];
+        if (tournament.bracketCreated) {
+            return false;
+        };
+
+        let participants = tournament.participants;
+
+        // Close registration
+        let updatedTournament = {
+            id = tournament.id;
+            name = tournament.name;
+            startDate = tournament.startDate;
+            prizePool = tournament.prizePool;
+            expirationDate = tournament.expirationDate;
+            participants = tournament.participants;
+            isActive = false;
+            bracketCreated = true;
+        };
+
+        tournaments := Array.tabulate(tournaments.size(), func(i: Nat): Tournament {
+            if (i == tournamentId) {
+                updatedTournament
+            } else {
+                tournaments[i]
+            }
+        });
+
+        // Obtain a fresh blob of entropy
+        let entropy = await Random.blob();
+        let random = Random.Finite(entropy);
+
+        // Shuffle participants randomly using Fisher-Yates shuffle algorithm
+        let shuffledParticipants = Array.thaw<Principal>(participants);
+        let n = shuffledParticipants.size();
+        var i = n;
+        while (i > 1) {
+            i -= 1;
+            let j = switch (random.range(32)) {
+                case (?value) { value % (i + 1) };
+                case null { i }
             };
-            let participants = tournament.participants;
+            let temp = shuffledParticipants[i];
+            shuffledParticipants[i] := shuffledParticipants[j];
+            shuffledParticipants[j] := temp;
+        };
 
-            // Close registration
-            let updatedTournament = {
-                id = tournament.id;
-                name = tournament.name;
-                startDate = tournament.startDate;
-                prizePool = tournament.prizePool;
-                expirationDate = tournament.expirationDate;
-                participants = tournament.participants;
-                isActive = false;
-                bracketCreated = true;
-            };
-
-            tournaments := Array.tabulate(tournaments.size(), func(i: Nat): Tournament {
-                if (i == tournamentId) {
-                    updatedTournament
-                } else {
-                    tournaments[i]
-                }
-            });
-
-            // Obtain a fresh blob of entropy
-            let entropy = await Random.blob();
-            let random = Random.Finite(entropy);
-
-            // Shuffle participants randomly using Fisher-Yates shuffle algorithm
-            let shuffledParticipants = Array.thaw<Principal>(participants);
-            let n = shuffledParticipants.size();
-            var i = n;
-            while (i > 1) {
-                i -= 1;
-                let j = switch (random.range(32)) {
-                    case (?value) { value % (i + 1) };
-                    case null { i }
-                };
-                let temp = shuffledParticipants[i];
-                shuffledParticipants[i] := shuffledParticipants[j];
-                shuffledParticipants[j] := temp;
-            };
-
-            // Create matches based on shuffled participants
+        // Recursive function to create matches for all rounds
+        func createMatches(participants: [Principal], matchId: Nat, round: Nat) : (Buffer.Buffer<Match>, Nat) {
             var newMatches = Buffer.Buffer<Match>(0);
-            var k = 0;
-            while (k < n / 2) {
+            var currentMatchId = matchId;
+            let numMatches = participants.size() / 2;
+
+            // Create matches for the current round
+            var i = 0;
+            while (i < numMatches) {
                 newMatches.add({
-                    id = k; // Start match IDs from 0
+                    id = currentMatchId;
                     tournamentId = tournamentId;
-                    participants = [shuffledParticipants[2 * k], shuffledParticipants[2 * k + 1]];
+                    participants = [participants[2 * i], participants[2 * i + 1]];
                     result = null;
                     status = "scheduled";
                 });
-                k += 1;
+                currentMatchId += 1;
+                i += 1;
             };
 
-            // Update the stable variable matches and the tournament
-            var updatedMatches = Buffer.Buffer<Match>(matches.size() + newMatches.size());
-            for (match in matches.vals()) {
-                updatedMatches.add(match);
+            // Handle byes for non-power of two participants
+            if (participants.size() % 2 == 1) {
+                newMatches.add({
+                    id = currentMatchId;
+                    tournamentId = tournamentId;
+                    participants = [participants[participants.size() - 1], Principal.fromText("2vxsx-fae")]; // Using anonymous principal as a bye
+                    result = ?{winner = participants[participants.size() - 1]; score = "bye"};
+                    status = "verified";
+                });
+                currentMatchId += 1;
             };
-            for (newMatch in newMatches.vals()) {
-                updatedMatches.add(newMatch);
-            };
-            matches := Buffer.toArray(updatedMatches);
 
-            return true;
+            // Create matches for the next round if more than one match
+            if (numMatches > 1 or (participants.size() % 2 == 1 and participants.size() > 1)) {
+                var nextRoundParticipants = Buffer.Buffer<Principal>(0);
+                for (match in newMatches.vals()) {
+                    if (match.status == "verified") {
+                        switch (match.result) {
+                            case (?res) {
+                                nextRoundParticipants.add(res.winner);
+                            };
+                            case null {};
+                        }
+                    }
+                };
+                let nextRoundResult = createMatches(Buffer.toArray(nextRoundParticipants), currentMatchId, round + 1);
+                let nextRoundMatches = nextRoundResult.0;
+                let finalMatchId = nextRoundResult.1;
+                for (nextMatch in nextRoundMatches.vals()) {
+                    newMatches.add(nextMatch);
+                };
+                currentMatchId := finalMatchId;
+            };
+
+            return (newMatches, currentMatchId);
         };
-        return false;
+
+        // Start creating matches from round 0
+        let roundMatchesResult = createMatches(Array.freeze(shuffledParticipants), 0, 0);
+        let roundMatches = roundMatchesResult.0;
+
+        // Update the stable variable matches and the tournament
+        var updatedMatches = Buffer.Buffer<Match>(matches.size() + roundMatches.size());
+        for (match in matches.vals()) {
+            updatedMatches.add(match);
+        };
+        for (newMatch in roundMatches.vals()) {
+            updatedMatches.add(newMatch);
+        };
+        matches := Buffer.toArray(updatedMatches);
+
+        return true;
     };
 
     public query func getActiveTournaments() : async [Tournament] {
