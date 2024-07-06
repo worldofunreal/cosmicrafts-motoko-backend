@@ -3,6 +3,10 @@ import Principal "mo:base/Principal";
 import Buffer "mo:base/Buffer";
 import Time "mo:base/Time";
 import Random "mo:base/Random";
+import Nat "mo:base/Nat";
+import Iter "mo:base/Iter";
+import Debug "mo:base/Debug";
+import Text "mo:base/Text";
 
 actor Backend {
     stable var tournaments: [Tournament] = [];
@@ -17,8 +21,10 @@ actor Backend {
         prizePool: Text;
         expirationDate: Time.Time;
         participants: [Principal];
+        registeredParticipants: [Principal];
         isActive: Bool;
         bracketCreated: Bool;
+        matchCounter: Nat; // Add matchCounter to each tournament
     };
 
     type Match = {
@@ -27,10 +33,12 @@ actor Backend {
         participants: [Principal];
         result: ?{winner: Principal; score: Text};
         status: Text;
+        nextMatchId: ?Nat; // Track the next match
     };
 
     public shared ({caller}) func createTournament(name: Text, startDate: Time.Time, prizePool: Text, expirationDate: Time.Time) : async Nat {
-        if (caller != Principal.fromText("vam5o-bdiga-izgux-6cjaz-53tck-eezzo-fezki-t2sh6-xefok-dkdx7-pae")) {
+        if (caller != Principal.fromText("vam5o-bdiga-izgux-6cjaz-53tck-eezzo-fezki-t2sh6-xefok-dkdx7-pae") and
+            caller != Principal.fromText("bdycp-b54e6-fvsng-ouies-a6zfm-khbnh-wcq3j-pv7qt-gywe2-em245-3ae")) {
             return 0;
         };
 
@@ -46,32 +54,37 @@ actor Backend {
             prizePool = prizePool;
             expirationDate = expirationDate;
             participants = [];
+            registeredParticipants = [];
             isActive = true;
-            bracketCreated = false
+            bracketCreated = false;
+            matchCounter = 0 // Initialize matchCounter
         });
         tournaments := Buffer.toArray(buffer);
         return id;
     };
 
     public shared ({caller}) func joinTournament(tournamentId: Nat) : async Bool {
-        // Check if the tournament exists
         if (tournamentId >= tournaments.size()) {
             return false;
         };
 
         let tournament = tournaments[tournamentId];
 
-        // Check if the user is already a participant
         if (Array.indexOf<Principal>(caller, tournament.participants, func (a: Principal, b: Principal) : Bool { a == b }) != null) {
             return false;
         };
 
-        // Add the user to the tournament participants
         var updatedParticipants = Buffer.Buffer<Principal>(tournament.participants.size() + 1);
         for (participant in tournament.participants.vals()) {
             updatedParticipants.add(participant);
         };
         updatedParticipants.add(caller);
+
+        var updatedRegisteredParticipants = Buffer.Buffer<Principal>(tournament.registeredParticipants.size() + 1);
+        for (participant in tournament.registeredParticipants.vals()) {
+            updatedRegisteredParticipants.add(participant);
+        };
+        updatedRegisteredParticipants.add(caller);
 
         let updatedTournament = {
             id = tournament.id;
@@ -80,8 +93,10 @@ actor Backend {
             prizePool = tournament.prizePool;
             expirationDate = tournament.expirationDate;
             participants = Buffer.toArray(updatedParticipants);
+            registeredParticipants = Buffer.toArray(updatedRegisteredParticipants);
             isActive = tournament.isActive;
-            bracketCreated = tournament.bracketCreated
+            bracketCreated = tournament.bracketCreated;
+            matchCounter = tournament.matchCounter
         };
 
         tournaments := Array.tabulate(tournaments.size(), func(i: Nat): Tournament {
@@ -101,7 +116,7 @@ actor Backend {
         };
 
         let tournament: Tournament = tournaments[tournamentId];
-        return tournament.participants;
+        return tournament.registeredParticipants;
     };
 
     public shared ({caller}) func submitFeedback(_tournamentId: Nat, feedbackText: Text) : async Bool {
@@ -114,27 +129,25 @@ actor Backend {
         return true;
     };
 
-    public shared ({caller}) func submitMatchResult(matchId: Nat, score: Text) : async Bool {
-        // Find the match with the given ID
-        let matchOpt = Array.find<Match>(matches, func (m: Match) : Bool { m.id == matchId });
+    public shared ({caller}) func submitMatchResult(tournamentId: Nat, matchId: Nat, score: Text) : async Bool {
+        let matchOpt = Array.find<Match>(matches, func (m: Match) : Bool { m.id == matchId and m.tournamentId == tournamentId });
         switch (matchOpt) {
             case (?match) {
-                // Ensure the caller is a participant in the match
                 let isParticipant = Array.find<Principal>(match.participants, func (p: Principal) : Bool { p == caller }) != null;
                 if (not isParticipant) {
                     return false;
                 };
 
-                // Update the match with the result
                 var updatedMatches = Buffer.Buffer<Match>(matches.size());
                 for (m in matches.vals()) {
-                    if (m.id == matchId) {
+                    if (m.id == matchId and m.tournamentId == tournamentId) {
                         updatedMatches.add({
                             id = m.id;
                             tournamentId = m.tournamentId;
                             participants = m.participants;
                             result = ?{winner = caller; score = score};
                             status = "pending verification";
+                            nextMatchId = m.nextMatchId;
                         });
                     } else {
                         updatedMatches.add(m);
@@ -149,14 +162,12 @@ actor Backend {
         }
     };
 
-    public shared ({caller}) func disputeMatch(matchId: Nat, reason: Text) : async Bool {
-        // Check if the match exists
-        let matchExists = Array.find(matches, func (m: Match) : Bool { m.id == matchId }) != null;
+    public shared ({caller}) func disputeMatch(tournamentId: Nat, matchId: Nat, reason: Text) : async Bool {
+        let matchExists = Array.find(matches, func (m: Match) : Bool { m.id == matchId and m.tournamentId == tournamentId }) != null;
         if (not matchExists) {
             return false;
         };
 
-        // Add the dispute to the disputes array
         let newDispute = { principal = caller; matchId = matchId; reason = reason; status = "pending" };
         let updatedDisputes = Buffer.Buffer<{ principal: Principal; matchId: Nat; reason: Text; status: Text }>(disputes.size() + 1);
         for (dispute in disputes.vals()) {
@@ -168,153 +179,215 @@ actor Backend {
         return true;
     };
 
-    public shared ({caller}) func adminUpdateMatch(matchId: Nat, score: Text) : async Bool {
-        if (caller != Principal.fromText("vam5o-bdiga-izgux-6cjaz-53tck-eezzo-fezki-t2sh6-xefok-dkdx7-pae")) {
+    public shared ({caller}) func adminUpdateMatch(tournamentId: Nat, matchId: Nat, winnerIndex: Nat, score: Text) : async Bool {
+    if (caller != Principal.fromText("vam5o-bdiga-izgux-6cjaz-53tck-eezzo-fezki-t2sh6-xefok-dkdx7-pae") and
+        caller != Principal.fromText("bdycp-b54e6-fvsng-ouies-a6zfm-khbnh-wcq3j-pv7qt-gywe2-em245-3ae")) {
+        return false;
+    };
+
+    let matchOpt = Array.find<Match>(matches, func (m: Match) : Bool { m.id == matchId and m.tournamentId == tournamentId });
+    switch (matchOpt) {
+        case (?match) {
+            if (winnerIndex >= Array.size<Principal>(match.participants)) {
+                return false; // Invalid winner index
+            };
+
+            let winnerPrincipal = match.participants[winnerIndex];
+            
+            var updatedMatches = Buffer.Buffer<Match>(matches.size());
+            for (m in matches.vals()) {
+                if (m.id == matchId and m.tournamentId == tournamentId) {
+                    updatedMatches.add({
+                        id = m.id;
+                        tournamentId = m.tournamentId;
+                        participants = m.participants;
+                        result = ?{winner = winnerPrincipal; score = score};
+                        status = "verified";
+                        nextMatchId = m.nextMatchId;
+                    });
+                } else {
+                    updatedMatches.add(m);
+                }
+            };
+            matches := Buffer.toArray(updatedMatches);
+
+            // Update the bracket directly by advancing the winner
+            Debug.print("Admin verified match: " # Nat.toText(matchId) # " with winner: " # Principal.toText(winnerPrincipal));
+            ignore updateBracketAfterMatchUpdate(match.tournamentId, match.id, winnerPrincipal);
+
+            return true;
+        };
+        case null {
             return false;
         };
+    }
+};
 
-        let matchIndex = Array.find<Match>(matches, func (m: Match) : Bool { m.id == matchId });
-        switch (matchIndex) {
-            case (?match) {
-                var updatedMatches = Buffer.Buffer<Match>(matches.size());
-                for (m in matches.vals()) {
-                    if (m.id == matchId) {
-                        updatedMatches.add({
-                            id = m.id;
-                            tournamentId = m.tournamentId;
-                            participants = m.participants;
-                            result = ?{winner = m.participants[0]; score = score};
-                            status = "verified";
-                        });
-                    } else {
-                        updatedMatches.add(m);
-                    }
-                };
-                matches := Buffer.toArray(updatedMatches);
 
-                // Handle progress to next round or declare winner
-                var foundTournament: ?Tournament = null;
-                for (t in tournaments.vals()) {
-                    if (Array.find(t.participants, func (p: Principal) : Bool { p == match.participants[0] or p == match.participants[1] }) != null) {
-                        foundTournament := ?t;
-                    }
-                };
+    // Calculate the base-2 logarithm of a number
+    func log2(x: Nat): Nat {
+        var result = 0;
+        var value = x;
+        while (value > 1) {
+            value /= 2;
+            result += 1;
+        };
+        return result;
+    };
 
-                switch (foundTournament) {
-                    case (?t) {
-                        var allMatchesVerified = true;
-                        var winners = Buffer.Buffer<Principal>(0);
-                        for (m in matches.vals()) {
-                            if (m.tournamentId == t.id and Array.find(t.participants, func (p: Principal) : Bool { p == m.participants[0] or p == m.participants[1] }) != null) {
-                                if (m.status != "verified") {
-                                    allMatchesVerified := false;
-                                } else {
-                                    switch (m.result) {
-                                        case (?res) {
-                                            winners.add(res.winner);
-                                        };
-                                        case null {};
+    // Helper function to update the bracket after a match result is verified
+    public shared func updateBracketAfterMatchUpdate(tournamentId: Nat, matchId: Nat, winner: Principal) : async () {
+        Debug.print("Starting updateBracketAfterMatchUpdate");
+        Debug.print("Updated Match ID: " # Nat.toText(matchId));
+        Debug.print("Winner: " # Principal.toText(winner));
+
+        // Log the current state of the matches
+        for (i in Iter.range(0, matches.size() - 1)) {
+            let match = matches[i];
+            Debug.print("Current Match: " # matchToString(match));
+        };
+
+        let updatedMatchOpt = Array.find<Match>(matches, func (m: Match) : Bool { m.id == matchId and m.tournamentId == tournamentId });
+        switch (updatedMatchOpt) {
+            case (?updatedMatch) {
+                switch (updatedMatch.nextMatchId) {
+                    case (?nextMatchId) {
+                        Debug.print("Next match ID is not null: " # Nat.toText(nextMatchId));
+
+                        let nextMatchOpt = Array.find<Match>(matches, func (m: Match) : Bool { m.id == nextMatchId and m.tournamentId == tournamentId });
+                        switch (nextMatchOpt) {
+                            case (?nextMatch) {
+                                Debug.print("Next match found with ID: " # Nat.toText(nextMatchId));
+
+                                var updatedParticipants = Buffer.Buffer<Principal>(2);
+                                var replaced = false;
+
+                                for (p in nextMatch.participants.vals()) {
+                                    if (p == Principal.fromText("2vxsx-fae") and not replaced) {
+                                        updatedParticipants.add(winner);
+                                        replaced := true;
+                                    } else {
+                                        updatedParticipants.add(p);
                                     }
-                                }
-                            }
+                                };
+
+                                Debug.print("Before update: " # participantsToString(nextMatch.participants));
+                                Debug.print("After update: " # participantsToString(Buffer.toArray(updatedParticipants)));
+
+                                let updatedNextMatch = {
+                                    id = nextMatch.id;
+                                    tournamentId = nextMatch.tournamentId;
+                                    participants = Buffer.toArray(updatedParticipants);
+                                    result = nextMatch.result;
+                                    status = nextMatch.status;
+                                    nextMatchId = nextMatch.nextMatchId
+                                };
+
+                                // Update the next match in the matches array using Array.map
+                                matches := Array.map<Match, Match>(matches, func (m: Match) : Match {
+                                    if (m.id == nextMatchId and m.tournamentId == tournamentId) {
+                                        updatedNextMatch
+                                    } else {
+                                        m
+                                    }
+                                });
+                                Debug.print("Updated match in the matches map with ID: " # Nat.toText(nextMatchId));
+                            };
+                            case null {
+                                Debug.print("Error: Next match not found with ID: " # Nat.toText(nextMatchId));
+                            };
                         };
-
-                        if (allMatchesVerified) {
-                            if (winners.size() == 1) {
-                                let updatedTournaments = Buffer.Buffer<Tournament>(tournaments.size());
-                                for (tournament in tournaments.vals()) {
-                                    if (tournament.id == t.id) {
-                                        updatedTournaments.add({
-                                            id = tournament.id;
-                                            name = tournament.name;
-                                            startDate = tournament.startDate;
-                                            prizePool = tournament.prizePool;
-                                            expirationDate = tournament.expirationDate;
-                                            participants = tournament.participants;
-                                            isActive = false; // We have a champion
-                                            bracketCreated = tournament.bracketCreated
-                                        });
-                                    } else {
-                                        updatedTournaments.add(tournament);
-                                    }
-                                };
-                                tournaments := Buffer.toArray(updatedTournaments);
-                            } else {
-                                // Create next round
-                                let nextParticipants = Buffer.toArray(winners);
-                                let updatedTournaments = Buffer.Buffer<Tournament>(tournaments.size());
-                                for (tournament in tournaments.vals()) {
-                                    if (tournament.id == t.id) {
-                                        updatedTournaments.add({
-                                            id = tournament.id;
-                                            name = tournament.name;
-                                            startDate = tournament.startDate;
-                                            prizePool = tournament.prizePool;
-                                            expirationDate = tournament.expirationDate;
-                                            participants = nextParticipants;
-                                            isActive = true;
-                                            bracketCreated = true
-                                        });
-                                    } else {
-                                        updatedTournaments.add(tournament);
-                                    }
-                                };
-                                tournaments := Buffer.toArray(updatedTournaments);
-                                ignore await updateBracket(t.id);
-                            }
-                        }
                     };
-                    case null {};
+                    case null {
+                        Debug.print("Next match ID is null for match ID: " # Nat.toText(matchId));
+                    };
                 };
-
-                return true;
             };
             case null {
-                return false;
+                Debug.print("Match not found for ID: " # Nat.toText(matchId));
             };
-        }
+        };
+
+        // Log the updated state of the matches
+        for (i in Iter.range(0, matches.size() - 1)) {
+            let match = matches[i];
+            Debug.print("Updated Match: " # matchToString(match));
+        };
     };
+
+    private func matchToString(match: Match) : Text {
+        return "Match ID: " # Nat.toText(match.id) # ", Participants: " # participantsToString(match.participants) # ", Result: " # (switch (match.result) { case (?res) { "Winner: " # Principal.toText(res.winner) # ", Score: " # res.score }; case null { "pending" } }) # ", Next Match ID: " # (switch (match.nextMatchId) { case (?nextId) { Nat.toText(nextId) }; case null { "none" } });
+    };
+
+    private func participantsToString(participants: [Principal]) : Text {
+        var text = "";
+        var first = true;
+        for (participant in participants.vals()) {
+            if (not first) {
+                text #= ", ";
+            };
+            first := false;
+            text #= Principal.toText(participant);
+        };
+        return text;
+    };
+
 
     public shared func updateBracket(tournamentId: Nat) : async Bool {
         if (tournamentId >= tournaments.size()) {
+            // Debug.print("Tournament does not exist.");
             return false;
         };
 
         var tournament = tournaments[tournamentId];
-        if (tournament.bracketCreated) {
-            return false;
-        };
-
         let participants = tournament.participants;
 
-        // Close registration
-        let updatedTournament = {
-            id = tournament.id;
-            name = tournament.name;
-            startDate = tournament.startDate;
-            prizePool = tournament.prizePool;
-            expirationDate = tournament.expirationDate;
-            participants = tournament.participants;
-            isActive = false;
-            bracketCreated = true;
-        };
+        // Close registration if not already closed
+        if (not tournament.bracketCreated) {
+            let updatedTournament = {
+                id = tournament.id;
+                name = tournament.name;
+                startDate = tournament.startDate;
+                prizePool = tournament.prizePool;
+                expirationDate = tournament.expirationDate;
+                participants = tournament.participants;
+                registeredParticipants = tournament.registeredParticipants;
+                isActive = false;
+                bracketCreated = true;
+                matchCounter = tournament.matchCounter
+            };
 
-        tournaments := Array.tabulate(tournaments.size(), func(i: Nat): Tournament {
-            if (i == tournamentId) {
-                updatedTournament
-            } else {
-                tournaments[i]
-            }
-        });
+            tournaments := Array.tabulate(tournaments.size(), func(i: Nat): Tournament {
+                if (i == tournamentId) {
+                    updatedTournament
+                } else {
+                    tournaments[i]
+                }
+            });
+        };
 
         // Obtain a fresh blob of entropy
         let entropy = await Random.blob();
         let random = Random.Finite(entropy);
 
-        // Shuffle participants randomly using Fisher-Yates shuffle algorithm
-        let shuffledParticipants = Array.thaw<Principal>(participants);
-        let n = shuffledParticipants.size();
-        var i = n;
+        // Calculate total participants including byes
+        var totalParticipants = 1;
+        while (totalParticipants < participants.size()) {
+            totalParticipants *= 2;
+        };
+
+        let byesCount = Nat.sub(totalParticipants, participants.size());
+        var allParticipants = Buffer.Buffer<Principal>(totalParticipants);
+        for (p in participants.vals()) {
+            allParticipants.add(p);
+        };
+        for (i in Iter.range(0, byesCount - 1)) {
+            allParticipants.add(Principal.fromText("2vxsx-fae"));
+        };
+
+        // Shuffle all participants and byes together
+        var shuffledParticipants = Array.thaw<Principal>(Buffer.toArray(allParticipants));
+        var i = shuffledParticipants.size();
         while (i > 1) {
             i -= 1;
             let j = switch (random.range(32)) {
@@ -326,78 +399,123 @@ actor Backend {
             shuffledParticipants[j] := temp;
         };
 
-        // Recursive function to create matches for all rounds
-        func createMatches(participants: [Principal], matchId: Nat) : (Buffer.Buffer<Match>, Nat) {
-            var newMatches = Buffer.Buffer<Match>(0);
-            var currentMatchId = matchId;
-            let numMatches = participants.size() / 2;
+        Debug.print("Total participants after adjustment: " # Nat.toText(totalParticipants));
 
-            // Create matches for the current round
-            var i = 0;
-            while (i < numMatches) {
-                newMatches.add({
-                    id = currentMatchId;
-                    tournamentId = tournamentId;
-                    participants = [participants[2 * i], participants[2 * i + 1]];
-                    result = null;
-                    status = "scheduled";
-                });
-                currentMatchId += 1;
-                i += 1;
-            };
+        // Store the total participants count for round 1
+        let totalParticipantsRound1 = totalParticipants;
 
-            // Handle byes for non-power of two participants
-            if (participants.size() % 2 == 1) {
-                newMatches.add({
-                    id = currentMatchId;
-                    tournamentId = tournamentId;
-                    participants = [participants[participants.size() - 1], Principal.fromText("2vxsx-fae")]; // Using anonymous principal as a bye
-                    result = ?{winner = participants[participants.size() - 1]; score = "bye"};
-                    status = "verified";
-                });
-                currentMatchId += 1;
-            };
+        // Create initial round matches with nextMatchId
+        let roundMatches = Buffer.Buffer<Match>(0);
+        var matchId = tournament.matchCounter;
+        var nextMatchIdBase = totalParticipants / 2;
+        for (i in Iter.range(0, totalParticipants / 2 - 1)) {
+            let p1 = shuffledParticipants[i * 2];
+            let p2 = shuffledParticipants[i * 2 + 1];
+            let currentNextMatchId = ?(nextMatchIdBase + (i / 2));
+            roundMatches.add({
+                id = matchId;
+                tournamentId = tournamentId;
+                participants = [p1, p2];
+                result = null;
+                status = "scheduled";
+                nextMatchId = currentNextMatchId;
+            });
+            Debug.print("Created match: " # Nat.toText(matchId) # " with participants: " # Principal.toText(p1) # " vs " # Principal.toText(p2) # " nextMatchId: " # (switch (currentNextMatchId) { case (?id) { Nat.toText(id) }; case null { "none" } }));
+            matchId += 1;
+        };
+        nextMatchIdBase /= 2;
 
-            // Create matches for the next round if more than one match
-            if (numMatches > 1 or (participants.size() % 2 == 1 and participants.size() > 1)) {
-                var nextRoundParticipants = Buffer.Buffer<Principal>(0);
-                for (match in newMatches.vals()) {
-                    if (match.result != null) {
-                        switch (match.result) {
-                            case (?res) {
-                                nextRoundParticipants.add(res.winner);
-                            };
-                            case null {};
-                        }
-                    } else {
-                        nextRoundParticipants.add(match.participants[0]);
-                    }
-                };
-                let nextRoundResult = createMatches(Buffer.toArray(nextRoundParticipants), currentMatchId);
-                let nextRoundMatches = nextRoundResult.0;
-                let finalMatchId = nextRoundResult.1;
-                for (nextMatch in nextRoundMatches.vals()) {
-                    newMatches.add(nextMatch);
-                };
-                currentMatchId := finalMatchId;
-            };
-
-            return (newMatches, currentMatchId);
+        // Update matchCounter in the tournament
+        let updatedTournament = {
+            id = tournament.id;
+            name = tournament.name;
+            startDate = tournament.startDate;
+            prizePool = tournament.prizePool;
+            expirationDate = tournament.expirationDate;
+            participants = tournament.participants;
+            registeredParticipants = tournament.registeredParticipants;
+            isActive = tournament.isActive;
+            bracketCreated = tournament.bracketCreated;
+            matchCounter = matchId // Update matchCounter
         };
 
-        // Start creating matches from round 0
-        let roundMatchesResult = createMatches(Array.freeze(shuffledParticipants), 0);
-        let roundMatches = roundMatchesResult.0;
+        tournaments := Array.tabulate(tournaments.size(), func(i: Nat): Tournament {
+            if (i == tournamentId) {
+                updatedTournament
+            } else {
+                tournaments[i]
+            }
+        });
 
-        // Update the stable variable matches and the tournament
-        var updatedMatches = Buffer.Buffer<Match>(matches.size() + roundMatches.size());
+        // Function to recursively create matches for all rounds
+        func createAllRounds(totalRounds: Nat, currentRound: Nat, matchId: Nat) : Buffer.Buffer<Match> {
+            let newMatches = Buffer.Buffer<Match>(0);
+            if (currentRound >= totalRounds) {
+                return newMatches;
+            };
+
+            let numMatches = (totalParticipantsRound1 / (2 ** (currentRound + 1)));
+            for (i in Iter.range(0, numMatches - 1)) {
+                // Calculate next match ID correctly
+                let nextMatchIdOpt = if (currentRound + 1 == totalRounds) { 
+                    null 
+                } else { 
+                    ?(matchId + (i / 2) + numMatches) 
+                };
+
+                newMatches.add({
+                    id = matchId + i;
+                    tournamentId = tournamentId;
+                    participants = [Principal.fromText("2vxsx-fae"), Principal.fromText("2vxsx-fae")];
+                    result = null;
+                    status = "scheduled";
+                    nextMatchId = nextMatchIdOpt;
+                });
+                Debug.print("Created next round match: " # Nat.toText(matchId + i) # " with nextMatchId: " # (switch (nextMatchIdOpt) { case (?id) { Nat.toText(id) }; case null { "none" } }));
+            };
+
+            // Recursively create next round matches
+            let nextRoundMatches = createAllRounds(totalRounds, currentRound + 1, matchId + numMatches);
+            for (match in nextRoundMatches.vals()) {
+                newMatches.add(match);
+            };
+
+            return newMatches;
+        };
+
+        let totalRounds = log2(totalParticipantsRound1);
+        Debug.print("Total rounds: " # Nat.toText(totalRounds));
+        let subsequentRounds = createAllRounds(totalRounds, 1, matchId);
+
+        // Update the stable variable matches
+        var updatedMatches = Buffer.Buffer<Match>(matches.size() + roundMatches.size() + subsequentRounds.size());
         for (match in matches.vals()) {
             updatedMatches.add(match);
         };
         for (newMatch in roundMatches.vals()) {
             updatedMatches.add(newMatch);
         };
+        for (subsequentMatch in subsequentRounds.vals()) {
+            updatedMatches.add(subsequentMatch);
+        };
         matches := Buffer.toArray(updatedMatches);
+
+        // Manually create text representation for matches
+        var matchesText = "";
+        var firstMatch = true;
+        for (match in matches.vals()) {
+            if (not firstMatch) {
+                matchesText #= ", ";
+            };
+            firstMatch := false;
+            let nextMatchIdText = switch (match.nextMatchId) {
+                case (?id) { Nat.toText(id) };
+                case null { "none" };
+            };
+            matchesText #= "Match ID: " # Nat.toText(match.id) # " nextMatchId: " # nextMatchIdText;
+        };
+
+        Debug.print("Bracket created with matches: " # matchesText);
 
         return true;
     };
