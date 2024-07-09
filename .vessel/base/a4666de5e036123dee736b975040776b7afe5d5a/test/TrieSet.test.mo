@@ -67,7 +67,6 @@ let binopTests = do {
   Suite.run(suite)
 };
 
-
 let largeTests = do {
   let e = TrieSet.empty<Nat>();
   let a = TrieSet.fromArray<Nat>(Array.tabulate<Nat>(1000, func i { 2 * i }), Hash.hash, Nat.equal);
@@ -180,7 +179,7 @@ let largeTests = do {
         TrieSet.equal(e, e, Nat.equal),
         M.equals(T.bool(true))
       ),
-       Suite.test(
+      Suite.test(
         "equal e e1 = true",
         TrieSet.equal(e, e1, Nat.equal),
         M.equals(T.bool(true))
@@ -219,7 +218,7 @@ let largeTests = do {
         "equal b b1 = true",
         TrieSet.equal(b, b1, Nat.equal),
         M.equals(T.bool(true))
-      ),
+      )
     ]
   );
   Suite.run(suite)
