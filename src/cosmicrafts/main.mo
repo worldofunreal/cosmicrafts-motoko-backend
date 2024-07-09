@@ -51,10 +51,9 @@ shared actor class Cosmicrafts() {
   let nftsToken : Collection.Collection = actor ("phgme-naaaa-aaaap-abwda-cai");
   let chestsToken : ChestsToken.Chests = actor ("w4fdk-fiaaa-aaaap-qccgq-cai");
 
-  let rewardsCanister : Player.Player = actor ("bm5s5-qqaaa-aaaap-qcgfq-cai");
+  let playerCanister : Player.Player = actor ("bm5s5-qqaaa-aaaap-qcgfq-cai");
 
   private stable var _cosmicPrincipal : Principal = Principal.fromText("bcy24-rkxgs-yoxmr-qt7ub-qk2cy-2q6q7-mnztq-i7etk-noexw-ae7gi-wqe");
-  private stable var _statisticPrincipal : Principal = Principal.fromActor(actor ("jybso-3iaaa-aaaan-qeima-cai"));
   //private stable var transfer_fee : Nat64 = 10_000;
   private stable var icrc1_fee : Nat64 = 1;
   //private stable var upgrade_cost : TypesICRC1.Balance = 10;
@@ -823,7 +822,7 @@ shared actor class Cosmicrafts() {
   };
 
   public shared (msg) func claimReward(idReward : Nat) : async (Bool, Text) {
-    let _reward : ?TypesRewards.RewardsUser = await rewardsCanister.getUserReward(msg.caller, idReward);
+    let _reward : ?TypesRewards.RewardsUser = await playerCanister.getUserReward(msg.caller, idReward);
     switch (_reward) {
       case (null) {
         return (false, "Reward not found");
@@ -847,7 +846,7 @@ shared actor class Cosmicrafts() {
               switch (mint) {
                 case (#Ok(_transactionID)) {
                   chestID := chestID + 1;
-                  let _removedReward = await rewardsCanister.claimedReward(msg.caller, idReward);
+                  let _removedReward = await playerCanister.claimedReward(msg.caller, idReward);
                   return (_removedReward.0, _removedReward.1 # " - " # "Chest minted. Transaction ID: " # Nat.toText(_transactionID));
                 };
                 case (#Err(_e)) {
@@ -881,7 +880,7 @@ shared actor class Cosmicrafts() {
               let _tokenMinted : TypesICRC1.TransferResult = await fluxToken.mint(_fluxArgs);
               switch (_tokenMinted) {
                 case (#Ok(_tid)) {
-                  let _removedReward = await rewardsCanister.claimedReward(msg.caller, idReward);
+                  let _removedReward = await playerCanister.claimedReward(msg.caller, idReward);
                   return (_removedReward.0, _removedReward.1 # " - " # "Flux minted. Transaction ID: " # Nat.toText(_tid));
                 };
                 case (#Err(_e)) {
@@ -918,7 +917,7 @@ shared actor class Cosmicrafts() {
               let _tokenMinted : TypesICRC1.TransferResult = await shardsToken.mint(_shardsArgs);
               switch (_tokenMinted) {
                 case (#Ok(_tid)) {
-                  let _removedReward = await rewardsCanister.claimedReward(msg.caller, idReward);
+                  let _removedReward = await playerCanister.claimedReward(msg.caller, idReward);
                   return (_removedReward.0, _removedReward.1 # " - " # "Shards minted. Transaction ID: " # Nat.toText(_tid));
                 };
                 case (#Err(_e)) {
