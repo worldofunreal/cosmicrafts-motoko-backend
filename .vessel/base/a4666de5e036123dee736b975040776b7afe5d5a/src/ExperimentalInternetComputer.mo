@@ -80,6 +80,6 @@ module {
   /// work();
   /// let diff : Nat64 = IC.performanceCounter(1) - c1;
   /// ```
-  public let performanceCounter : (counter : Nat32) -> (value: Nat64) = Prim.performanceCounter;
+  public let performanceCounter : (counter : Nat32) -> (value : Nat64) = Prim.performanceCounter;
 
 }
