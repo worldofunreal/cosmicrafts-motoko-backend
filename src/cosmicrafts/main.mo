@@ -43,6 +43,10 @@ shared actor class Cosmicrafts() {
   type TransferArgs = TypesICRC7.TransferArgs;
   type TransferResult = TypesICRC1.TransferResult;
 
+  type Level = Types.Level;
+  type PlayerMP = Types.Players;
+  type PlayerPreferences = Types.PlayerPreferences;
+
   type OwnerResult = TypesICRC7.OwnerResult;
 
   private let ledger : Ledger.Interface = actor ("ryjl3-tyaaa-aaaaa-aaaba-cai");
@@ -60,6 +64,20 @@ shared actor class Cosmicrafts() {
 
   private stable var nftID : TokenID = 10000;
   private stable var chestID : TokenID = 10000;
+
+  private stable var _players : [(PlayerId, Player)] = [];
+  var players : HashMap.HashMap<PlayerId, Player> = HashMap.fromIter(_players.vals(), 0, Principal.equal, Principal.hash);
+  private stable var _playerPreferences : [(PlayerId, PlayerPreferences)] = [];
+  var playerPreferences : HashMap.HashMap<PlayerId, PlayerPreferences> = HashMap.fromIter(_playerPreferences.vals(), 0, Principal.equal, Principal.hash);
+  //State functions
+  system func preupgrade() {
+    _players := Iter.toArray(players.entries());
+    _playerPreferences := Iter.toArray(playerPreferences.entries());
+  };
+  system func postupgrade() {
+    _players := [];
+    _playerPreferences := [];
+  };
 
   func getUserSubaccount(u : Principal) : Account.AccountIdentifier {
     return Account.accountIdentifier(Principal.fromActor(actor ("onhpa-giaaa-aaaak-qaafa-cai")), Account.principalToSubaccount(u));
