@@ -259,6 +259,8 @@ actor class Player() {
     };
   };
 
+  //////////////////////////////////
+  //analize if its necesary all these three functions...
   /// PLAYERS LOGIC
   public shared (msg) func getPlayer() : async ?Player {
     return players.get(msg.caller);
@@ -271,7 +273,7 @@ actor class Player() {
   public shared query (msg) func getMyPlayerData() : async ?Player {
     return players.get(msg.caller);
   };
-
+  //////////////////////////////////
   public shared (msg) func createPlayer(name : Text) : async (Bool, Text) {
     switch (players.get(msg.caller)) {
       case (null) {
