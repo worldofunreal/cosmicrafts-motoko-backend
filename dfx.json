@@ -4,22 +4,6 @@
       "main": "src/cosmicrafts/main.mo",
       "type": "motoko"
     },
-    "matchmaking": {
-      "main": "src/mp_matchmaking/main.mo",
-      "type": "motoko"
-    },
-    "statistics": {
-      "main": "src/statistics/main.mo",
-      "type": "motoko"
-    },
-    "validator": {
-      "main": "src/validator/main.mo",
-      "type": "motoko"
-    },
-    "rewards": {
-      "main": "src/rewards/main.mo",
-      "type": "motoko"
-    },
     "player": {
       "main": "src/player/main.mo",
       "type": "motoko"
