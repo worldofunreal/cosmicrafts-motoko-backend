@@ -4,18 +4,6 @@
       "main": "src/cosmicrafts/main.mo",
       "type": "motoko"
     },
-    "matchmaking": {
-      "main": "src/mp_matchmaking/main.mo",
-      "type": "motoko"
-    },
-    "statistics": {
-      "main": "src/statistics/main.mo",
-      "type": "motoko"
-    },
-    "validator": {
-      "main": "src/validator/main.mo",
-      "type": "motoko"
-    },
     "icrc1": {
       "main": "src/ICRC1/Canisters/Token.mo",
       "type": "motoko"
@@ -25,23 +13,11 @@
       "type": "motoko"
     },
     "chests": {
-      "main": "src/Chests/main.mo",
+      "main": "src/chests/main.mo",
       "type": "motoko"
     },
     "icrc7": {
       "main": "src/icrc7/main.mo",
-      "type": "motoko"
-    },
-    "rewards": {
-      "main": "src/rewards/main.mo",
-      "type": "motoko"
-    },
-    "player": {
-      "main": "src/player/main.mo",
-      "type": "motoko"
-    },
-    "tournaments": {
-      "main": "src/tournaments/main.mo",
       "type": "motoko"
     }
   },
