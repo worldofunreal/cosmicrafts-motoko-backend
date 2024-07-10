@@ -1,8 +1,9 @@
+import Types "./types";
 import TypesICRC1 "../ICRC1/Types";
 import TypesICRC7 "../icrc7/types";
 import TypesChests "../chests/types";
 import Ledger "./types/ledger_interface";
-import Account "./modules/Account";
+import Account "./Account";
 
 import Array "mo:base/Array";
 import Blob "mo:base/Blob";
@@ -33,13 +34,7 @@ import ChestsToken "../chests/main";
 
 shared actor class Cosmicrafts() {
 
-  ///ICRC STANDARDS
-  public type TokenId = Nat;
-  public type Subaccount = Blob;
-  public type Balance = Nat;
-  public type TxIndex = Nat;
-
-  type TokenID = TokenId;
+  type TokenID = Types.TokenId;
   type Account = TypesICRC7.Account;
   type TransferArgs = TypesICRC7.TransferArgs;
   type TransferResult = TypesICRC1.TransferResult;
@@ -47,12 +42,11 @@ shared actor class Cosmicrafts() {
   type OwnerResult = TypesICRC7.OwnerResult;
 
   private let ledger : Ledger.Interface = actor ("ryjl3-tyaaa-aaaaa-aaaba-cai");
-  let shardsToken : Token.Token = actor ("svcoe-6iaaa-aaaam-ab4rq-cai");
-  let fluxToken : Flux.Flux = actor ("plahz-wyaaa-aaaam-accta-cai");
-  let nftsToken : Collection.Collection = actor ("phgme-naaaa-aaaap-abwda-cai");
-  let chestsToken : ChestsToken.Chests = actor ("w4fdk-fiaaa-aaaap-qccgq-cai");
+  let shardsToken : Token.Token = actor ("br5f7-7uaaa-aaaaa-qaaca-cai");
+  let fluxToken : Flux.Flux = actor ("be2us-64aaa-aaaaa-qaabq-cai");
+  let nftsToken : Collection.Collection = actor ("bw4dl-smaaa-aaaaa-qaacq-cai");
+  let chestsToken : ChestsToken.Chests = actor ("bkyz2-fmaaa-aaaaa-qaaaq-cai");
 
-  private stable var _cosmicPrincipal : Principal = Principal.fromText("bcy24-rkxgs-yoxmr-qt7ub-qk2cy-2q6q7-mnztq-i7etk-noexw-ae7gi-wqe");
   private stable var transfer_fee : Nat64 = 10_000;
   private stable var icrc1_fee : Nat64 = 1;
   private stable var upgrade_cost : TypesICRC1.Balance = 10;
@@ -60,15 +54,51 @@ shared actor class Cosmicrafts() {
   private stable var nftID : TokenID = 10000;
   private stable var chestID : TokenID = 10000;
 
-  func getUserSubaccount(u : Principal) : Account.AccountIdentifier {
-    return Account.accountIdentifier(Principal.fromActor(actor ("onhpa-giaaa-aaaak-qaafa-cai")), Account.principalToSubaccount(u));
+    public shared (msg) func mintTokens(toPrincipal : Principal, shardsAmount : Nat, fluxAmount : Nat) : async (Bool, Text) {
+      let shardsMinting = async {
+          let _shardsArgs : TypesICRC1.Mint = {
+              to = { owner = toPrincipal; subaccount = null };
+              amount = shardsAmount;
+              memo = null;
+              created_at_time = ?Nat64.fromNat(Int.abs(Time.now()));
+          };
+          let _shardsMinted : TypesICRC1.TransferResult = await shardsToken.mint(_shardsArgs);
+
+          switch (_shardsMinted) {
+              case (#Ok(_tid)) {
+                  Debug.print("Shards minted successfully: " # Nat.toText(_tid));
+              };
+              case (#Err(_e)) {
+                  Debug.print("Error minting shards: ");
+              };
+          };
+      };
+
+      let fluxMinting = async {
+          let _fluxArgs : TypesICRC1.Mint = {
+              to = { owner = toPrincipal; subaccount = null };
+              amount = fluxAmount;
+              memo = null;
+              created_at_time = ?Nat64.fromNat(Int.abs(Time.now()));
+          };
+          let _fluxMinted : TypesICRC1.TransferResult = await fluxToken.mint(_fluxArgs);
+
+          switch (_fluxMinted) {
+              case (#Ok(_tid)) {
+                  Debug.print("Flux minted successfully: " # Nat.toText(_tid));
+              };
+              case (#Err(_e)) {
+                  Debug.print("Error minting flux:");
+              };
+          };
+      };
+
+      await shardsMinting;
+      await fluxMinting;
+
+      return (true, "Tokens minted successfully");
   };
 
-  public shared (msg) func getICPBalance() : async { e8s : Nat64 } {
-    let { e8s = payment } = await ledger.account_balance({
-      account = getUserSubaccount(msg.caller);
-    });
-  };
 
   public shared (msg) func mergeSkinNFTs(nftID : Nat, skinID : Nat) : async (Bool, Text) {
     /// First we need to verify the user owns the NFT
@@ -951,7 +981,7 @@ shared actor class Cosmicrafts() {
     };
   };
 
-  public shared func generateUUID64() : async Nat {
+  private shared func generateUUID64() : async Nat {
     let randomBytes = await Random.blob();
     var uuid : Nat = 0;
     let byteArray = Blob.toArray(randomBytes);
