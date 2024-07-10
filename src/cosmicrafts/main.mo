@@ -1,9 +1,8 @@
-import Types "./types";
 import TypesICRC1 "../ICRC1/Types";
 import TypesICRC7 "../icrc7/types";
 import TypesChests "../chests/types";
 import Ledger "./types/ledger_interface";
-import Account "./Account";
+import Account "./modules/Account";
 
 import Array "mo:base/Array";
 import Blob "mo:base/Blob";
@@ -34,7 +33,13 @@ import ChestsToken "../chests/main";
 
 shared actor class Cosmicrafts() {
 
-  type TokenID = Types.TokenId;
+  ///ICRC STANDARDS
+  public type TokenId = Nat;
+  public type Subaccount = Blob;
+  public type Balance = Nat;
+  public type TxIndex = Nat;
+
+  type TokenID = TokenId;
   type Account = TypesICRC7.Account;
   type TransferArgs = TypesICRC7.TransferArgs;
   type TransferResult = TypesICRC1.TransferResult;
