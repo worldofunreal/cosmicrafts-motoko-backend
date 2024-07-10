@@ -139,3 +139,638 @@ WARN: Cannot fetch Candid interface for getMatchSearching, sending arguments wit
 
 2024-07-10 12:44:07,542 - Player2 search result: 
 2024-07-10 12:44:07,542 - Match ID not found, cannot proceed with matchmaking
+2024-07-10 12:53:34,329 - Player1 starts searching for a match
+2024-07-10 12:53:34,329 - Executing command: dfx identity use player1
+2024-07-10 12:53:34,335 - Command succeeded: dfx identity use player1
+
+2024-07-10 12:53:34,335 - Executing command: dfx canister call cosmicrafts getMatchSearching '("game-data")'
+2024-07-10 12:53:34,359 - Command failed: dfx canister call cosmicrafts getMatchSearching '("game-data")'
+WARN: DEPRECATION WARNING: Cannot fetch Candid interface from canister metadata, reading Candid interface from the local build artifact. In a future dfx release, we will only read candid interface from canister metadata.
+WARN: Please add the following to dfx.json to store local candid file into metadata:
+"metadata": [
+   {
+     "name": "candid:service"
+   }
+]
+[31mError: (B[mFailed update call.
+[33mCaused by: (B[mThe replica returned a rejection error: reject code CanisterError, reject message Requested canister has no wasm module, error code Some("IC0537")
+
+2024-07-10 12:53:34,359 - Player1 search result: 
+2024-07-10 12:53:34,359 - Player2 joins the match
+2024-07-10 12:53:34,359 - Executing command: dfx identity use player2
+2024-07-10 12:53:34,365 - Command succeeded: dfx identity use player2
+
+2024-07-10 12:53:34,365 - Executing command: dfx canister call cosmicrafts getMatchSearching '("game-data")'
+2024-07-10 12:53:34,390 - Command failed: dfx canister call cosmicrafts getMatchSearching '("game-data")'
+WARN: DEPRECATION WARNING: Cannot fetch Candid interface from canister metadata, reading Candid interface from the local build artifact. In a future dfx release, we will only read candid interface from canister metadata.
+WARN: Please add the following to dfx.json to store local candid file into metadata:
+"metadata": [
+   {
+     "name": "candid:service"
+   }
+]
+[31mError: (B[mFailed update call.
+[33mCaused by: (B[mThe replica returned a rejection error: reject code CanisterError, reject message Requested canister has no wasm module, error code Some("IC0537")
+
+2024-07-10 12:53:34,390 - Player2 search result: 
+2024-07-10 12:53:34,390 - Match ID not found, cannot proceed with matchmaking
+2024-07-10 12:58:28,720 - Player1 starts searching for a match
+2024-07-10 12:58:28,720 - Executing command: dfx identity use player1
+2024-07-10 12:58:28,726 - Command succeeded: dfx identity use player1
+
+2024-07-10 12:58:28,726 - Executing command: dfx canister call cosmicrafts getMatchSearching '("game-data")'
+2024-07-10 12:58:30,492 - Command succeeded: dfx canister call cosmicrafts getMatchSearching '("game-data")'
+(variant { Assigned }, 2 : nat, "Lobby created")
+
+2024-07-10 12:58:30,493 - Player1 search result: (variant { Assigned }, 2 : nat, "Lobby created")
+2024-07-10 12:58:30,493 - Player2 joins the match
+2024-07-10 12:58:30,493 - Executing command: dfx identity use player2
+2024-07-10 12:58:30,499 - Command succeeded: dfx identity use player2
+
+2024-07-10 12:58:30,499 - Executing command: dfx canister call cosmicrafts getMatchSearching '("game-data")'
+2024-07-10 12:58:32,182 - Command succeeded: dfx canister call cosmicrafts getMatchSearching '("game-data")'
+(variant { Assigned }, 2 : nat, "Game found")
+
+2024-07-10 12:58:32,182 - Player2 search result: (variant { Assigned }, 2 : nat, "Game found")
+2024-07-10 12:58:32,182 - Match ID not found, cannot proceed with matchmaking
+2024-07-10 13:07:44,245 - Player1 starts searching for a match
+2024-07-10 13:07:44,245 - Executing command: dfx identity use player1
+2024-07-10 13:07:44,251 - Command succeeded: dfx identity use player1
+
+2024-07-10 13:07:44,251 - Executing command: dfx canister call cosmicrafts getMatchSearching '("{"userAvatar": 1, "listSavedKeys": []}")'
+2024-07-10 13:07:44,318 - Command failed: dfx canister call cosmicrafts getMatchSearching '("{"userAvatar": 1, "listSavedKeys": []}")'
+[0m[1m[38;5;9merror[0m[1m: parser error[0m
+  [0m[34m┌─[0m Candid argument:1:5
+  [0m[34m│[0m
+[0m[34m1[0m [0m[34m│[0m ("{"[0m[31muserAvatar[0m": 1, "listSavedKeys": []}")
+  [0m[34m│[0m     [0m[31m^^^^^^^^^^[0m [0m[31mUnexpected token[0m
+  [0m[34m│[0m
+  [0m[34m=[0m Expects one of ")", ",", ":"
+
+[31mError: (B[mFailed to create argument blob.
+[33mCaused by: (B[mInvalid data: Unable to serialize Candid values: Invalid argument: Invalid Candid values: Candid parser error: Unrecognized token `Id("userAvatar")` found at 4:14
+Expected one of ")", "," or ":"
+
+2024-07-10 13:07:44,318 - Player1 search result: 
+2024-07-10 13:07:44,318 - Player2 joins the match
+2024-07-10 13:07:44,318 - Executing command: dfx identity use player2
+2024-07-10 13:07:44,328 - Command succeeded: dfx identity use player2
+
+2024-07-10 13:07:44,328 - Executing command: dfx canister call cosmicrafts getMatchSearching '("{"userAvatar": 1, "listSavedKeys": []}")'
+2024-07-10 13:07:44,376 - Command failed: dfx canister call cosmicrafts getMatchSearching '("{"userAvatar": 1, "listSavedKeys": []}")'
+[0m[1m[38;5;9merror[0m[1m: parser error[0m
+  [0m[34m┌─[0m Candid argument:1:5
+  [0m[34m│[0m
+[0m[34m1[0m [0m[34m│[0m ("{"[0m[31muserAvatar[0m": 1, "listSavedKeys": []}")
+  [0m[34m│[0m     [0m[31m^^^^^^^^^^[0m [0m[31mUnexpected token[0m
+  [0m[34m│[0m
+  [0m[34m=[0m Expects one of ")", ",", ":"
+
+[31mError: (B[mFailed to create argument blob.
+[33mCaused by: (B[mInvalid data: Unable to serialize Candid values: Invalid argument: Invalid Candid values: Candid parser error: Unrecognized token `Id("userAvatar")` found at 4:14
+Expected one of ")", "," or ":"
+
+2024-07-10 13:07:44,377 - Player2 search result: 
+2024-07-10 13:07:44,377 - Executing command: dfx identity use player1
+2024-07-10 13:07:44,386 - Command succeeded: dfx identity use player1
+
+2024-07-10 13:07:44,386 - Executing command: dfx canister call cosmicrafts setPlayerActive
+2024-07-10 13:07:45,878 - Command succeeded: dfx canister call cosmicrafts setPlayerActive
+(false)
+
+2024-07-10 13:07:45,878 - Player1 active result: (false)
+2024-07-10 13:07:45,879 - Executing command: dfx identity use player1
+2024-07-10 13:07:45,905 - Command succeeded: dfx identity use player1
+
+2024-07-10 13:07:45,906 - Executing command: dfx canister call cosmicrafts cancelMatchmaking
+2024-07-10 13:07:47,568 - Command succeeded: dfx canister call cosmicrafts cancelMatchmaking
+(false, "Match found, cannot cancel at this time")
+
+2024-07-10 13:09:43,016 - Player1 starts searching for a match
+2024-07-10 13:09:43,016 - Executing command: dfx identity use player1
+2024-07-10 13:09:43,021 - Command succeeded: dfx identity use player1
+
+2024-07-10 13:09:43,021 - Executing command: dfx canister call cosmicrafts getMatchSearching "(\"{\"userAvatar\": 1, \"listSavedKeys\": []}\")"
+2024-07-10 13:09:43,106 - Command failed: dfx canister call cosmicrafts getMatchSearching "(\"{\"userAvatar\": 1, \"listSavedKeys\": []}\")"
+[0m[1m[38;5;9merror[0m[1m: parser error[0m
+  [0m[34m┌─[0m Candid argument:1:5
+  [0m[34m│[0m
+[0m[34m1[0m [0m[34m│[0m ("{"[0m[31muserAvatar[0m": 1, "listSavedKeys": []}")
+  [0m[34m│[0m     [0m[31m^^^^^^^^^^[0m [0m[31mUnexpected token[0m
+  [0m[34m│[0m
+  [0m[34m=[0m Expects one of ")", ",", ":"
+
+[31mError: (B[mFailed to create argument blob.
+[33mCaused by: (B[mInvalid data: Unable to serialize Candid values: Invalid argument: Invalid Candid values: Candid parser error: Unrecognized token `Id("userAvatar")` found at 4:14
+Expected one of ")", "," or ":"
+
+2024-07-10 13:09:43,106 - Player1 search result: 
+2024-07-10 13:09:43,106 - Player2 joins the match
+2024-07-10 13:09:43,107 - Executing command: dfx identity use player2
+2024-07-10 13:09:43,130 - Command succeeded: dfx identity use player2
+
+2024-07-10 13:09:43,131 - Executing command: dfx canister call cosmicrafts getMatchSearching "(\"{\"userAvatar\": 1, \"listSavedKeys\": []}\")"
+2024-07-10 13:09:43,161 - Command failed: dfx canister call cosmicrafts getMatchSearching "(\"{\"userAvatar\": 1, \"listSavedKeys\": []}\")"
+[0m[1m[38;5;9merror[0m[1m: parser error[0m
+  [0m[34m┌─[0m Candid argument:1:5
+  [0m[34m│[0m
+[0m[34m1[0m [0m[34m│[0m ("{"[0m[31muserAvatar[0m": 1, "listSavedKeys": []}")
+  [0m[34m│[0m     [0m[31m^^^^^^^^^^[0m [0m[31mUnexpected token[0m
+  [0m[34m│[0m
+  [0m[34m=[0m Expects one of ")", ",", ":"
+
+[31mError: (B[mFailed to create argument blob.
+[33mCaused by: (B[mInvalid data: Unable to serialize Candid values: Invalid argument: Invalid Candid values: Candid parser error: Unrecognized token `Id("userAvatar")` found at 4:14
+Expected one of ")", "," or ":"
+
+2024-07-10 13:09:43,161 - Player2 search result: 
+2024-07-10 13:09:43,161 - Executing command: dfx identity use player1
+2024-07-10 13:09:43,166 - Command succeeded: dfx identity use player1
+
+2024-07-10 13:09:43,167 - Executing command: dfx canister call cosmicrafts setPlayerActive
+2024-07-10 13:09:44,449 - Command succeeded: dfx canister call cosmicrafts setPlayerActive
+(false)
+
+2024-07-10 13:09:44,450 - Player1 active result: (false)
+2024-07-10 13:09:44,450 - Executing command: dfx identity use player2
+2024-07-10 13:09:44,479 - Command succeeded: dfx identity use player2
+
+2024-07-10 13:09:44,480 - Executing command: dfx canister call cosmicrafts setPlayerActive
+2024-07-10 13:09:45,486 - Command succeeded: dfx canister call cosmicrafts setPlayerActive
+(false)
+
+2024-07-10 13:09:45,486 - Player2 active result: (false)
+2024-07-10 13:09:45,486 - Executing command: dfx identity use player1
+2024-07-10 13:09:45,515 - Command succeeded: dfx identity use player1
+
+2024-07-10 13:09:45,515 - Executing command: dfx canister call cosmicrafts isGameMatched
+2024-07-10 13:09:45,577 - Command succeeded: dfx canister call cosmicrafts isGameMatched
+(true, "Game matched")
+
+2024-07-10 13:09:45,577 - Is game matched result for Player1: (true, "Game matched")
+2024-07-10 13:09:45,577 - Executing command: dfx identity use player2
+2024-07-10 13:09:45,588 - Command succeeded: dfx identity use player2
+
+2024-07-10 13:09:45,589 - Executing command: dfx canister call cosmicrafts isGameMatched
+2024-07-10 13:09:45,685 - Command succeeded: dfx canister call cosmicrafts isGameMatched
+(true, "Game matched")
+
+2024-07-10 13:09:45,685 - Is game matched result for Player2: (true, "Game matched")
+2024-07-10 13:09:45,685 - Match found! Ending search.
+2024-07-10 13:13:05,612 - Player1 starts searching for a match
+2024-07-10 13:13:05,612 - Executing command: dfx identity use player1
+2024-07-10 13:13:05,618 - Command succeeded: dfx identity use player1
+
+2024-07-10 13:13:05,618 - Executing command: dfx canister call cosmicrafts getMatchSearching "{"userAvatar": 1, "listSavedKeys": []}"
+2024-07-10 13:13:07,500 - Command succeeded: dfx canister call cosmicrafts getMatchSearching "{"userAvatar": 1, "listSavedKeys": []}"
+(variant { Assigned }, 3 : nat, "Lobby created")
+
+2024-07-10 13:13:07,500 - Player1 search result: (variant { Assigned }, 3 : nat, "Lobby created")
+2024-07-10 13:13:07,500 - Player2 joins the match
+2024-07-10 13:13:07,500 - Executing command: dfx identity use player2
+2024-07-10 13:13:07,508 - Command succeeded: dfx identity use player2
+
+2024-07-10 13:13:07,508 - Executing command: dfx canister call cosmicrafts getMatchSearching "{"userAvatar": 1, "listSavedKeys": []}"
+2024-07-10 13:13:09,030 - Command succeeded: dfx canister call cosmicrafts getMatchSearching "{"userAvatar": 1, "listSavedKeys": []}"
+(variant { Assigned }, 3 : nat, "Game found")
+
+2024-07-10 13:13:09,030 - Player2 search result: (variant { Assigned }, 3 : nat, "Game found")
+2024-07-10 13:13:09,031 - Executing command: dfx identity use player1
+2024-07-10 13:13:09,057 - Command succeeded: dfx identity use player1
+
+2024-07-10 13:13:09,057 - Executing command: dfx canister call cosmicrafts setPlayerActive
+2024-07-10 13:13:10,702 - Command succeeded: dfx canister call cosmicrafts setPlayerActive
+(false)
+
+2024-07-10 13:13:10,702 - Player1 active result: (false)
+2024-07-10 13:13:10,702 - Executing command: dfx identity use player2
+2024-07-10 13:13:10,732 - Command succeeded: dfx identity use player2
+
+2024-07-10 13:13:10,732 - Executing command: dfx canister call cosmicrafts setPlayerActive
+2024-07-10 13:13:11,836 - Command succeeded: dfx canister call cosmicrafts setPlayerActive
+(false)
+
+2024-07-10 13:13:11,836 - Player2 active result: (false)
+2024-07-10 13:13:11,836 - Executing command: dfx identity use player1
+2024-07-10 13:13:11,865 - Command succeeded: dfx identity use player1
+
+2024-07-10 13:13:11,865 - Executing command: dfx canister call cosmicrafts isGameMatched
+2024-07-10 13:13:11,913 - Command succeeded: dfx canister call cosmicrafts isGameMatched
+(true, "Game matched")
+
+2024-07-10 13:13:11,913 - Is game matched result for Player1: (true, "Game matched")
+2024-07-10 13:13:11,913 - Executing command: dfx identity use player2
+2024-07-10 13:13:11,919 - Command succeeded: dfx identity use player2
+
+2024-07-10 13:13:11,919 - Executing command: dfx canister call cosmicrafts isGameMatched
+2024-07-10 13:13:11,987 - Command succeeded: dfx canister call cosmicrafts isGameMatched
+(true, "Game matched")
+
+2024-07-10 13:13:11,987 - Is game matched result for Player2: (true, "Game matched")
+2024-07-10 13:13:11,987 - Match found! Ending search.
+2024-07-10 14:10:58,237 - Player1 starts searching for a match
+2024-07-10 14:10:58,237 - Executing command: dfx identity use player1
+2024-07-10 14:10:58,245 - Command succeeded: dfx identity use player1
+
+2024-07-10 14:10:58,245 - Executing command: dfx canister call cosmicrafts getMatchSearching "{"userAvatar": 1, "listSavedKeys": []}"
+2024-07-10 14:11:00,487 - Command succeeded: dfx canister call cosmicrafts getMatchSearching "{"userAvatar": 1, "listSavedKeys": []}"
+(variant { Assigned }, 4 : nat, "Lobby created")
+
+2024-07-10 14:11:00,488 - Player1 search result: (variant { Assigned }, 4 : nat, "Lobby created")
+2024-07-10 14:11:00,488 - Player2 joins the match
+2024-07-10 14:11:00,488 - Executing command: dfx identity use player2
+2024-07-10 14:11:00,514 - Command succeeded: dfx identity use player2
+
+2024-07-10 14:11:00,514 - Executing command: dfx canister call cosmicrafts getMatchSearching "{"userAvatar": 1, "listSavedKeys": []}"
+2024-07-10 14:11:01,778 - Command succeeded: dfx canister call cosmicrafts getMatchSearching "{"userAvatar": 1, "listSavedKeys": []}"
+(variant { Assigned }, 4 : nat, "Game found")
+
+2024-07-10 14:11:01,778 - Player2 search result: (variant { Assigned }, 4 : nat, "Game found")
+2024-07-10 14:11:01,779 - Executing command: dfx identity use player1
+2024-07-10 14:11:01,801 - Command succeeded: dfx identity use player1
+
+2024-07-10 14:11:01,801 - Executing command: dfx canister call cosmicrafts setPlayerActive
+2024-07-10 14:11:03,859 - Command succeeded: dfx canister call cosmicrafts setPlayerActive
+(false)
+
+2024-07-10 14:11:03,859 - Player1 active result: (false)
+2024-07-10 14:11:03,860 - Executing command: dfx identity use player2
+2024-07-10 14:11:03,866 - Command succeeded: dfx identity use player2
+
+2024-07-10 14:11:03,866 - Executing command: dfx canister call cosmicrafts setPlayerActive
+2024-07-10 14:11:05,049 - Command succeeded: dfx canister call cosmicrafts setPlayerActive
+(false)
+
+2024-07-10 14:11:05,050 - Player2 active result: (false)
+2024-07-10 14:11:05,050 - Executing command: dfx identity use player1
+2024-07-10 14:11:05,058 - Command succeeded: dfx identity use player1
+
+2024-07-10 14:11:05,058 - Executing command: dfx canister call cosmicrafts isGameMatched
+2024-07-10 14:11:05,097 - Command succeeded: dfx canister call cosmicrafts isGameMatched
+(true, "Game matched")
+
+2024-07-10 14:11:05,097 - Is game matched result for Player1: (true, "Game matched")
+2024-07-10 14:11:05,097 - Executing command: dfx identity use player2
+2024-07-10 14:11:05,104 - Command succeeded: dfx identity use player2
+
+2024-07-10 14:11:05,104 - Executing command: dfx canister call cosmicrafts isGameMatched
+2024-07-10 14:11:05,131 - Command succeeded: dfx canister call cosmicrafts isGameMatched
+(true, "Game matched")
+
+2024-07-10 14:11:05,131 - Is game matched result for Player2: (true, "Game matched")
+2024-07-10 14:11:05,131 - Match found! Ending search.
+2024-07-10 14:13:43,304 - Player1 starts searching for a match
+2024-07-10 14:13:43,304 - Executing command: dfx identity use player1
+2024-07-10 14:13:43,311 - Command succeeded: dfx identity use player1
+
+2024-07-10 14:13:43,311 - Executing command: dfx canister call cosmicrafts getMatchSearching "{"userAvatar": 1, "listSavedKeys": []}"
+2024-07-10 14:13:44,991 - Command succeeded: dfx canister call cosmicrafts getMatchSearching "{"userAvatar": 1, "listSavedKeys": []}"
+(variant { Assigned }, 5 : nat, "Lobby created")
+
+2024-07-10 14:13:44,992 - Player1 search result: (variant { Assigned }, 5 : nat, "Lobby created")
+2024-07-10 14:13:44,992 - Player2 joins the match
+2024-07-10 14:13:44,992 - Executing command: dfx identity use player2
+2024-07-10 14:13:45,017 - Command succeeded: dfx identity use player2
+
+2024-07-10 14:13:45,017 - Executing command: dfx canister call cosmicrafts getMatchSearching "{"userAvatar": 1, "listSavedKeys": []}"
+2024-07-10 14:13:46,256 - Command succeeded: dfx canister call cosmicrafts getMatchSearching "{"userAvatar": 1, "listSavedKeys": []}"
+(variant { Assigned }, 5 : nat, "Game found")
+
+2024-07-10 14:13:46,256 - Player2 search result: (variant { Assigned }, 5 : nat, "Game found")
+2024-07-10 14:13:46,256 - Executing command: dfx identity use player1
+2024-07-10 14:13:46,266 - Command succeeded: dfx identity use player1
+
+2024-07-10 14:13:46,266 - Executing command: dfx canister call cosmicrafts setPlayerActive
+2024-07-10 14:13:47,937 - Command succeeded: dfx canister call cosmicrafts setPlayerActive
+(false)
+
+2024-07-10 14:13:47,937 - Player1 active result: (false)
+2024-07-10 14:13:47,937 - Executing command: dfx identity use player2
+2024-07-10 14:13:47,951 - Command succeeded: dfx identity use player2
+
+2024-07-10 14:13:47,951 - Executing command: dfx canister call cosmicrafts setPlayerActive
+2024-07-10 14:13:50,287 - Command succeeded: dfx canister call cosmicrafts setPlayerActive
+(false)
+
+2024-07-10 14:13:50,287 - Player2 active result: (false)
+2024-07-10 14:13:50,287 - Executing command: dfx identity use player1
+2024-07-10 14:13:50,307 - Command succeeded: dfx identity use player1
+
+2024-07-10 14:13:50,307 - Executing command: dfx canister call cosmicrafts isGameMatched
+2024-07-10 14:13:50,350 - Command succeeded: dfx canister call cosmicrafts isGameMatched
+(true, "Game matched")
+
+2024-07-10 14:13:50,350 - Is game matched result for Player1: (true, "Game matched")
+2024-07-10 14:13:50,350 - Executing command: dfx identity use player2
+2024-07-10 14:13:50,359 - Command succeeded: dfx identity use player2
+
+2024-07-10 14:13:50,359 - Executing command: dfx canister call cosmicrafts isGameMatched
+2024-07-10 14:13:50,399 - Command succeeded: dfx canister call cosmicrafts isGameMatched
+(true, "Game matched")
+
+2024-07-10 14:13:50,399 - Is game matched result for Player2: (true, "Game matched")
+2024-07-10 14:13:50,399 - Match found! Ending search.
+2024-07-10 14:15:33,443 - Player1 starts searching for a match
+2024-07-10 14:15:33,443 - Executing command: dfx identity use player1
+2024-07-10 14:15:33,449 - Command succeeded: dfx identity use player1
+
+2024-07-10 14:15:33,449 - Executing command: dfx canister call cosmicrafts getMatchSearching "(\"{\"userAvatar\": 1, \"listSavedKeys\": []}\")"
+2024-07-10 14:15:33,517 - Command failed: dfx canister call cosmicrafts getMatchSearching "(\"{\"userAvatar\": 1, \"listSavedKeys\": []}\")"
+[0m[1m[38;5;9merror[0m[1m: parser error[0m
+  [0m[34m┌─[0m Candid argument:1:5
+  [0m[34m│[0m
+[0m[34m1[0m [0m[34m│[0m ("{"[0m[31muserAvatar[0m": 1, "listSavedKeys": []}")
+  [0m[34m│[0m     [0m[31m^^^^^^^^^^[0m [0m[31mUnexpected token[0m
+  [0m[34m│[0m
+  [0m[34m=[0m Expects one of ")", ",", ":"
+
+[31mError: (B[mFailed to create argument blob.
+[33mCaused by: (B[mInvalid data: Unable to serialize Candid values: Invalid argument: Invalid Candid values: Candid parser error: Unrecognized token `Id("userAvatar")` found at 4:14
+Expected one of ")", "," or ":"
+
+2024-07-10 14:15:33,517 - Player1 search result: 
+2024-07-10 14:15:33,517 - Player2 joins the match
+2024-07-10 14:15:33,517 - Executing command: dfx identity use player2
+2024-07-10 14:15:33,527 - Command succeeded: dfx identity use player2
+
+2024-07-10 14:15:33,527 - Executing command: dfx canister call cosmicrafts getMatchSearching "(\"{\"userAvatar\": 1, \"listSavedKeys\": []}\")"
+2024-07-10 14:15:33,559 - Command failed: dfx canister call cosmicrafts getMatchSearching "(\"{\"userAvatar\": 1, \"listSavedKeys\": []}\")"
+[0m[1m[38;5;9merror[0m[1m: parser error[0m
+  [0m[34m┌─[0m Candid argument:1:5
+  [0m[34m│[0m
+[0m[34m1[0m [0m[34m│[0m ("{"[0m[31muserAvatar[0m": 1, "listSavedKeys": []}")
+  [0m[34m│[0m     [0m[31m^^^^^^^^^^[0m [0m[31mUnexpected token[0m
+  [0m[34m│[0m
+  [0m[34m=[0m Expects one of ")", ",", ":"
+
+[31mError: (B[mFailed to create argument blob.
+[33mCaused by: (B[mInvalid data: Unable to serialize Candid values: Invalid argument: Invalid Candid values: Candid parser error: Unrecognized token `Id("userAvatar")` found at 4:14
+Expected one of ")", "," or ":"
+
+2024-07-10 14:15:33,559 - Player2 search result: 
+2024-07-10 14:15:33,559 - Executing command: dfx identity use player1
+2024-07-10 14:15:33,565 - Command succeeded: dfx identity use player1
+
+2024-07-10 14:15:33,565 - Executing command: dfx canister call cosmicrafts setPlayerActive
+2024-07-10 14:15:35,762 - Command succeeded: dfx canister call cosmicrafts setPlayerActive
+(false)
+
+2024-07-10 14:15:35,762 - Player1 active result: (false)
+2024-07-10 14:15:35,763 - Executing command: dfx identity use player2
+2024-07-10 14:15:35,790 - Command succeeded: dfx identity use player2
+
+2024-07-10 14:15:35,790 - Executing command: dfx canister call cosmicrafts setPlayerActive
+2024-07-10 14:15:37,089 - Command succeeded: dfx canister call cosmicrafts setPlayerActive
+(false)
+
+2024-07-10 14:15:37,089 - Player2 active result: (false)
+2024-07-10 14:15:37,089 - Executing command: dfx identity use player1
+2024-07-10 14:15:37,114 - Command succeeded: dfx identity use player1
+
+2024-07-10 14:15:37,114 - Executing command: dfx canister call cosmicrafts isGameMatched
+2024-07-10 14:15:37,153 - Command succeeded: dfx canister call cosmicrafts isGameMatched
+(true, "Game matched")
+
+2024-07-10 14:15:37,153 - Is game matched result for Player1: (true, "Game matched")
+2024-07-10 14:15:37,153 - Executing command: dfx identity use player2
+2024-07-10 14:15:37,161 - Command succeeded: dfx identity use player2
+
+2024-07-10 14:15:37,161 - Executing command: dfx canister call cosmicrafts isGameMatched
+2024-07-10 14:15:37,228 - Command succeeded: dfx canister call cosmicrafts isGameMatched
+(true, "Game matched")
+
+2024-07-10 14:15:37,228 - Is game matched result for Player2: (true, "Game matched")
+2024-07-10 14:15:37,228 - Match found! Ending search.
+2024-07-10 14:16:56,685 - Player1 starts searching for a match
+2024-07-10 14:16:56,685 - Executing command: dfx identity use player1
+2024-07-10 14:16:56,691 - Command succeeded: dfx identity use player1
+
+2024-07-10 14:16:56,691 - Executing command: dfx canister call cosmicrafts getMatchSearching "(\"{\"userAvatar\": 1, \"listSavedKeys\": []}\")"
+2024-07-10 14:16:56,712 - Command failed: dfx canister call cosmicrafts getMatchSearching "(\"{\"userAvatar\": 1, \"listSavedKeys\": []}\")"
+[0m[1m[38;5;9merror[0m[1m: parser error[0m
+  [0m[34m┌─[0m Candid argument:1:5
+  [0m[34m│[0m
+[0m[34m1[0m [0m[34m│[0m ("{"[0m[31muserAvatar[0m": 1, "listSavedKeys": []}")
+  [0m[34m│[0m     [0m[31m^^^^^^^^^^[0m [0m[31mUnexpected token[0m
+  [0m[34m│[0m
+  [0m[34m=[0m Expects one of ")", ",", ":"
+
+[31mError: (B[mFailed to create argument blob.
+[33mCaused by: (B[mInvalid data: Unable to serialize Candid values: Invalid argument: Invalid Candid values: Candid parser error: Unrecognized token `Id("userAvatar")` found at 4:14
+Expected one of ")", "," or ":"
+
+2024-07-10 14:16:56,712 - Player1 search result: 
+2024-07-10 14:16:56,713 - Player2 joins the match
+2024-07-10 14:16:56,713 - Executing command: dfx identity use player2
+2024-07-10 14:16:56,719 - Command succeeded: dfx identity use player2
+
+2024-07-10 14:16:56,719 - Executing command: dfx canister call cosmicrafts getMatchSearching "(\"{\"userAvatar\": 1, \"listSavedKeys\": []}\")"
+2024-07-10 14:16:56,740 - Command failed: dfx canister call cosmicrafts getMatchSearching "(\"{\"userAvatar\": 1, \"listSavedKeys\": []}\")"
+[0m[1m[38;5;9merror[0m[1m: parser error[0m
+  [0m[34m┌─[0m Candid argument:1:5
+  [0m[34m│[0m
+[0m[34m1[0m [0m[34m│[0m ("{"[0m[31muserAvatar[0m": 1, "listSavedKeys": []}")
+  [0m[34m│[0m     [0m[31m^^^^^^^^^^[0m [0m[31mUnexpected token[0m
+  [0m[34m│[0m
+  [0m[34m=[0m Expects one of ")", ",", ":"
+
+[31mError: (B[mFailed to create argument blob.
+[33mCaused by: (B[mInvalid data: Unable to serialize Candid values: Invalid argument: Invalid Candid values: Candid parser error: Unrecognized token `Id("userAvatar")` found at 4:14
+Expected one of ")", "," or ":"
+
+2024-07-10 14:16:56,740 - Player2 search result: 
+2024-07-10 14:16:56,740 - Executing command: dfx identity use player1
+2024-07-10 14:16:56,747 - Command succeeded: dfx identity use player1
+
+2024-07-10 14:16:56,747 - Executing command: dfx canister call cosmicrafts setPlayerActive
+2024-07-10 14:16:58,691 - Command succeeded: dfx canister call cosmicrafts setPlayerActive
+(false)
+
+2024-07-10 14:16:58,691 - Player1 active result: (false)
+2024-07-10 14:16:58,692 - Executing command: dfx identity use player2
+2024-07-10 14:16:58,718 - Command succeeded: dfx identity use player2
+
+2024-07-10 14:16:58,719 - Executing command: dfx canister call cosmicrafts setPlayerActive
+2024-07-10 14:17:01,080 - Command succeeded: dfx canister call cosmicrafts setPlayerActive
+(false)
+
+2024-07-10 14:17:01,080 - Player2 active result: (false)
+2024-07-10 14:17:01,080 - Executing command: dfx identity use player1
+2024-07-10 14:17:01,091 - Command succeeded: dfx identity use player1
+
+2024-07-10 14:17:01,091 - Executing command: dfx canister call cosmicrafts isGameMatched
+2024-07-10 14:17:01,127 - Command succeeded: dfx canister call cosmicrafts isGameMatched
+(true, "Game matched")
+
+2024-07-10 14:17:01,127 - Is game matched result for Player1: (true, "Game matched")
+2024-07-10 14:17:01,127 - Executing command: dfx identity use player2
+2024-07-10 14:17:01,136 - Command succeeded: dfx identity use player2
+
+2024-07-10 14:17:01,136 - Executing command: dfx canister call cosmicrafts isGameMatched
+2024-07-10 14:17:01,171 - Command succeeded: dfx canister call cosmicrafts isGameMatched
+(true, "Game matched")
+
+2024-07-10 14:17:01,171 - Is game matched result for Player2: (true, "Game matched")
+2024-07-10 14:17:01,171 - Match found! Ending search.
+2024-07-10 14:17:16,227 - Player1 starts searching for a match
+2024-07-10 14:17:16,227 - Executing command: dfx identity use player1
+2024-07-10 14:17:16,233 - Command succeeded: dfx identity use player1
+
+2024-07-10 14:17:16,233 - Executing command: dfx canister call cosmicrafts getMatchSearching "{"userAvatar": 1, "listSavedKeys": []}"
+2024-07-10 14:17:17,591 - Command succeeded: dfx canister call cosmicrafts getMatchSearching "{"userAvatar": 1, "listSavedKeys": []}"
+(variant { Assigned }, 6 : nat, "Lobby created")
+
+2024-07-10 14:17:17,591 - Player1 search result: (variant { Assigned }, 6 : nat, "Lobby created")
+2024-07-10 14:17:17,591 - Player2 joins the match
+2024-07-10 14:17:17,591 - Executing command: dfx identity use player2
+2024-07-10 14:17:17,607 - Command succeeded: dfx identity use player2
+
+2024-07-10 14:17:17,607 - Executing command: dfx canister call cosmicrafts getMatchSearching "{"userAvatar": 1, "listSavedKeys": []}"
+2024-07-10 14:17:19,777 - Command succeeded: dfx canister call cosmicrafts getMatchSearching "{"userAvatar": 1, "listSavedKeys": []}"
+(variant { Assigned }, 6 : nat, "Game found")
+
+2024-07-10 14:17:19,778 - Player2 search result: (variant { Assigned }, 6 : nat, "Game found")
+2024-07-10 14:17:19,778 - Executing command: dfx identity use player1
+2024-07-10 14:17:19,790 - Command succeeded: dfx identity use player1
+
+2024-07-10 14:17:19,790 - Executing command: dfx canister call cosmicrafts setPlayerActive
+2024-07-10 14:17:21,070 - Command succeeded: dfx canister call cosmicrafts setPlayerActive
+(false)
+
+2024-07-10 14:17:21,071 - Player1 active result: (false)
+2024-07-10 14:17:21,071 - Executing command: dfx identity use player2
+2024-07-10 14:17:21,102 - Command succeeded: dfx identity use player2
+
+2024-07-10 14:17:21,102 - Executing command: dfx canister call cosmicrafts setPlayerActive
+2024-07-10 14:17:22,713 - Command succeeded: dfx canister call cosmicrafts setPlayerActive
+(false)
+
+2024-07-10 14:17:22,713 - Player2 active result: (false)
+2024-07-10 14:17:22,713 - Executing command: dfx identity use player1
+2024-07-10 14:17:22,737 - Command succeeded: dfx identity use player1
+
+2024-07-10 14:17:22,737 - Executing command: dfx canister call cosmicrafts isGameMatched
+2024-07-10 14:17:22,774 - Command succeeded: dfx canister call cosmicrafts isGameMatched
+(true, "Game matched")
+
+2024-07-10 14:17:22,774 - Is game matched result for Player1: (true, "Game matched")
+2024-07-10 14:17:22,774 - Executing command: dfx identity use player2
+2024-07-10 14:17:22,780 - Command succeeded: dfx identity use player2
+
+2024-07-10 14:17:22,780 - Executing command: dfx canister call cosmicrafts isGameMatched
+2024-07-10 14:17:22,804 - Command succeeded: dfx canister call cosmicrafts isGameMatched
+(true, "Game matched")
+
+2024-07-10 14:17:22,804 - Is game matched result for Player2: (true, "Game matched")
+2024-07-10 14:17:22,804 - Match found! Ending search.
+2024-07-10 14:18:50,278 - Player1 starts searching for a match
+2024-07-10 14:18:50,278 - Executing command: dfx identity use player1
+2024-07-10 14:18:50,284 - Command succeeded: dfx identity use player1
+
+2024-07-10 14:18:50,284 - Executing command: dfx canister call cosmicrafts getMatchSearching "{"userAvatar": 1, "listSavedKeys": []}"
+2024-07-10 14:18:51,923 - Command succeeded: dfx canister call cosmicrafts getMatchSearching "{"userAvatar": 1, "listSavedKeys": []}"
+(variant { Assigned }, 7 : nat, "Lobby created")
+
+2024-07-10 14:18:51,923 - Player1 search result: (variant { Assigned }, 7 : nat, "Lobby created")
+2024-07-10 14:18:51,924 - Player2 joins the match
+2024-07-10 14:18:51,924 - Executing command: dfx identity use player2
+2024-07-10 14:18:51,935 - Command succeeded: dfx identity use player2
+
+2024-07-10 14:18:51,935 - Executing command: dfx canister call cosmicrafts getMatchSearching "{"userAvatar": 1, "listSavedKeys": []}"
+2024-07-10 14:18:54,415 - Command succeeded: dfx canister call cosmicrafts getMatchSearching "{"userAvatar": 1, "listSavedKeys": []}"
+(variant { Assigned }, 7 : nat, "Game found")
+
+2024-07-10 14:18:54,416 - Player2 search result: (variant { Assigned }, 7 : nat, "Game found")
+2024-07-10 14:18:54,416 - Executing command: dfx identity use player1
+2024-07-10 14:18:54,439 - Command succeeded: dfx identity use player1
+
+2024-07-10 14:18:54,439 - Executing command: dfx canister call cosmicrafts setPlayerActive
+2024-07-10 14:18:56,170 - Command succeeded: dfx canister call cosmicrafts setPlayerActive
+(false)
+
+2024-07-10 14:18:56,170 - Player1 active result: (false)
+2024-07-10 14:18:56,171 - Executing command: dfx identity use player2
+2024-07-10 14:18:56,188 - Command succeeded: dfx identity use player2
+
+2024-07-10 14:18:56,188 - Executing command: dfx canister call cosmicrafts setPlayerActive
+2024-07-10 14:18:58,991 - Command succeeded: dfx canister call cosmicrafts setPlayerActive
+(false)
+
+2024-07-10 14:18:58,991 - Player2 active result: (false)
+2024-07-10 14:18:58,991 - Executing command: dfx identity use player1
+2024-07-10 14:18:59,013 - Command succeeded: dfx identity use player1
+
+2024-07-10 14:18:59,014 - Executing command: dfx canister call cosmicrafts isGameMatched
+2024-07-10 14:18:59,049 - Command succeeded: dfx canister call cosmicrafts isGameMatched
+(true, "Game matched")
+
+2024-07-10 14:18:59,049 - Is game matched result for Player1: (true, "Game matched")
+2024-07-10 14:18:59,049 - Executing command: dfx identity use player2
+2024-07-10 14:18:59,055 - Command succeeded: dfx identity use player2
+
+2024-07-10 14:18:59,055 - Executing command: dfx canister call cosmicrafts isGameMatched
+2024-07-10 14:18:59,080 - Command succeeded: dfx canister call cosmicrafts isGameMatched
+(true, "Game matched")
+
+2024-07-10 14:18:59,080 - Is game matched result for Player2: (true, "Game matched")
+2024-07-10 14:18:59,080 - Match found! Ending search.
+2024-07-10 14:25:12,184 - Player1 starts searching for a match
+2024-07-10 14:25:12,184 - Executing command: dfx identity use player1
+2024-07-10 14:25:12,192 - Command succeeded: dfx identity use player1
+
+2024-07-10 14:25:12,192 - Executing command: dfx canister call cosmicrafts getMatchSearching "{"userAvatar": 1, "listSavedKeys": []}"
+2024-07-10 14:25:13,539 - Command succeeded: dfx canister call cosmicrafts getMatchSearching "{"userAvatar": 1, "listSavedKeys": []}"
+(variant { Assigned }, 8 : nat, "Lobby created")
+
+2024-07-10 14:25:13,539 - Player1 search result: (variant { Assigned }, 8 : nat, "Lobby created")
+2024-07-10 14:25:44,024 - Player1 starts searching for a match
+2024-07-10 14:25:44,025 - Executing command: dfx identity use player1
+2024-07-10 14:25:44,033 - Command succeeded: dfx identity use player1
+
+2024-07-10 14:25:44,033 - Executing command: dfx canister call cosmicrafts getMatchSearching "{"userAvatar": 1, "listSavedKeys": []}"
+2024-07-10 14:25:45,752 - Command succeeded: dfx canister call cosmicrafts getMatchSearching "{"userAvatar": 1, "listSavedKeys": []}"
+(variant { Assigned }, 9 : nat, "Lobby created")
+
+2024-07-10 14:25:45,753 - Player1 search result: (variant { Assigned }, 9 : nat, "Lobby created")
+2024-07-10 14:25:45,753 - Player2 joins the match
+2024-07-10 14:25:45,753 - Executing command: dfx identity use player2
+2024-07-10 14:25:45,765 - Command succeeded: dfx identity use player2
+
+2024-07-10 14:25:45,765 - Executing command: dfx canister call cosmicrafts getMatchSearching "{"userAvatar": 1, "listSavedKeys": []}"
+2024-07-10 14:25:47,352 - Command succeeded: dfx canister call cosmicrafts getMatchSearching "{"userAvatar": 1, "listSavedKeys": []}"
+(variant { Assigned }, 9 : nat, "Game found")
+
+2024-07-10 14:25:47,352 - Player2 search result: (variant { Assigned }, 9 : nat, "Game found")
+2024-07-10 14:25:47,352 - Executing command: dfx identity use player1
+2024-07-10 14:25:47,362 - Command succeeded: dfx identity use player1
+
+2024-07-10 14:25:47,362 - Executing command: dfx canister call cosmicrafts setPlayerActive
+2024-07-10 14:25:48,762 - Command succeeded: dfx canister call cosmicrafts setPlayerActive
+(false)
+
+2024-07-10 14:25:48,762 - Player1 active result: (false)
+2024-07-10 14:25:48,762 - Executing command: dfx identity use player2
+2024-07-10 14:25:48,777 - Command succeeded: dfx identity use player2
+
+2024-07-10 14:25:48,777 - Executing command: dfx canister call cosmicrafts setPlayerActive
+2024-07-10 14:25:50,747 - Command succeeded: dfx canister call cosmicrafts setPlayerActive
+(false)
+
+2024-07-10 14:25:50,747 - Player2 active result: (false)
+2024-07-10 14:25:50,747 - Executing command: dfx identity use player1
+2024-07-10 14:25:50,757 - Command succeeded: dfx identity use player1
+
+2024-07-10 14:25:50,757 - Executing command: dfx canister call cosmicrafts isGameMatched
+2024-07-10 14:25:50,788 - Command succeeded: dfx canister call cosmicrafts isGameMatched
+(true, "Game matched")
+
+2024-07-10 14:25:50,788 - Is game matched result for Player1: (true, "Game matched")
+2024-07-10 14:25:50,788 - Executing command: dfx identity use player2
+2024-07-10 14:25:50,796 - Command succeeded: dfx identity use player2
+
+2024-07-10 14:25:50,796 - Executing command: dfx canister call cosmicrafts isGameMatched
+2024-07-10 14:25:50,826 - Command succeeded: dfx canister call cosmicrafts isGameMatched
+(true, "Game matched")
+
+2024-07-10 14:25:50,826 - Is game matched result for Player2: (true, "Game matched")
+2024-07-10 14:25:50,826 - Match found! Ending search.
