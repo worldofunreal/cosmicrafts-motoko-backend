@@ -1,0 +1,141 @@
+2024-07-10 12:25:57,826 - Player1 starts searching for a match
+2024-07-10 12:25:57,832 - Command succeeded: dfx identity use player1
+
+2024-07-10 12:25:57,849 - Command failed: dfx canister call cosmicrafts getMatchSearching '("game-data")'
+[31mError: (B[mCannot find canister id. Please issue 'dfx canister create cosmicrafts'.
+
+2024-07-10 12:25:57,849 - Player1 search result: 
+2024-07-10 12:25:57,849 - Player2 joins the match
+2024-07-10 12:25:57,854 - Command succeeded: dfx identity use player2
+
+2024-07-10 12:25:57,869 - Command failed: dfx canister call cosmicrafts getMatchSearching '("game-data")'
+[31mError: (B[mCannot find canister id. Please issue 'dfx canister create cosmicrafts'.
+
+2024-07-10 12:25:57,869 - Player2 search result: 
+2024-07-10 12:25:57,869 - Failed to extract match ID from player1's search result
+2024-07-10 12:25:57,870 - Match ID not found, cannot proceed with matchmaking
+2024-07-10 12:27:00,296 - Player1 starts searching for a match
+2024-07-10 12:27:00,301 - Command succeeded: dfx identity use player1
+
+2024-07-10 12:27:00,319 - Command failed: dfx canister call cosmicrafts getMatchSearching '("game-data")'
+[31mError: (B[mCannot find canister id. Please issue 'dfx canister create cosmicrafts'.
+
+2024-07-10 12:27:00,319 - Player1 search result: 
+2024-07-10 12:27:00,319 - Player2 joins the match
+2024-07-10 12:27:00,324 - Command succeeded: dfx identity use player2
+
+2024-07-10 12:27:00,340 - Command failed: dfx canister call cosmicrafts getMatchSearching '("game-data")'
+[31mError: (B[mCannot find canister id. Please issue 'dfx canister create cosmicrafts'.
+
+2024-07-10 12:27:00,340 - Player2 search result: 
+2024-07-10 12:27:00,340 - Failed to extract match ID from player1's search result
+2024-07-10 12:27:00,341 - Match ID not found, cannot proceed with matchmaking
+2024-07-10 12:27:05,291 - Player1 starts searching for a match
+2024-07-10 12:27:05,297 - Command succeeded: dfx identity use player1
+
+2024-07-10 12:27:05,314 - Command failed: dfx canister call cosmicrafts getMatchSearching '("game-data")'
+[31mError: (B[mCannot find canister id. Please issue 'dfx canister create cosmicrafts'.
+
+2024-07-10 12:27:05,314 - Player1 search result: 
+2024-07-10 12:27:05,315 - Player2 joins the match
+2024-07-10 12:27:05,320 - Command succeeded: dfx identity use player2
+
+2024-07-10 12:27:05,336 - Command failed: dfx canister call cosmicrafts getMatchSearching '("game-data")'
+[31mError: (B[mCannot find canister id. Please issue 'dfx canister create cosmicrafts'.
+
+2024-07-10 12:27:05,336 - Player2 search result: 
+2024-07-10 12:27:05,336 - Failed to extract match ID from player1's search result
+2024-07-10 12:27:05,336 - Match ID not found, cannot proceed with matchmaking
+2024-07-10 12:28:29,746 - Player1 starts searching for a match
+2024-07-10 12:28:29,746 - Executing command: dfx identity use player1
+2024-07-10 12:28:29,752 - Command succeeded: dfx identity use player1
+
+2024-07-10 12:28:29,752 - Executing command: dfx canister call cosmicrafts getMatchSearching '("game-data")'
+2024-07-10 12:28:29,768 - Command failed: dfx canister call cosmicrafts getMatchSearching '("game-data")'
+[31mError: (B[mCannot find canister id. Please issue 'dfx canister create cosmicrafts'.
+
+2024-07-10 12:28:29,768 - Player1 search result: 
+2024-07-10 12:28:29,768 - Player2 joins the match
+2024-07-10 12:28:29,768 - Executing command: dfx identity use player2
+2024-07-10 12:28:29,773 - Command succeeded: dfx identity use player2
+
+2024-07-10 12:28:29,773 - Executing command: dfx canister call cosmicrafts getMatchSearching '("game-data")'
+2024-07-10 12:28:29,791 - Command failed: dfx canister call cosmicrafts getMatchSearching '("game-data")'
+[31mError: (B[mCannot find canister id. Please issue 'dfx canister create cosmicrafts'.
+
+2024-07-10 12:28:29,791 - Player2 search result: 
+2024-07-10 12:28:29,791 - Match ID not found, cannot proceed with matchmaking
+2024-07-10 12:43:46,542 - Player1 starts searching for a match
+2024-07-10 12:43:46,542 - Executing command: dfx identity use player1
+2024-07-10 12:43:46,548 - Command succeeded: dfx identity use player1
+
+2024-07-10 12:43:46,548 - Executing command: dfx canister call cosmicrafts getMatchSearching '("game-data")'
+2024-07-10 12:43:46,572 - Command failed: dfx canister call cosmicrafts getMatchSearching '("game-data")'
+WARN: DEPRECATION WARNING: Cannot fetch Candid interface from canister metadata, reading Candid interface from the local build artifact. In a future dfx release, we will only read candid interface from canister metadata.
+WARN: Please add the following to dfx.json to store local candid file into metadata:
+"metadata": [
+   {
+     "name": "candid:service"
+   }
+]
+WARN: Cannot fetch Candid interface for getMatchSearching, sending arguments with inferred types.
+[31mError: (B[mFailed update call.
+[33mCaused by: (B[mThe replica returned a rejection error: reject code CanisterError, reject message Requested canister has no wasm module, error code Some("IC0537")
+
+2024-07-10 12:43:46,572 - Player1 search result: 
+2024-07-10 12:43:46,572 - Player2 joins the match
+2024-07-10 12:43:46,572 - Executing command: dfx identity use player2
+2024-07-10 12:43:46,577 - Command succeeded: dfx identity use player2
+
+2024-07-10 12:43:46,577 - Executing command: dfx canister call cosmicrafts getMatchSearching '("game-data")'
+2024-07-10 12:43:46,603 - Command failed: dfx canister call cosmicrafts getMatchSearching '("game-data")'
+WARN: DEPRECATION WARNING: Cannot fetch Candid interface from canister metadata, reading Candid interface from the local build artifact. In a future dfx release, we will only read candid interface from canister metadata.
+WARN: Please add the following to dfx.json to store local candid file into metadata:
+"metadata": [
+   {
+     "name": "candid:service"
+   }
+]
+WARN: Cannot fetch Candid interface for getMatchSearching, sending arguments with inferred types.
+[31mError: (B[mFailed update call.
+[33mCaused by: (B[mThe replica returned a rejection error: reject code CanisterError, reject message Requested canister has no wasm module, error code Some("IC0537")
+
+2024-07-10 12:43:46,603 - Player2 search result: 
+2024-07-10 12:43:46,603 - Match ID not found, cannot proceed with matchmaking
+2024-07-10 12:44:07,484 - Player1 starts searching for a match
+2024-07-10 12:44:07,484 - Executing command: dfx identity use player1
+2024-07-10 12:44:07,490 - Command succeeded: dfx identity use player1
+
+2024-07-10 12:44:07,490 - Executing command: dfx canister call cosmicrafts getMatchSearching '("game-data")'
+2024-07-10 12:44:07,513 - Command failed: dfx canister call cosmicrafts getMatchSearching '("game-data")'
+WARN: DEPRECATION WARNING: Cannot fetch Candid interface from canister metadata, reading Candid interface from the local build artifact. In a future dfx release, we will only read candid interface from canister metadata.
+WARN: Please add the following to dfx.json to store local candid file into metadata:
+"metadata": [
+   {
+     "name": "candid:service"
+   }
+]
+WARN: Cannot fetch Candid interface for getMatchSearching, sending arguments with inferred types.
+[31mError: (B[mFailed update call.
+[33mCaused by: (B[mThe replica returned a rejection error: reject code CanisterError, reject message Requested canister has no wasm module, error code Some("IC0537")
+
+2024-07-10 12:44:07,513 - Player1 search result: 
+2024-07-10 12:44:07,513 - Player2 joins the match
+2024-07-10 12:44:07,513 - Executing command: dfx identity use player2
+2024-07-10 12:44:07,519 - Command succeeded: dfx identity use player2
+
+2024-07-10 12:44:07,519 - Executing command: dfx canister call cosmicrafts getMatchSearching '("game-data")'
+2024-07-10 12:44:07,542 - Command failed: dfx canister call cosmicrafts getMatchSearching '("game-data")'
+WARN: DEPRECATION WARNING: Cannot fetch Candid interface from canister metadata, reading Candid interface from the local build artifact. In a future dfx release, we will only read candid interface from canister metadata.
+WARN: Please add the following to dfx.json to store local candid file into metadata:
+"metadata": [
+   {
+     "name": "candid:service"
+   }
+]
+WARN: Cannot fetch Candid interface for getMatchSearching, sending arguments with inferred types.
+[31mError: (B[mFailed update call.
+[33mCaused by: (B[mThe replica returned a rejection error: reject code CanisterError, reject message Requested canister has no wasm module, error code Some("IC0537")
+
+2024-07-10 12:44:07,542 - Player2 search result: 
+2024-07-10 12:44:07,542 - Match ID not found, cannot proceed with matchmaking
