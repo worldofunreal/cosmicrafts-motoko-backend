@@ -774,3 +774,805 @@ Expected one of ")", "," or ":"
 
 2024-07-10 14:25:50,826 - Is game matched result for Player2: (true, "Game matched")
 2024-07-10 14:25:50,826 - Match found! Ending search.
+2024-07-10 14:26:58,094 - Player1 starts searching for a match
+2024-07-10 14:26:58,094 - Executing command: dfx identity use player1
+2024-07-10 14:26:58,101 - Command succeeded: dfx identity use player1
+
+2024-07-10 14:26:58,101 - Executing command: dfx canister call cosmicrafts getMatchSearching "{"userAvatar": 1, "listSavedKeys": []}"
+2024-07-10 14:26:59,410 - Command succeeded: dfx canister call cosmicrafts getMatchSearching "{"userAvatar": 1, "listSavedKeys": []}"
+(variant { Assigned }, 10 : nat, "Lobby created")
+
+2024-07-10 14:26:59,410 - Player1 search result: (variant { Assigned }, 10 : nat, "Lobby created")
+2024-07-10 14:26:59,411 - Player2 joins the match
+2024-07-10 14:26:59,411 - Executing command: dfx identity use player2
+2024-07-10 14:26:59,438 - Command succeeded: dfx identity use player2
+
+2024-07-10 14:26:59,439 - Executing command: dfx canister call cosmicrafts getMatchSearching "{"userAvatar": 1, "listSavedKeys": []}"
+2024-07-10 14:27:00,486 - Command succeeded: dfx canister call cosmicrafts getMatchSearching "{"userAvatar": 1, "listSavedKeys": []}"
+(variant { Assigned }, 10 : nat, "Game found")
+
+2024-07-10 14:27:00,486 - Player2 search result: (variant { Assigned }, 10 : nat, "Game found")
+2024-07-10 14:27:00,487 - Executing command: dfx identity use player1
+2024-07-10 14:27:00,510 - Command succeeded: dfx identity use player1
+
+2024-07-10 14:27:00,510 - Executing command: dfx canister call cosmicrafts setPlayerActive
+2024-07-10 14:27:02,814 - Player1 starts searching for a match
+2024-07-10 14:27:02,814 - Executing command: dfx identity use player1
+2024-07-10 14:27:02,821 - Command succeeded: dfx identity use player1
+
+2024-07-10 14:27:02,821 - Executing command: dfx canister call cosmicrafts getMatchSearching "{"userAvatar": 1, "listSavedKeys": []}"
+2024-07-10 14:27:05,399 - Command succeeded: dfx canister call cosmicrafts getMatchSearching "{"userAvatar": 1, "listSavedKeys": []}"
+(variant { Assigned }, 11 : nat, "Lobby created")
+
+2024-07-10 14:27:05,400 - Player1 search result: (variant { Assigned }, 11 : nat, "Lobby created")
+2024-07-10 14:27:05,400 - Player2 joins the match
+2024-07-10 14:27:05,401 - Executing command: dfx identity use player2
+2024-07-10 14:27:05,429 - Command succeeded: dfx identity use player2
+
+2024-07-10 14:27:05,429 - Executing command: dfx canister call cosmicrafts getMatchSearching "{"userAvatar": 1, "listSavedKeys": []}"
+2024-07-10 14:27:07,822 - Command succeeded: dfx canister call cosmicrafts getMatchSearching "{"userAvatar": 1, "listSavedKeys": []}"
+(variant { Assigned }, 11 : nat, "Game found")
+
+2024-07-10 14:27:07,822 - Player2 search result: (variant { Assigned }, 11 : nat, "Game found")
+2024-07-10 14:27:07,822 - Executing command: dfx identity use player1
+2024-07-10 14:27:07,850 - Command succeeded: dfx identity use player1
+
+2024-07-10 14:27:07,850 - Executing command: dfx canister call cosmicrafts setPlayerActive
+2024-07-10 14:27:09,079 - Command succeeded: dfx canister call cosmicrafts setPlayerActive
+(false)
+
+2024-07-10 14:27:09,079 - Player1 active result: (false)
+2024-07-10 14:27:09,079 - Executing command: dfx identity use player2
+2024-07-10 14:27:09,106 - Command succeeded: dfx identity use player2
+
+2024-07-10 14:27:09,106 - Executing command: dfx canister call cosmicrafts setPlayerActive
+2024-07-10 14:27:10,451 - Command succeeded: dfx canister call cosmicrafts setPlayerActive
+(false)
+
+2024-07-10 14:27:10,452 - Player2 active result: (false)
+2024-07-10 14:27:10,452 - Executing command: dfx identity use player1
+2024-07-10 14:27:10,479 - Command succeeded: dfx identity use player1
+
+2024-07-10 14:27:10,479 - Executing command: dfx canister call cosmicrafts isGameMatched
+2024-07-10 14:27:10,527 - Command succeeded: dfx canister call cosmicrafts isGameMatched
+(true, "Game matched")
+
+2024-07-10 14:27:10,527 - Is game matched result for Player1: (true, "Game matched")
+2024-07-10 14:27:10,527 - Executing command: dfx identity use player2
+2024-07-10 14:27:10,534 - Command succeeded: dfx identity use player2
+
+2024-07-10 14:27:10,534 - Executing command: dfx canister call cosmicrafts isGameMatched
+2024-07-10 14:27:10,559 - Command succeeded: dfx canister call cosmicrafts isGameMatched
+(true, "Game matched")
+
+2024-07-10 14:27:10,559 - Is game matched result for Player2: (true, "Game matched")
+2024-07-10 14:27:10,559 - Match found! Ending search.
+2024-07-10 14:27:10,559 - Finalizing the game
+2024-07-10 14:27:10,559 - Executing command: dfx identity use player1
+2024-07-10 14:27:10,565 - Command succeeded: dfx identity use player1
+
+2024-07-10 14:27:10,565 - Executing command: dfx canister call cosmicrafts setGameOver
+2024-07-10 14:27:10,586 - Command failed: dfx canister call cosmicrafts setGameOver
+[31mError: (B[mFailed to create argument blob.
+[33mCaused by: (B[mInvalid data: Expected arguments but found none.
+
+2024-07-10 14:27:10,587 - Executing command: dfx identity use player2
+2024-07-10 14:27:10,593 - Command succeeded: dfx identity use player2
+
+2024-07-10 14:27:10,593 - Executing command: dfx canister call cosmicrafts setGameOver
+2024-07-10 14:27:10,614 - Command failed: dfx canister call cosmicrafts setGameOver
+[31mError: (B[mFailed to create argument blob.
+[33mCaused by: (B[mInvalid data: Expected arguments but found none.
+
+2024-07-10 14:27:10,614 - Sending statistics for match ID: 11
+2024-07-10 14:27:10,614 - Executing command: dfx identity use player1
+2024-07-10 14:27:10,620 - Command succeeded: dfx identity use player1
+
+2024-07-10 14:27:10,620 - Executing command: dfx canister call cosmicrafts saveFinishedGame 11 "{"energyUsed": 100.0, "energyGenerated": 120.0, "energyWasted": 20.0, "energyChargeRate": 1.5, "xpEarned": 50.0, "damageDealt": 200.0, "damageTaken": 150.0, "damageCritic": 30.0, "damageEvaded": 10.0, "kills": 5.0, "deploys": 3.0, "secRemaining": 60.0, "wonGame": true, "faction": 1, "characterID": "character1", "gameMode": 1, "botMode": 0, "botDifficulty": 1}"
+2024-07-10 14:27:10,625 - Command failed: dfx canister call cosmicrafts saveFinishedGame 11 "{"energyUsed": 100.0, "energyGenerated": 120.0, "energyWasted": 20.0, "energyChargeRate": 1.5, "xpEarned": 50.0, "damageDealt": 200.0, "damageTaken": 150.0, "damageCritic": 30.0, "damageEvaded": 10.0, "kills": 5.0, "deploys": 3.0, "secRemaining": 60.0, "wonGame": true, "faction": 1, "characterID": "character1", "gameMode": 1, "botMode": 0, "botDifficulty": 1}"
+error: unexpected argument '{energyUsed: 100.0, energyGenerated: 120.0, energyWasted: 20.0, energyChargeRate: 1.5, xpEarned: 50.0, damageDealt: 200.0, damageTaken: 150.0, damageCritic: 30.0, damageEvaded: 10.0, kills: 5.0, deploys: 3.0, secRemaining: 60.0, wonGame: true, faction: 1, characterID: character1, gameMode: 1, botMode: 0, botDifficulty: 1}' found
+
+Usage: dfx canister call [OPTIONS] <CANISTER_NAME> <METHOD_NAME> [ARGUMENT]
+
+For more information, try '--help'.
+
+2024-07-10 14:27:10,625 - Executing command: dfx identity use player2
+2024-07-10 14:27:10,632 - Command succeeded: dfx identity use player2
+
+2024-07-10 14:27:10,632 - Executing command: dfx canister call cosmicrafts saveFinishedGame 11 "{"energyUsed": 100.0, "energyGenerated": 120.0, "energyWasted": 20.0, "energyChargeRate": 1.5, "xpEarned": 50.0, "damageDealt": 200.0, "damageTaken": 150.0, "damageCritic": 30.0, "damageEvaded": 10.0, "kills": 5.0, "deploys": 3.0, "secRemaining": 60.0, "wonGame": true, "faction": 1, "characterID": "character1", "gameMode": 1, "botMode": 0, "botDifficulty": 1}"
+2024-07-10 14:27:10,637 - Command failed: dfx canister call cosmicrafts saveFinishedGame 11 "{"energyUsed": 100.0, "energyGenerated": 120.0, "energyWasted": 20.0, "energyChargeRate": 1.5, "xpEarned": 50.0, "damageDealt": 200.0, "damageTaken": 150.0, "damageCritic": 30.0, "damageEvaded": 10.0, "kills": 5.0, "deploys": 3.0, "secRemaining": 60.0, "wonGame": true, "faction": 1, "characterID": "character1", "gameMode": 1, "botMode": 0, "botDifficulty": 1}"
+error: unexpected argument '{energyUsed: 100.0, energyGenerated: 120.0, energyWasted: 20.0, energyChargeRate: 1.5, xpEarned: 50.0, damageDealt: 200.0, damageTaken: 150.0, damageCritic: 30.0, damageEvaded: 10.0, kills: 5.0, deploys: 3.0, secRemaining: 60.0, wonGame: true, faction: 1, characterID: character1, gameMode: 1, botMode: 0, botDifficulty: 1}' found
+
+Usage: dfx canister call [OPTIONS] <CANISTER_NAME> <METHOD_NAME> [ARGUMENT]
+
+For more information, try '--help'.
+
+2024-07-10 14:33:49,128 - Player1 starts searching for a match
+2024-07-10 14:33:49,128 - Executing command: dfx identity use player1
+2024-07-10 14:33:49,134 - Command succeeded: dfx identity use player1
+
+2024-07-10 14:33:49,134 - Executing command: dfx canister call cosmicrafts getMatchSearching "{"userAvatar": 1, "listSavedKeys": []}"
+2024-07-10 14:33:51,047 - Command succeeded: dfx canister call cosmicrafts getMatchSearching "{"userAvatar": 1, "listSavedKeys": []}"
+(variant { Assigned }, 12 : nat, "Lobby created")
+
+2024-07-10 14:33:51,047 - Player1 search result: (variant { Assigned }, 12 : nat, "Lobby created")
+2024-07-10 14:33:51,048 - Player2 joins the match
+2024-07-10 14:33:51,048 - Executing command: dfx identity use player2
+2024-07-10 14:33:51,074 - Command succeeded: dfx identity use player2
+
+2024-07-10 14:33:51,074 - Executing command: dfx canister call cosmicrafts getMatchSearching "{"userAvatar": 1, "listSavedKeys": []}"
+2024-07-10 14:33:52,561 - Command succeeded: dfx canister call cosmicrafts getMatchSearching "{"userAvatar": 1, "listSavedKeys": []}"
+(variant { Assigned }, 12 : nat, "Game found")
+
+2024-07-10 14:33:52,562 - Player2 search result: (variant { Assigned }, 12 : nat, "Game found")
+2024-07-10 14:33:52,562 - Executing command: dfx identity use player1
+2024-07-10 14:33:52,588 - Command succeeded: dfx identity use player1
+
+2024-07-10 14:33:52,588 - Executing command: dfx canister call cosmicrafts setPlayerActive
+2024-07-10 14:33:54,336 - Command succeeded: dfx canister call cosmicrafts setPlayerActive
+(false)
+
+2024-07-10 14:33:54,336 - Player1 active result: (false)
+2024-07-10 14:33:54,337 - Executing command: dfx identity use player2
+2024-07-10 14:33:54,356 - Command succeeded: dfx identity use player2
+
+2024-07-10 14:33:54,357 - Executing command: dfx canister call cosmicrafts setPlayerActive
+2024-07-10 14:33:56,472 - Command succeeded: dfx canister call cosmicrafts setPlayerActive
+(false)
+
+2024-07-10 14:33:56,473 - Player2 active result: (false)
+2024-07-10 14:33:56,473 - Executing command: dfx identity use player1
+2024-07-10 14:33:56,500 - Command succeeded: dfx identity use player1
+
+2024-07-10 14:33:56,501 - Executing command: dfx canister call cosmicrafts isGameMatched
+2024-07-10 14:33:56,544 - Command succeeded: dfx canister call cosmicrafts isGameMatched
+(true, "Game matched")
+
+2024-07-10 14:33:56,544 - Is game matched result for Player1: (true, "Game matched")
+2024-07-10 14:33:56,544 - Executing command: dfx identity use player2
+2024-07-10 14:33:56,552 - Command succeeded: dfx identity use player2
+
+2024-07-10 14:33:56,552 - Executing command: dfx canister call cosmicrafts isGameMatched
+2024-07-10 14:33:56,581 - Command succeeded: dfx canister call cosmicrafts isGameMatched
+(true, "Game matched")
+
+2024-07-10 14:33:56,581 - Is game matched result for Player2: (true, "Game matched")
+2024-07-10 14:33:56,581 - Match found! Ending search.
+2024-07-10 14:33:56,581 - Finalizing the game
+2024-07-10 14:33:56,581 - Executing command: dfx identity use player1
+2024-07-10 14:33:56,588 - Command succeeded: dfx identity use player1
+
+2024-07-10 14:33:56,588 - Executing command: dfx canister call cosmicrafts setGameOver "(principal \"your-principal-here-1\")"
+2024-07-10 14:33:56,612 - Command failed: dfx canister call cosmicrafts setGameOver "(principal \"your-principal-here-1\")"
+[0m[1m[38;5;9merror[0m[1m: parser error[0m
+  [0m[34m┌─[0m Candid argument:1:12
+  [0m[34m│[0m
+[0m[34m1[0m [0m[34m│[0m (principal [0m[31m"your-principal-here-1"[0m)
+  [0m[34m│[0m            [0m[31m^^^^^^^^^^^^^^^^^^^^^^^[0m [0m[31mText must be in valid Base32 encoding.[0m
+
+[31mError: (B[mFailed to create argument blob.
+[33mCaused by: (B[mInvalid data: Unable to serialize Candid values: Invalid argument: Invalid Candid values: Candid parser error: Text must be in valid Base32 encoding. at 11..34
+
+2024-07-10 14:33:56,612 - Executing command: dfx identity use player2
+2024-07-10 14:33:56,618 - Command succeeded: dfx identity use player2
+
+2024-07-10 14:33:56,618 - Executing command: dfx canister call cosmicrafts setGameOver "(principal \"your-principal-here-2\")"
+2024-07-10 14:33:56,639 - Command failed: dfx canister call cosmicrafts setGameOver "(principal \"your-principal-here-2\")"
+[0m[1m[38;5;9merror[0m[1m: parser error[0m
+  [0m[34m┌─[0m Candid argument:1:12
+  [0m[34m│[0m
+[0m[34m1[0m [0m[34m│[0m (principal [0m[31m"your-principal-here-2"[0m)
+  [0m[34m│[0m            [0m[31m^^^^^^^^^^^^^^^^^^^^^^^[0m [0m[31mText must be in valid Base32 encoding.[0m
+
+[31mError: (B[mFailed to create argument blob.
+[33mCaused by: (B[mInvalid data: Unable to serialize Candid values: Invalid argument: Invalid Candid values: Candid parser error: Text must be in valid Base32 encoding. at 11..34
+
+2024-07-10 14:33:56,639 - Sending statistics for match ID: 12
+2024-07-10 14:33:56,639 - Executing command: dfx identity use player1
+2024-07-10 14:33:56,646 - Command succeeded: dfx identity use player1
+
+2024-07-10 14:33:56,646 - Executing command: dfx canister call cosmicrafts saveFinishedGame 12 "{"energyUsed": 100.0, "energyGenerated": 120.0, "energyWasted": 20.0, "energyChargeRate": 1.5, "xpEarned": 50.0, "damageDealt": 200.0, "damageTaken": 150.0, "damageCritic": 30.0, "damageEvaded": 10.0, "kills": 5.0, "deploys": 3.0, "secRemaining": 60.0, "wonGame": true, "faction": 1, "characterID": "character1", "gameMode": 1, "botMode": 0, "botDifficulty": 1}"
+2024-07-10 14:33:56,652 - Command failed: dfx canister call cosmicrafts saveFinishedGame 12 "{"energyUsed": 100.0, "energyGenerated": 120.0, "energyWasted": 20.0, "energyChargeRate": 1.5, "xpEarned": 50.0, "damageDealt": 200.0, "damageTaken": 150.0, "damageCritic": 30.0, "damageEvaded": 10.0, "kills": 5.0, "deploys": 3.0, "secRemaining": 60.0, "wonGame": true, "faction": 1, "characterID": "character1", "gameMode": 1, "botMode": 0, "botDifficulty": 1}"
+error: unexpected argument '{energyUsed: 100.0, energyGenerated: 120.0, energyWasted: 20.0, energyChargeRate: 1.5, xpEarned: 50.0, damageDealt: 200.0, damageTaken: 150.0, damageCritic: 30.0, damageEvaded: 10.0, kills: 5.0, deploys: 3.0, secRemaining: 60.0, wonGame: true, faction: 1, characterID: character1, gameMode: 1, botMode: 0, botDifficulty: 1}' found
+
+Usage: dfx canister call [OPTIONS] <CANISTER_NAME> <METHOD_NAME> [ARGUMENT]
+
+For more information, try '--help'.
+
+2024-07-10 14:33:56,652 - Executing command: dfx identity use player2
+2024-07-10 14:33:56,658 - Command succeeded: dfx identity use player2
+
+2024-07-10 14:33:56,658 - Executing command: dfx canister call cosmicrafts saveFinishedGame 12 "{"energyUsed": 100.0, "energyGenerated": 120.0, "energyWasted": 20.0, "energyChargeRate": 1.5, "xpEarned": 50.0, "damageDealt": 200.0, "damageTaken": 150.0, "damageCritic": 30.0, "damageEvaded": 10.0, "kills": 5.0, "deploys": 3.0, "secRemaining": 60.0, "wonGame": true, "faction": 1, "characterID": "character1", "gameMode": 1, "botMode": 0, "botDifficulty": 1}"
+2024-07-10 14:33:56,663 - Command failed: dfx canister call cosmicrafts saveFinishedGame 12 "{"energyUsed": 100.0, "energyGenerated": 120.0, "energyWasted": 20.0, "energyChargeRate": 1.5, "xpEarned": 50.0, "damageDealt": 200.0, "damageTaken": 150.0, "damageCritic": 30.0, "damageEvaded": 10.0, "kills": 5.0, "deploys": 3.0, "secRemaining": 60.0, "wonGame": true, "faction": 1, "characterID": "character1", "gameMode": 1, "botMode": 0, "botDifficulty": 1}"
+error: unexpected argument '{energyUsed: 100.0, energyGenerated: 120.0, energyWasted: 20.0, energyChargeRate: 1.5, xpEarned: 50.0, damageDealt: 200.0, damageTaken: 150.0, damageCritic: 30.0, damageEvaded: 10.0, kills: 5.0, deploys: 3.0, secRemaining: 60.0, wonGame: true, faction: 1, characterID: character1, gameMode: 1, botMode: 0, botDifficulty: 1}' found
+
+Usage: dfx canister call [OPTIONS] <CANISTER_NAME> <METHOD_NAME> [ARGUMENT]
+
+For more information, try '--help'.
+
+2024-07-10 14:38:44,230 - Executing command: dfx identity use player1
+2024-07-10 14:38:44,237 - Command succeeded: dfx identity use player1
+
+2024-07-10 14:38:44,237 - Executing command: dfx identity get-principal
+2024-07-10 14:38:44,252 - Command succeeded: dfx identity get-principal
+mn5iu-4ncje-ws6p5-ztjz4-7j7a3-xdkvf-hqzz7-qogk7-62pp5-7s3rl-vqe
+
+2024-07-10 14:38:44,252 - Executing command: dfx identity use player2
+2024-07-10 14:38:44,258 - Command succeeded: dfx identity use player2
+
+2024-07-10 14:38:44,258 - Executing command: dfx identity get-principal
+2024-07-10 14:38:44,274 - Command succeeded: dfx identity get-principal
+6pj2j-ccuip-744eo-4odjh-rhyeb-i3ctv-xc3ru-vkkfa-fjubh-33olq-qae
+
+2024-07-10 14:38:44,274 - Player1 starts searching for a match
+2024-07-10 14:38:44,274 - Executing command: dfx identity use player1
+2024-07-10 14:38:44,280 - Command succeeded: dfx identity use player1
+
+2024-07-10 14:38:44,280 - Executing command: dfx canister call cosmicrafts getMatchSearching "{"userAvatar": 1, "listSavedKeys": []}"
+2024-07-10 14:38:45,613 - Command succeeded: dfx canister call cosmicrafts getMatchSearching "{"userAvatar": 1, "listSavedKeys": []}"
+(variant { Assigned }, 13 : nat, "Lobby created")
+
+2024-07-10 14:38:45,614 - Player1 search result: (variant { Assigned }, 13 : nat, "Lobby created")
+2024-07-10 14:38:45,614 - Player2 joins the match
+2024-07-10 14:38:45,614 - Executing command: dfx identity use player2
+2024-07-10 14:38:45,631 - Command succeeded: dfx identity use player2
+
+2024-07-10 14:38:45,632 - Executing command: dfx canister call cosmicrafts getMatchSearching "{"userAvatar": 1, "listSavedKeys": []}"
+2024-07-10 14:38:46,998 - Command succeeded: dfx canister call cosmicrafts getMatchSearching "{"userAvatar": 1, "listSavedKeys": []}"
+(variant { Assigned }, 13 : nat, "Game found")
+
+2024-07-10 14:38:46,998 - Player2 search result: (variant { Assigned }, 13 : nat, "Game found")
+2024-07-10 14:38:46,998 - Executing command: dfx identity use player1
+2024-07-10 14:38:47,026 - Command succeeded: dfx identity use player1
+
+2024-07-10 14:38:47,026 - Executing command: dfx canister call cosmicrafts setPlayerActive
+2024-07-10 14:38:48,311 - Command succeeded: dfx canister call cosmicrafts setPlayerActive
+(false)
+
+2024-07-10 14:38:48,312 - Player1 active result: (false)
+2024-07-10 14:38:48,312 - Executing command: dfx identity use player2
+2024-07-10 14:38:48,323 - Command succeeded: dfx identity use player2
+
+2024-07-10 14:38:48,324 - Executing command: dfx canister call cosmicrafts setPlayerActive
+2024-07-10 14:38:49,638 - Command succeeded: dfx canister call cosmicrafts setPlayerActive
+(false)
+
+2024-07-10 14:38:49,638 - Player2 active result: (false)
+2024-07-10 14:38:49,638 - Executing command: dfx identity use player1
+2024-07-10 14:38:49,659 - Command succeeded: dfx identity use player1
+
+2024-07-10 14:38:49,659 - Executing command: dfx canister call cosmicrafts isGameMatched
+2024-07-10 14:38:49,698 - Command succeeded: dfx canister call cosmicrafts isGameMatched
+(true, "Game matched")
+
+2024-07-10 14:38:49,698 - Is game matched result for Player1: (true, "Game matched")
+2024-07-10 14:38:49,698 - Executing command: dfx identity use player2
+2024-07-10 14:38:49,707 - Command succeeded: dfx identity use player2
+
+2024-07-10 14:38:49,707 - Executing command: dfx canister call cosmicrafts isGameMatched
+2024-07-10 14:38:49,738 - Command succeeded: dfx canister call cosmicrafts isGameMatched
+(true, "Game matched")
+
+2024-07-10 14:38:49,738 - Is game matched result for Player2: (true, "Game matched")
+2024-07-10 14:38:49,738 - Match found! Ending search.
+2024-07-10 14:38:49,738 - Finalizing the game
+2024-07-10 14:38:49,738 - Executing command: dfx identity use player1
+2024-07-10 14:38:49,744 - Command succeeded: dfx identity use player1
+
+2024-07-10 14:38:49,744 - Executing command: dfx canister call cosmicrafts setGameOver "(principal \"mn5iu-4ncje-ws6p5-ztjz4-7j7a3-xdkvf-hqzz7-qogk7-62pp5-7s3rl-vqe\")"
+2024-07-10 14:38:50,742 - Command failed: dfx canister call cosmicrafts setGameOver "(principal \"mn5iu-4ncje-ws6p5-ztjz4-7j7a3-xdkvf-hqzz7-qogk7-62pp5-7s3rl-vqe\")"
+[31mError: (B[mFailed update call.
+[33mCaused by: (B[mThe replica returned a rejection error: reject code CanisterError, reject message Error from Canister bd3sg-teaaa-aaaaa-qaaba-cai: Canister trapped explicitly: assertion failed at main.mo:1539.5-1539.77, error code None
+
+2024-07-10 14:38:50,742 - Executing command: dfx identity use player2
+2024-07-10 14:38:50,769 - Command succeeded: dfx identity use player2
+
+2024-07-10 14:38:50,769 - Executing command: dfx canister call cosmicrafts setGameOver "(principal \"6pj2j-ccuip-744eo-4odjh-rhyeb-i3ctv-xc3ru-vkkfa-fjubh-33olq-qae\")"
+2024-07-10 14:38:53,309 - Command failed: dfx canister call cosmicrafts setGameOver "(principal \"6pj2j-ccuip-744eo-4odjh-rhyeb-i3ctv-xc3ru-vkkfa-fjubh-33olq-qae\")"
+[31mError: (B[mFailed update call.
+[33mCaused by: (B[mThe replica returned a rejection error: reject code CanisterError, reject message Error from Canister bd3sg-teaaa-aaaaa-qaaba-cai: Canister trapped explicitly: assertion failed at main.mo:1539.5-1539.77, error code None
+
+2024-07-10 14:38:53,309 - Sending statistics for match ID: 13
+2024-07-10 14:38:53,309 - Executing command: dfx identity use player1
+2024-07-10 14:38:53,338 - Command succeeded: dfx identity use player1
+
+2024-07-10 14:38:53,338 - Executing command: dfx canister call cosmicrafts saveFinishedGame '(13, {"energyUsed": 100.0, "energyGenerated": 120.0, "energyWasted": 20.0, "energyChargeRate": 1.5, "xpEarned": 50.0, "damageDealt": 200.0, "damageTaken": 150.0, "damageCritic": 30.0, "damageEvaded": 10.0, "kills": 5.0, "deploys": 3.0, "secRemaining": 60.0, "wonGame": true, "faction": 1, "characterID": "character1", "gameMode": 1, "botMode": 0, "botDifficulty": 1})'
+2024-07-10 14:38:53,378 - Command failed: dfx canister call cosmicrafts saveFinishedGame '(13, {"energyUsed": 100.0, "energyGenerated": 120.0, "energyWasted": 20.0, "energyChargeRate": 1.5, "xpEarned": 50.0, "damageDealt": 200.0, "damageTaken": 150.0, "damageCritic": 30.0, "damageEvaded": 10.0, "kills": 5.0, "deploys": 3.0, "secRemaining": 60.0, "wonGame": true, "faction": 1, "characterID": "character1", "gameMode": 1, "botMode": 0, "botDifficulty": 1})'
+[0m[1m[38;5;9merror[0m[1m: parser error[0m
+  [0m[34m┌─[0m Candid argument:1:6
+  [0m[34m│[0m
+[0m[34m1[0m [0m[34m│[0m (13, [0m[31m{[0m"energyUsed": 100.0, "energyGenerated": 120.0, "energyWasted": 20.0, "energyChargeRate": 1.5, "xpEarned": 50.0, "damageDealt": 200.0, "damageTaken": 150.0, "damageCritic": 30.0, "damageEvaded": 10.0, "kills": 5.0, "deploys": 3.0, "secRemaining": 60.0, "wonGame": true, "faction": 1, "characterID": "character1", "gameMode": 1, "botMode": 0, "botDifficulty": 1})
+  [0m[34m│[0m      [0m[31m^[0m [0m[31mUnexpected token[0m
+  [0m[34m│[0m
+  [0m[34m=[0m Expects one of "(", ")", "blob", "bool", "decimal", "float", "func",
+    "hex", "null", "opt", "principal", "record", "service", "sign",
+    "text", "variant", "vec"
+
+[31mError: (B[mFailed to create argument blob.
+[33mCaused by: (B[mInvalid data: Unable to serialize Candid values: Invalid argument: Invalid Candid values: Candid parser error: Unrecognized token `LBrace` found at 5:6
+Expected one of "(", ")", "blob", "bool", "decimal", "float", "func", "hex", "null", "opt", "principal", "record", "service", "sign", "text", "variant" or "vec"
+
+2024-07-10 14:38:53,378 - Executing command: dfx identity use player2
+2024-07-10 14:38:53,386 - Command succeeded: dfx identity use player2
+
+2024-07-10 14:38:53,386 - Executing command: dfx canister call cosmicrafts saveFinishedGame '(13, {"energyUsed": 100.0, "energyGenerated": 120.0, "energyWasted": 20.0, "energyChargeRate": 1.5, "xpEarned": 50.0, "damageDealt": 200.0, "damageTaken": 150.0, "damageCritic": 30.0, "damageEvaded": 10.0, "kills": 5.0, "deploys": 3.0, "secRemaining": 60.0, "wonGame": true, "faction": 1, "characterID": "character1", "gameMode": 1, "botMode": 0, "botDifficulty": 1})'
+2024-07-10 14:38:53,409 - Command failed: dfx canister call cosmicrafts saveFinishedGame '(13, {"energyUsed": 100.0, "energyGenerated": 120.0, "energyWasted": 20.0, "energyChargeRate": 1.5, "xpEarned": 50.0, "damageDealt": 200.0, "damageTaken": 150.0, "damageCritic": 30.0, "damageEvaded": 10.0, "kills": 5.0, "deploys": 3.0, "secRemaining": 60.0, "wonGame": true, "faction": 1, "characterID": "character1", "gameMode": 1, "botMode": 0, "botDifficulty": 1})'
+[0m[1m[38;5;9merror[0m[1m: parser error[0m
+  [0m[34m┌─[0m Candid argument:1:6
+  [0m[34m│[0m
+[0m[34m1[0m [0m[34m│[0m (13, [0m[31m{[0m"energyUsed": 100.0, "energyGenerated": 120.0, "energyWasted": 20.0, "energyChargeRate": 1.5, "xpEarned": 50.0, "damageDealt": 200.0, "damageTaken": 150.0, "damageCritic": 30.0, "damageEvaded": 10.0, "kills": 5.0, "deploys": 3.0, "secRemaining": 60.0, "wonGame": true, "faction": 1, "characterID": "character1", "gameMode": 1, "botMode": 0, "botDifficulty": 1})
+  [0m[34m│[0m      [0m[31m^[0m [0m[31mUnexpected token[0m
+  [0m[34m│[0m
+  [0m[34m=[0m Expects one of "(", ")", "blob", "bool", "decimal", "float", "func",
+    "hex", "null", "opt", "principal", "record", "service", "sign",
+    "text", "variant", "vec"
+
+[31mError: (B[mFailed to create argument blob.
+[33mCaused by: (B[mInvalid data: Unable to serialize Candid values: Invalid argument: Invalid Candid values: Candid parser error: Unrecognized token `LBrace` found at 5:6
+Expected one of "(", ")", "blob", "bool", "decimal", "float", "func", "hex", "null", "opt", "principal", "record", "service", "sign", "text", "variant" or "vec"
+
+2024-07-10 14:46:09,496 - Executing command: dfx identity use player1
+2024-07-10 14:46:09,502 - Command succeeded: dfx identity use player1
+
+2024-07-10 14:46:09,502 - Executing command: dfx identity get-principal
+2024-07-10 14:46:09,518 - Command succeeded: dfx identity get-principal
+mn5iu-4ncje-ws6p5-ztjz4-7j7a3-xdkvf-hqzz7-qogk7-62pp5-7s3rl-vqe
+
+2024-07-10 14:46:09,518 - Executing command: dfx identity use player2
+2024-07-10 14:46:09,524 - Command succeeded: dfx identity use player2
+
+2024-07-10 14:46:09,524 - Executing command: dfx identity get-principal
+2024-07-10 14:46:09,541 - Command succeeded: dfx identity get-principal
+6pj2j-ccuip-744eo-4odjh-rhyeb-i3ctv-xc3ru-vkkfa-fjubh-33olq-qae
+
+2024-07-10 14:46:09,541 - Player1 starts searching for a match
+2024-07-10 14:46:09,541 - Executing command: dfx identity use player1
+2024-07-10 14:46:09,547 - Command succeeded: dfx identity use player1
+
+2024-07-10 14:46:09,547 - Executing command: dfx canister call cosmicrafts getMatchSearching "{"userAvatar": 1, "listSavedKeys": []}"
+2024-07-10 14:46:12,222 - Command succeeded: dfx canister call cosmicrafts getMatchSearching "{"userAvatar": 1, "listSavedKeys": []}"
+(variant { Assigned }, 14 : nat, "Lobby created")
+
+2024-07-10 14:46:12,222 - Player1 search result: (variant { Assigned }, 14 : nat, "Lobby created")
+2024-07-10 14:46:12,223 - Player2 joins the match
+2024-07-10 14:46:12,223 - Executing command: dfx identity use player2
+2024-07-10 14:46:12,248 - Command succeeded: dfx identity use player2
+
+2024-07-10 14:46:12,248 - Executing command: dfx canister call cosmicrafts getMatchSearching "{"userAvatar": 1, "listSavedKeys": []}"
+2024-07-10 14:46:13,816 - Command succeeded: dfx canister call cosmicrafts getMatchSearching "{"userAvatar": 1, "listSavedKeys": []}"
+(variant { Assigned }, 14 : nat, "Game found")
+
+2024-07-10 14:46:13,816 - Player2 search result: (variant { Assigned }, 14 : nat, "Game found")
+2024-07-10 14:46:13,816 - Executing command: dfx identity use player1
+2024-07-10 14:46:13,844 - Command succeeded: dfx identity use player1
+
+2024-07-10 14:46:13,845 - Executing command: dfx canister call cosmicrafts setPlayerActive
+2024-07-10 14:46:15,266 - Command succeeded: dfx canister call cosmicrafts setPlayerActive
+(false)
+
+2024-07-10 14:46:15,266 - Player1 active result: (false)
+2024-07-10 14:46:15,266 - Executing command: dfx identity use player2
+2024-07-10 14:46:15,281 - Command succeeded: dfx identity use player2
+
+2024-07-10 14:46:15,281 - Executing command: dfx canister call cosmicrafts setPlayerActive
+2024-07-10 14:46:16,729 - Command succeeded: dfx canister call cosmicrafts setPlayerActive
+(false)
+
+2024-07-10 14:46:16,729 - Player2 active result: (false)
+2024-07-10 14:46:16,729 - Executing command: dfx identity use player1
+2024-07-10 14:46:16,756 - Command succeeded: dfx identity use player1
+
+2024-07-10 14:46:16,756 - Executing command: dfx canister call cosmicrafts isGameMatched
+2024-07-10 14:46:16,807 - Command succeeded: dfx canister call cosmicrafts isGameMatched
+(true, "Game matched")
+
+2024-07-10 14:46:16,807 - Is game matched result for Player1: (true, "Game matched")
+2024-07-10 14:46:16,807 - Executing command: dfx identity use player2
+2024-07-10 14:46:16,816 - Command succeeded: dfx identity use player2
+
+2024-07-10 14:46:16,816 - Executing command: dfx canister call cosmicrafts isGameMatched
+2024-07-10 14:46:16,902 - Command succeeded: dfx canister call cosmicrafts isGameMatched
+(true, "Game matched")
+
+2024-07-10 14:46:16,902 - Is game matched result for Player2: (true, "Game matched")
+2024-07-10 14:46:16,903 - Match found! Ending search.
+2024-07-10 14:46:16,903 - Finalizing the game
+2024-07-10 14:46:16,903 - Executing command: dfx identity use player1
+2024-07-10 14:46:16,919 - Command succeeded: dfx identity use player1
+
+2024-07-10 14:46:16,919 - Executing command: dfx canister call cosmicrafts setGameOver "(principal \"mn5iu-4ncje-ws6p5-ztjz4-7j7a3-xdkvf-hqzz7-qogk7-62pp5-7s3rl-vqe\")"
+2024-07-10 14:46:18,595 - Command failed: dfx canister call cosmicrafts setGameOver "(principal \"mn5iu-4ncje-ws6p5-ztjz4-7j7a3-xdkvf-hqzz7-qogk7-62pp5-7s3rl-vqe\")"
+[31mError: (B[mFailed update call.
+[33mCaused by: (B[mThe replica returned a rejection error: reject code CanisterError, reject message Error from Canister bd3sg-teaaa-aaaaa-qaaba-cai: Canister trapped explicitly: assertion failed at main.mo:1539.5-1539.77, error code None
+
+2024-07-10 14:46:18,595 - Executing command: dfx identity use player2
+2024-07-10 14:46:18,625 - Command succeeded: dfx identity use player2
+
+2024-07-10 14:46:18,625 - Executing command: dfx canister call cosmicrafts setGameOver "(principal \"6pj2j-ccuip-744eo-4odjh-rhyeb-i3ctv-xc3ru-vkkfa-fjubh-33olq-qae\")"
+2024-07-10 14:46:20,197 - Command failed: dfx canister call cosmicrafts setGameOver "(principal \"6pj2j-ccuip-744eo-4odjh-rhyeb-i3ctv-xc3ru-vkkfa-fjubh-33olq-qae\")"
+[31mError: (B[mFailed update call.
+[33mCaused by: (B[mThe replica returned a rejection error: reject code CanisterError, reject message Error from Canister bd3sg-teaaa-aaaaa-qaaba-cai: Canister trapped explicitly: assertion failed at main.mo:1539.5-1539.77, error code None
+
+2024-07-10 14:46:20,197 - Sending statistics for match ID: 14
+2024-07-10 14:46:20,198 - Executing command: dfx identity use player1
+2024-07-10 14:46:20,225 - Command succeeded: dfx identity use player1
+
+2024-07-10 14:46:20,225 - Executing command: dfx canister call cosmicrafts saveFinishedGame '(14, record {energyUsed = 100.0; energyGenerated = 120.0; energyWasted = 20.0; energyChargeRate = 1.5; xpEarned = 50.0; damageDealt = 200.0; damageTaken = 150.0; damageCritic = 30.0; damageEvaded = 10.0; kills = 5.0; deploys = 3.0; secRemaining = 60.0; wonGame = true; faction = 1; characterID = \"character1\"; gameMode = 1; botMode = 0; botDifficulty = 1;})'
+2024-07-10 14:46:20,285 - Command failed: dfx canister call cosmicrafts saveFinishedGame '(14, record {energyUsed = 100.0; energyGenerated = 120.0; energyWasted = 20.0; energyChargeRate = 1.5; xpEarned = 50.0; damageDealt = 200.0; damageTaken = 150.0; damageCritic = 30.0; damageEvaded = 10.0; kills = 5.0; deploys = 3.0; secRemaining = 60.0; wonGame = true; faction = 1; characterID = \"character1\"; gameMode = 1; botMode = 0; botDifficulty = 1;})'
+[0m[1m[38;5;9merror[0m[1m: parser error[0m
+  [0m[34m┌─[0m Candid argument:1:297
+  [0m[34m│[0m
+[0m[34m1[0m [0m[34m│[0m (14, record {energyUsed = 100.0; energyGenerated = 120.0; energyWasted = 20.0; energyChargeRate = 1.5; xpEarned = 50.0; damageDealt = 200.0; damageTaken = 150.0; damageCritic = 30.0; damageEvaded = 10.0; kills = 5.0; deploys = 3.0; secRemaining = 60.0; wonGame = true; faction = 1; characterID = [0m[31m\[0m"character1\"; gameMode = 1; botMode = 0; botDifficulty = 1;})
+  [0m[34m│[0m                                                                                                                                                                                                                                                                                                         [0m[31m^[0m [0m[31mUnknown token \[0m
+
+[31mError: (B[mFailed to create argument blob.
+[33mCaused by: (B[mInvalid data: Unable to serialize Candid values: Invalid argument: Invalid Candid values: Candid parser error: Unknown token \ at 296..297
+
+2024-07-10 14:46:20,285 - Executing command: dfx identity use player2
+2024-07-10 14:46:20,295 - Command succeeded: dfx identity use player2
+
+2024-07-10 14:46:20,296 - Executing command: dfx canister call cosmicrafts saveFinishedGame '(14, record {energyUsed = 100.0; energyGenerated = 120.0; energyWasted = 20.0; energyChargeRate = 1.5; xpEarned = 50.0; damageDealt = 200.0; damageTaken = 150.0; damageCritic = 30.0; damageEvaded = 10.0; kills = 5.0; deploys = 3.0; secRemaining = 60.0; wonGame = true; faction = 1; characterID = \"character1\"; gameMode = 1; botMode = 0; botDifficulty = 1;})'
+2024-07-10 14:46:20,329 - Command failed: dfx canister call cosmicrafts saveFinishedGame '(14, record {energyUsed = 100.0; energyGenerated = 120.0; energyWasted = 20.0; energyChargeRate = 1.5; xpEarned = 50.0; damageDealt = 200.0; damageTaken = 150.0; damageCritic = 30.0; damageEvaded = 10.0; kills = 5.0; deploys = 3.0; secRemaining = 60.0; wonGame = true; faction = 1; characterID = \"character1\"; gameMode = 1; botMode = 0; botDifficulty = 1;})'
+[0m[1m[38;5;9merror[0m[1m: parser error[0m
+  [0m[34m┌─[0m Candid argument:1:297
+  [0m[34m│[0m
+[0m[34m1[0m [0m[34m│[0m (14, record {energyUsed = 100.0; energyGenerated = 120.0; energyWasted = 20.0; energyChargeRate = 1.5; xpEarned = 50.0; damageDealt = 200.0; damageTaken = 150.0; damageCritic = 30.0; damageEvaded = 10.0; kills = 5.0; deploys = 3.0; secRemaining = 60.0; wonGame = true; faction = 1; characterID = [0m[31m\[0m"character1\"; gameMode = 1; botMode = 0; botDifficulty = 1;})
+  [0m[34m│[0m                                                                                                                                                                                                                                                                                                         [0m[31m^[0m [0m[31mUnknown token \[0m
+
+[31mError: (B[mFailed to create argument blob.
+[33mCaused by: (B[mInvalid data: Unable to serialize Candid values: Invalid argument: Invalid Candid values: Candid parser error: Unknown token \ at 296..297
+
+2024-07-10 14:49:24,412 - Executing command: dfx identity use player1
+2024-07-10 14:49:24,418 - Command succeeded: dfx identity use player1
+
+2024-07-10 14:49:24,418 - Executing command: dfx identity get-principal
+2024-07-10 14:49:24,435 - Command succeeded: dfx identity get-principal
+mn5iu-4ncje-ws6p5-ztjz4-7j7a3-xdkvf-hqzz7-qogk7-62pp5-7s3rl-vqe
+
+2024-07-10 14:49:24,435 - Executing command: dfx identity use player2
+2024-07-10 14:49:24,441 - Command succeeded: dfx identity use player2
+
+2024-07-10 14:49:24,441 - Executing command: dfx identity get-principal
+2024-07-10 14:49:24,457 - Command succeeded: dfx identity get-principal
+6pj2j-ccuip-744eo-4odjh-rhyeb-i3ctv-xc3ru-vkkfa-fjubh-33olq-qae
+
+2024-07-10 14:49:24,457 - Player1 starts searching for a match
+2024-07-10 14:49:24,457 - Executing command: dfx identity use player1
+2024-07-10 14:49:24,463 - Command succeeded: dfx identity use player1
+
+2024-07-10 14:49:24,464 - Executing command: dfx canister call cosmicrafts getMatchSearching "{"userAvatar": 1, "listSavedKeys": []}"
+2024-07-10 14:49:27,208 - Command succeeded: dfx canister call cosmicrafts getMatchSearching "{"userAvatar": 1, "listSavedKeys": []}"
+(variant { Assigned }, 15 : nat, "Lobby created")
+
+2024-07-10 14:49:27,208 - Player1 search result: (variant { Assigned }, 15 : nat, "Lobby created")
+2024-07-10 14:49:27,209 - Player2 joins the match
+2024-07-10 14:49:27,209 - Executing command: dfx identity use player2
+2024-07-10 14:49:27,226 - Command succeeded: dfx identity use player2
+
+2024-07-10 14:49:27,226 - Executing command: dfx canister call cosmicrafts getMatchSearching "{"userAvatar": 1, "listSavedKeys": []}"
+2024-07-10 14:49:28,673 - Command succeeded: dfx canister call cosmicrafts getMatchSearching "{"userAvatar": 1, "listSavedKeys": []}"
+(variant { Assigned }, 15 : nat, "Game found")
+
+2024-07-10 14:49:28,674 - Player2 search result: (variant { Assigned }, 15 : nat, "Game found")
+2024-07-10 14:49:28,674 - Executing command: dfx identity use player1
+2024-07-10 14:49:28,683 - Command succeeded: dfx identity use player1
+
+2024-07-10 14:49:28,683 - Executing command: dfx canister call cosmicrafts setPlayerActive
+2024-07-10 14:49:29,896 - Command succeeded: dfx canister call cosmicrafts setPlayerActive
+(false)
+
+2024-07-10 14:49:29,896 - Player1 active result: (false)
+2024-07-10 14:49:29,896 - Executing command: dfx identity use player2
+2024-07-10 14:49:29,919 - Command succeeded: dfx identity use player2
+
+2024-07-10 14:49:29,919 - Executing command: dfx canister call cosmicrafts setPlayerActive
+2024-07-10 14:49:31,511 - Command succeeded: dfx canister call cosmicrafts setPlayerActive
+(false)
+
+2024-07-10 14:49:31,511 - Player2 active result: (false)
+2024-07-10 14:49:31,511 - Executing command: dfx identity use player1
+2024-07-10 14:49:31,539 - Command succeeded: dfx identity use player1
+
+2024-07-10 14:49:31,539 - Executing command: dfx canister call cosmicrafts isGameMatched
+2024-07-10 14:49:31,593 - Command succeeded: dfx canister call cosmicrafts isGameMatched
+(true, "Game matched")
+
+2024-07-10 14:49:31,593 - Is game matched result for Player1: (true, "Game matched")
+2024-07-10 14:49:31,594 - Executing command: dfx identity use player2
+2024-07-10 14:49:31,601 - Command succeeded: dfx identity use player2
+
+2024-07-10 14:49:31,601 - Executing command: dfx canister call cosmicrafts isGameMatched
+2024-07-10 14:49:31,625 - Command succeeded: dfx canister call cosmicrafts isGameMatched
+(true, "Game matched")
+
+2024-07-10 14:49:31,625 - Is game matched result for Player2: (true, "Game matched")
+2024-07-10 14:49:31,625 - Match found! Ending search.
+2024-07-10 14:49:31,625 - Sending statistics for match ID: 15
+2024-07-10 14:49:31,625 - Executing command: dfx identity use player1
+2024-07-10 14:49:31,632 - Command succeeded: dfx identity use player1
+
+2024-07-10 14:49:31,632 - Executing command: dfx canister call cosmicrafts saveFinishedGame '(15, record {energyUsed = 100.0; energyGenerated = 120.0; energyWasted = 20.0; energyChargeRate = 1.5; xpEarned = 50.0; damageDealt = 200.0; damageTaken = 150.0; damageCritic = 30.0; damageEvaded = 10.0; kills = 5.0; deploys = 3.0; secRemaining = 60.0; wonGame = true; faction = 1; characterID = \"character1\"; gameMode = 1; botMode = 0; botDifficulty = 1;})'
+2024-07-10 14:49:31,654 - Command failed: dfx canister call cosmicrafts saveFinishedGame '(15, record {energyUsed = 100.0; energyGenerated = 120.0; energyWasted = 20.0; energyChargeRate = 1.5; xpEarned = 50.0; damageDealt = 200.0; damageTaken = 150.0; damageCritic = 30.0; damageEvaded = 10.0; kills = 5.0; deploys = 3.0; secRemaining = 60.0; wonGame = true; faction = 1; characterID = \"character1\"; gameMode = 1; botMode = 0; botDifficulty = 1;})'
+[0m[1m[38;5;9merror[0m[1m: parser error[0m
+  [0m[34m┌─[0m Candid argument:1:297
+  [0m[34m│[0m
+[0m[34m1[0m [0m[34m│[0m (15, record {energyUsed = 100.0; energyGenerated = 120.0; energyWasted = 20.0; energyChargeRate = 1.5; xpEarned = 50.0; damageDealt = 200.0; damageTaken = 150.0; damageCritic = 30.0; damageEvaded = 10.0; kills = 5.0; deploys = 3.0; secRemaining = 60.0; wonGame = true; faction = 1; characterID = [0m[31m\[0m"character1\"; gameMode = 1; botMode = 0; botDifficulty = 1;})
+  [0m[34m│[0m                                                                                                                                                                                                                                                                                                         [0m[31m^[0m [0m[31mUnknown token \[0m
+
+[31mError: (B[mFailed to create argument blob.
+[33mCaused by: (B[mInvalid data: Unable to serialize Candid values: Invalid argument: Invalid Candid values: Candid parser error: Unknown token \ at 296..297
+
+2024-07-10 14:49:31,654 - Executing command: dfx identity use player2
+2024-07-10 14:49:31,660 - Command succeeded: dfx identity use player2
+
+2024-07-10 14:49:31,660 - Executing command: dfx canister call cosmicrafts saveFinishedGame '(15, record {energyUsed = 100.0; energyGenerated = 120.0; energyWasted = 20.0; energyChargeRate = 1.5; xpEarned = 50.0; damageDealt = 200.0; damageTaken = 150.0; damageCritic = 30.0; damageEvaded = 10.0; kills = 5.0; deploys = 3.0; secRemaining = 60.0; wonGame = true; faction = 1; characterID = \"character1\"; gameMode = 1; botMode = 0; botDifficulty = 1;})'
+2024-07-10 14:49:31,683 - Command failed: dfx canister call cosmicrafts saveFinishedGame '(15, record {energyUsed = 100.0; energyGenerated = 120.0; energyWasted = 20.0; energyChargeRate = 1.5; xpEarned = 50.0; damageDealt = 200.0; damageTaken = 150.0; damageCritic = 30.0; damageEvaded = 10.0; kills = 5.0; deploys = 3.0; secRemaining = 60.0; wonGame = true; faction = 1; characterID = \"character1\"; gameMode = 1; botMode = 0; botDifficulty = 1;})'
+[0m[1m[38;5;9merror[0m[1m: parser error[0m
+  [0m[34m┌─[0m Candid argument:1:297
+  [0m[34m│[0m
+[0m[34m1[0m [0m[34m│[0m (15, record {energyUsed = 100.0; energyGenerated = 120.0; energyWasted = 20.0; energyChargeRate = 1.5; xpEarned = 50.0; damageDealt = 200.0; damageTaken = 150.0; damageCritic = 30.0; damageEvaded = 10.0; kills = 5.0; deploys = 3.0; secRemaining = 60.0; wonGame = true; faction = 1; characterID = [0m[31m\[0m"character1\"; gameMode = 1; botMode = 0; botDifficulty = 1;})
+  [0m[34m│[0m                                                                                                                                                                                                                                                                                                         [0m[31m^[0m [0m[31mUnknown token \[0m
+
+[31mError: (B[mFailed to create argument blob.
+[33mCaused by: (B[mInvalid data: Unable to serialize Candid values: Invalid argument: Invalid Candid values: Candid parser error: Unknown token \ at 296..297
+
+2024-07-10 14:53:16,795 - Executing command: dfx identity use player1
+2024-07-10 14:53:16,801 - Command succeeded: dfx identity use player1
+
+2024-07-10 14:53:16,801 - Executing command: dfx identity get-principal
+2024-07-10 14:53:16,817 - Command succeeded: dfx identity get-principal
+mn5iu-4ncje-ws6p5-ztjz4-7j7a3-xdkvf-hqzz7-qogk7-62pp5-7s3rl-vqe
+
+2024-07-10 14:53:16,817 - Executing command: dfx identity use player2
+2024-07-10 14:53:16,824 - Command succeeded: dfx identity use player2
+
+2024-07-10 14:53:16,824 - Executing command: dfx identity get-principal
+2024-07-10 14:53:16,839 - Command succeeded: dfx identity get-principal
+6pj2j-ccuip-744eo-4odjh-rhyeb-i3ctv-xc3ru-vkkfa-fjubh-33olq-qae
+
+2024-07-10 14:53:16,839 - Player1 starts searching for a match
+2024-07-10 14:53:16,839 - Executing command: dfx identity use player1
+2024-07-10 14:53:16,846 - Command succeeded: dfx identity use player1
+
+2024-07-10 14:53:16,846 - Executing command: dfx canister call cosmicrafts getMatchSearching "{"userAvatar": 1, "listSavedKeys": []}"
+2024-07-10 14:53:18,393 - Command succeeded: dfx canister call cosmicrafts getMatchSearching "{"userAvatar": 1, "listSavedKeys": []}"
+(variant { Assigned }, 16 : nat, "Lobby created")
+
+2024-07-10 14:53:18,393 - Player1 search result: (variant { Assigned }, 16 : nat, "Lobby created")
+2024-07-10 14:53:18,394 - Player2 joins the match
+2024-07-10 14:53:18,395 - Executing command: dfx identity use player2
+2024-07-10 14:53:18,416 - Command succeeded: dfx identity use player2
+
+2024-07-10 14:53:18,417 - Executing command: dfx canister call cosmicrafts getMatchSearching "{"userAvatar": 1, "listSavedKeys": []}"
+2024-07-10 14:53:19,600 - Command succeeded: dfx canister call cosmicrafts getMatchSearching "{"userAvatar": 1, "listSavedKeys": []}"
+(variant { Assigned }, 16 : nat, "Game found")
+
+2024-07-10 14:53:19,600 - Player2 search result: (variant { Assigned }, 16 : nat, "Game found")
+2024-07-10 14:53:19,600 - Executing command: dfx identity use player1
+2024-07-10 14:53:19,624 - Command succeeded: dfx identity use player1
+
+2024-07-10 14:53:19,624 - Executing command: dfx canister call cosmicrafts setPlayerActive
+2024-07-10 14:53:20,925 - Command succeeded: dfx canister call cosmicrafts setPlayerActive
+(false)
+
+2024-07-10 14:53:20,925 - Player1 active result: (false)
+2024-07-10 14:53:20,925 - Executing command: dfx identity use player2
+2024-07-10 14:53:20,954 - Command succeeded: dfx identity use player2
+
+2024-07-10 14:53:20,954 - Executing command: dfx canister call cosmicrafts setPlayerActive
+2024-07-10 14:53:22,457 - Command succeeded: dfx canister call cosmicrafts setPlayerActive
+(false)
+
+2024-07-10 14:53:22,458 - Player2 active result: (false)
+2024-07-10 14:53:22,458 - Executing command: dfx identity use player1
+2024-07-10 14:53:22,464 - Command succeeded: dfx identity use player1
+
+2024-07-10 14:53:22,465 - Executing command: dfx canister call cosmicrafts isGameMatched
+2024-07-10 14:53:22,491 - Command succeeded: dfx canister call cosmicrafts isGameMatched
+(true, "Game matched")
+
+2024-07-10 14:53:22,491 - Is game matched result for Player1: (true, "Game matched")
+2024-07-10 14:53:22,491 - Executing command: dfx identity use player2
+2024-07-10 14:53:22,498 - Command succeeded: dfx identity use player2
+
+2024-07-10 14:53:22,498 - Executing command: dfx canister call cosmicrafts isGameMatched
+2024-07-10 14:53:22,569 - Command succeeded: dfx canister call cosmicrafts isGameMatched
+(true, "Game matched")
+
+2024-07-10 14:53:22,569 - Is game matched result for Player2: (true, "Game matched")
+2024-07-10 14:53:22,569 - Match found! Ending search.
+2024-07-10 14:53:22,569 - Sending statistics for match ID: 16
+2024-07-10 14:53:22,569 - Executing command: dfx identity use player1
+2024-07-10 14:53:22,580 - Command succeeded: dfx identity use player1
+
+2024-07-10 14:53:22,580 - Executing command: dfx canister call cosmicrafts saveFinishedGame '(16, record {energyUsed = 100.0; energyGenerated = 120.0; energyWasted = 20.0; energyChargeRate = 1.5; xpEarned = 50.0; damageDealt = 200.0; damageTaken = 150.0; damageCritic = 30.0; damageEvaded = 10.0; kills = 5.0; deploys = 3.0; secRemaining = 60.0; wonGame = true; faction = 1; characterID = \"character1\"; gameMode = 1; botMode = 0; botDifficulty = 1;})'
+2024-07-10 14:53:22,628 - Command failed: dfx canister call cosmicrafts saveFinishedGame '(16, record {energyUsed = 100.0; energyGenerated = 120.0; energyWasted = 20.0; energyChargeRate = 1.5; xpEarned = 50.0; damageDealt = 200.0; damageTaken = 150.0; damageCritic = 30.0; damageEvaded = 10.0; kills = 5.0; deploys = 3.0; secRemaining = 60.0; wonGame = true; faction = 1; characterID = \"character1\"; gameMode = 1; botMode = 0; botDifficulty = 1;})'
+[0m[1m[38;5;9merror[0m[1m: parser error[0m
+  [0m[34m┌─[0m Candid argument:1:297
+  [0m[34m│[0m
+[0m[34m1[0m [0m[34m│[0m (16, record {energyUsed = 100.0; energyGenerated = 120.0; energyWasted = 20.0; energyChargeRate = 1.5; xpEarned = 50.0; damageDealt = 200.0; damageTaken = 150.0; damageCritic = 30.0; damageEvaded = 10.0; kills = 5.0; deploys = 3.0; secRemaining = 60.0; wonGame = true; faction = 1; characterID = [0m[31m\[0m"character1\"; gameMode = 1; botMode = 0; botDifficulty = 1;})
+  [0m[34m│[0m                                                                                                                                                                                                                                                                                                         [0m[31m^[0m [0m[31mUnknown token \[0m
+
+[31mError: (B[mFailed to create argument blob.
+[33mCaused by: (B[mInvalid data: Unable to serialize Candid values: Invalid argument: Invalid Candid values: Candid parser error: Unknown token \ at 296..297
+
+2024-07-10 14:53:22,628 - Executing command: dfx identity use player2
+2024-07-10 14:53:22,637 - Command succeeded: dfx identity use player2
+
+2024-07-10 14:53:22,637 - Executing command: dfx canister call cosmicrafts saveFinishedGame '(16, record {energyUsed = 100.0; energyGenerated = 120.0; energyWasted = 20.0; energyChargeRate = 1.5; xpEarned = 50.0; damageDealt = 200.0; damageTaken = 150.0; damageCritic = 30.0; damageEvaded = 10.0; kills = 5.0; deploys = 3.0; secRemaining = 60.0; wonGame = true; faction = 1; characterID = \"character1\"; gameMode = 1; botMode = 0; botDifficulty = 1;})'
+2024-07-10 14:53:22,663 - Command failed: dfx canister call cosmicrafts saveFinishedGame '(16, record {energyUsed = 100.0; energyGenerated = 120.0; energyWasted = 20.0; energyChargeRate = 1.5; xpEarned = 50.0; damageDealt = 200.0; damageTaken = 150.0; damageCritic = 30.0; damageEvaded = 10.0; kills = 5.0; deploys = 3.0; secRemaining = 60.0; wonGame = true; faction = 1; characterID = \"character1\"; gameMode = 1; botMode = 0; botDifficulty = 1;})'
+[0m[1m[38;5;9merror[0m[1m: parser error[0m
+  [0m[34m┌─[0m Candid argument:1:297
+  [0m[34m│[0m
+[0m[34m1[0m [0m[34m│[0m (16, record {energyUsed = 100.0; energyGenerated = 120.0; energyWasted = 20.0; energyChargeRate = 1.5; xpEarned = 50.0; damageDealt = 200.0; damageTaken = 150.0; damageCritic = 30.0; damageEvaded = 10.0; kills = 5.0; deploys = 3.0; secRemaining = 60.0; wonGame = true; faction = 1; characterID = [0m[31m\[0m"character1\"; gameMode = 1; botMode = 0; botDifficulty = 1;})
+  [0m[34m│[0m                                                                                                                                                                                                                                                                                                         [0m[31m^[0m [0m[31mUnknown token \[0m
+
+[31mError: (B[mFailed to create argument blob.
+[33mCaused by: (B[mInvalid data: Unable to serialize Candid values: Invalid argument: Invalid Candid values: Candid parser error: Unknown token \ at 296..297
+
+2024-07-10 14:55:46,744 - Executing command: dfx identity use player1
+2024-07-10 14:55:46,750 - Command succeeded: dfx identity use player1
+
+2024-07-10 14:55:46,750 - Executing command: dfx identity get-principal
+2024-07-10 14:55:46,766 - Command succeeded: dfx identity get-principal
+mn5iu-4ncje-ws6p5-ztjz4-7j7a3-xdkvf-hqzz7-qogk7-62pp5-7s3rl-vqe
+
+2024-07-10 14:55:46,766 - Executing command: dfx identity use player2
+2024-07-10 14:55:46,771 - Command succeeded: dfx identity use player2
+
+2024-07-10 14:55:46,772 - Executing command: dfx identity get-principal
+2024-07-10 14:55:46,788 - Command succeeded: dfx identity get-principal
+6pj2j-ccuip-744eo-4odjh-rhyeb-i3ctv-xc3ru-vkkfa-fjubh-33olq-qae
+
+2024-07-10 14:55:46,788 - Player1 starts searching for a match
+2024-07-10 14:55:46,788 - Executing command: dfx identity use player1
+2024-07-10 14:55:46,794 - Command succeeded: dfx identity use player1
+
+2024-07-10 14:55:46,794 - Executing command: dfx canister call cosmicrafts getMatchSearching "{"userAvatar": 1, "listSavedKeys": []}"
+2024-07-10 14:55:49,168 - Command succeeded: dfx canister call cosmicrafts getMatchSearching "{"userAvatar": 1, "listSavedKeys": []}"
+(variant { Assigned }, 17 : nat, "Lobby created")
+
+2024-07-10 14:55:49,168 - Player1 search result: (variant { Assigned }, 17 : nat, "Lobby created")
+2024-07-10 14:55:49,169 - Player2 joins the match
+2024-07-10 14:55:49,169 - Executing command: dfx identity use player2
+2024-07-10 14:55:49,183 - Command succeeded: dfx identity use player2
+
+2024-07-10 14:55:49,183 - Executing command: dfx canister call cosmicrafts getMatchSearching "{"userAvatar": 1, "listSavedKeys": []}"
+2024-07-10 14:55:50,330 - Command succeeded: dfx canister call cosmicrafts getMatchSearching "{"userAvatar": 1, "listSavedKeys": []}"
+(variant { Assigned }, 17 : nat, "Game found")
+
+2024-07-10 14:55:50,330 - Player2 search result: (variant { Assigned }, 17 : nat, "Game found")
+2024-07-10 14:55:50,330 - Executing command: dfx identity use player1
+2024-07-10 14:55:50,358 - Command succeeded: dfx identity use player1
+
+2024-07-10 14:55:50,359 - Executing command: dfx canister call cosmicrafts setPlayerActive
+2024-07-10 14:55:52,178 - Command succeeded: dfx canister call cosmicrafts setPlayerActive
+(false)
+
+2024-07-10 14:55:52,178 - Player1 active result: (false)
+2024-07-10 14:55:52,178 - Executing command: dfx identity use player2
+2024-07-10 14:55:52,207 - Command succeeded: dfx identity use player2
+
+2024-07-10 14:55:52,207 - Executing command: dfx canister call cosmicrafts setPlayerActive
+2024-07-10 14:55:54,556 - Command succeeded: dfx canister call cosmicrafts setPlayerActive
+(false)
+
+2024-07-10 14:55:54,556 - Player2 active result: (false)
+2024-07-10 14:55:54,556 - Executing command: dfx identity use player1
+2024-07-10 14:55:54,572 - Command succeeded: dfx identity use player1
+
+2024-07-10 14:55:54,572 - Executing command: dfx canister call cosmicrafts isGameMatched
+2024-07-10 14:55:54,630 - Command succeeded: dfx canister call cosmicrafts isGameMatched
+(true, "Game matched")
+
+2024-07-10 14:55:54,630 - Is game matched result for Player1: (true, "Game matched")
+2024-07-10 14:55:54,630 - Executing command: dfx identity use player2
+2024-07-10 14:55:54,638 - Command succeeded: dfx identity use player2
+
+2024-07-10 14:55:54,638 - Executing command: dfx canister call cosmicrafts isGameMatched
+2024-07-10 14:55:54,672 - Command succeeded: dfx canister call cosmicrafts isGameMatched
+(true, "Game matched")
+
+2024-07-10 14:55:54,672 - Is game matched result for Player2: (true, "Game matched")
+2024-07-10 14:55:54,672 - Match found! Ending search.
+2024-07-10 14:55:54,672 - Sending statistics for match ID: 17
+2024-07-10 14:55:54,672 - Executing command: dfx identity use player1
+2024-07-10 14:55:54,680 - Command succeeded: dfx identity use player1
+
+2024-07-10 14:55:54,680 - Constructed command: dfx canister call cosmicrafts saveFinishedGame '(17, record {energyUsed = 100.0; energyGenerated = 120.0; energyWasted = 20.0; energyChargeRate = 1.5; xpEarned = 50.0; damageDealt = 200.0; damageTaken = 150.0; damageCritic = 30.0; damageEvaded = 10.0; kills = 5.0; deploys = 3.0; secRemaining = 60.0; wonGame = true; faction = 1; characterID = "character1"; gameMode = 1; botMode = 0; botDifficulty = 1;})'
+2024-07-10 14:55:54,680 - Executing command: dfx canister call cosmicrafts saveFinishedGame '(17, record {energyUsed = 100.0; energyGenerated = 120.0; energyWasted = 20.0; energyChargeRate = 1.5; xpEarned = 50.0; damageDealt = 200.0; damageTaken = 150.0; damageCritic = 30.0; damageEvaded = 10.0; kills = 5.0; deploys = 3.0; secRemaining = 60.0; wonGame = true; faction = 1; characterID = "character1"; gameMode = 1; botMode = 0; botDifficulty = 1;})'
+2024-07-10 14:55:55,629 - Command failed: dfx canister call cosmicrafts saveFinishedGame '(17, record {energyUsed = 100.0; energyGenerated = 120.0; energyWasted = 20.0; energyChargeRate = 1.5; xpEarned = 50.0; damageDealt = 200.0; damageTaken = 150.0; damageCritic = 30.0; damageEvaded = 10.0; kills = 5.0; deploys = 3.0; secRemaining = 60.0; wonGame = true; faction = 1; characterID = "character1"; gameMode = 1; botMode = 0; botDifficulty = 1;})'
+[31mError: (B[mFailed update call.
+[33mCaused by: (B[mThe replica returned a rejection error: reject code CanisterReject, reject message IC0503: Error from Canister bd3sg-teaaa-aaaaa-qaaba-cai: Canister trapped explicitly: assertion failed at main.mo:1539.5-1539.77, error code None
+
+2024-07-10 14:55:55,629 - Executing command: dfx identity use player2
+2024-07-10 14:55:55,656 - Command succeeded: dfx identity use player2
+
+2024-07-10 14:55:55,656 - Constructed command: dfx canister call cosmicrafts saveFinishedGame '(17, record {energyUsed = 100.0; energyGenerated = 120.0; energyWasted = 20.0; energyChargeRate = 1.5; xpEarned = 50.0; damageDealt = 200.0; damageTaken = 150.0; damageCritic = 30.0; damageEvaded = 10.0; kills = 5.0; deploys = 3.0; secRemaining = 60.0; wonGame = true; faction = 1; characterID = "character1"; gameMode = 1; botMode = 0; botDifficulty = 1;})'
+2024-07-10 14:55:55,656 - Executing command: dfx canister call cosmicrafts saveFinishedGame '(17, record {energyUsed = 100.0; energyGenerated = 120.0; energyWasted = 20.0; energyChargeRate = 1.5; xpEarned = 50.0; damageDealt = 200.0; damageTaken = 150.0; damageCritic = 30.0; damageEvaded = 10.0; kills = 5.0; deploys = 3.0; secRemaining = 60.0; wonGame = true; faction = 1; characterID = "character1"; gameMode = 1; botMode = 0; botDifficulty = 1;})'
+2024-07-10 14:55:57,118 - Command failed: dfx canister call cosmicrafts saveFinishedGame '(17, record {energyUsed = 100.0; energyGenerated = 120.0; energyWasted = 20.0; energyChargeRate = 1.5; xpEarned = 50.0; damageDealt = 200.0; damageTaken = 150.0; damageCritic = 30.0; damageEvaded = 10.0; kills = 5.0; deploys = 3.0; secRemaining = 60.0; wonGame = true; faction = 1; characterID = "character1"; gameMode = 1; botMode = 0; botDifficulty = 1;})'
+[31mError: (B[mFailed update call.
+[33mCaused by: (B[mThe replica returned a rejection error: reject code CanisterReject, reject message IC0503: Error from Canister bd3sg-teaaa-aaaaa-qaaba-cai: Canister trapped explicitly: assertion failed at main.mo:1539.5-1539.77, error code None
+
+2024-07-10 15:00:40,823 - Executing command: dfx identity use player1
+2024-07-10 15:00:40,830 - Command succeeded: dfx identity use player1
+
+2024-07-10 15:00:40,830 - Executing command: dfx identity get-principal
+2024-07-10 15:00:40,847 - Command succeeded: dfx identity get-principal
+mn5iu-4ncje-ws6p5-ztjz4-7j7a3-xdkvf-hqzz7-qogk7-62pp5-7s3rl-vqe
+
+2024-07-10 15:00:40,847 - Executing command: dfx identity use player2
+2024-07-10 15:00:40,853 - Command succeeded: dfx identity use player2
+
+2024-07-10 15:00:40,853 - Executing command: dfx identity get-principal
+2024-07-10 15:00:40,869 - Command succeeded: dfx identity get-principal
+6pj2j-ccuip-744eo-4odjh-rhyeb-i3ctv-xc3ru-vkkfa-fjubh-33olq-qae
+
+2024-07-10 15:00:40,869 - Player1 starts searching for a match
+2024-07-10 15:00:40,869 - Executing command: dfx identity use player1
+2024-07-10 15:00:40,875 - Command succeeded: dfx identity use player1
+
+2024-07-10 15:00:40,875 - Executing command: dfx canister call cosmicrafts getMatchSearching "{"userAvatar": 1, "listSavedKeys": []}"
+2024-07-10 15:00:42,770 - Command succeeded: dfx canister call cosmicrafts getMatchSearching "{"userAvatar": 1, "listSavedKeys": []}"
+(variant { Assigned }, 18 : nat, "Lobby created")
+
+2024-07-10 15:00:42,771 - Player1 search result: (variant { Assigned }, 18 : nat, "Lobby created")
+2024-07-10 15:00:42,772 - Player2 joins the match
+2024-07-10 15:00:42,772 - Executing command: dfx identity use player2
+2024-07-10 15:00:42,797 - Command succeeded: dfx identity use player2
+
+2024-07-10 15:00:42,797 - Executing command: dfx canister call cosmicrafts getMatchSearching "{"userAvatar": 1, "listSavedKeys": []}"
+2024-07-10 15:00:44,363 - Command succeeded: dfx canister call cosmicrafts getMatchSearching "{"userAvatar": 1, "listSavedKeys": []}"
+(variant { Assigned }, 18 : nat, "Game found")
+
+2024-07-10 15:00:44,363 - Player2 search result: (variant { Assigned }, 18 : nat, "Game found")
+2024-07-10 15:00:44,363 - Executing command: dfx identity use player1
+2024-07-10 15:00:44,389 - Command succeeded: dfx identity use player1
+
+2024-07-10 15:00:44,390 - Executing command: dfx canister call cosmicrafts setPlayerActive
+2024-07-10 15:00:46,516 - Command succeeded: dfx canister call cosmicrafts setPlayerActive
+(false)
+
+2024-07-10 15:00:46,516 - Player1 active result: (false)
+2024-07-10 15:00:46,516 - Executing command: dfx identity use player2
+2024-07-10 15:00:46,524 - Command succeeded: dfx identity use player2
+
+2024-07-10 15:00:46,524 - Executing command: dfx canister call cosmicrafts setPlayerActive
+2024-07-10 15:00:49,145 - Command succeeded: dfx canister call cosmicrafts setPlayerActive
+(false)
+
+2024-07-10 15:00:49,145 - Player2 active result: (false)
+2024-07-10 15:00:49,145 - Executing command: dfx identity use player1
+2024-07-10 15:00:49,169 - Command succeeded: dfx identity use player1
+
+2024-07-10 15:00:49,169 - Executing command: dfx canister call cosmicrafts isGameMatched
+2024-07-10 15:00:49,203 - Command succeeded: dfx canister call cosmicrafts isGameMatched
+(true, "Game matched")
+
+2024-07-10 15:00:49,203 - Is game matched result for Player1: (true, "Game matched")
+2024-07-10 15:00:49,203 - Executing command: dfx identity use player2
+2024-07-10 15:00:49,210 - Command succeeded: dfx identity use player2
+
+2024-07-10 15:00:49,210 - Executing command: dfx canister call cosmicrafts isGameMatched
+2024-07-10 15:00:49,281 - Command succeeded: dfx canister call cosmicrafts isGameMatched
+(true, "Game matched")
+
+2024-07-10 15:00:49,281 - Is game matched result for Player2: (true, "Game matched")
+2024-07-10 15:00:49,281 - Match found! Ending search.
+2024-07-10 15:00:49,281 - Sending statistics for match ID: 18
+2024-07-10 15:00:49,281 - Executing command: dfx identity use player1
+2024-07-10 15:00:49,290 - Command succeeded: dfx identity use player1
+
+2024-07-10 15:00:49,291 - Constructed command: dfx canister call cosmicrafts saveFinishedGame '(18, record {energyUsed = 100.0; energyGenerated = 120.0; energyWasted = 20.0; energyChargeRate = 1.5; xpEarned = 50.0; damageDealt = 200.0; damageTaken = 150.0; damageCritic = 30.0; damageEvaded = 10.0; kills = 5.0; deploys = 3.0; secRemaining = 60.0; wonGame = true; faction = 1; characterID = "character1"; gameMode = 1; botMode = 0; botDifficulty = 1;})'
+2024-07-10 15:00:49,291 - Executing command: dfx canister call cosmicrafts saveFinishedGame '(18, record {energyUsed = 100.0; energyGenerated = 120.0; energyWasted = 20.0; energyChargeRate = 1.5; xpEarned = 50.0; damageDealt = 200.0; damageTaken = 150.0; damageCritic = 30.0; damageEvaded = 10.0; kills = 5.0; deploys = 3.0; secRemaining = 60.0; wonGame = true; faction = 1; characterID = "character1"; gameMode = 1; botMode = 0; botDifficulty = 1;})'
+2024-07-10 15:00:50,668 - Command succeeded: dfx canister call cosmicrafts saveFinishedGame '(18, record {energyUsed = 100.0; energyGenerated = 120.0; energyWasted = 20.0; energyChargeRate = 1.5; xpEarned = 50.0; damageDealt = 200.0; damageTaken = 150.0; damageCritic = 30.0; damageEvaded = 10.0; kills = 5.0; deploys = 3.0; secRemaining = 60.0; wonGame = true; faction = 1; characterID = "character1"; gameMode = 1; botMode = 0; botDifficulty = 1;})'
+(true, "Game saved")
+
+2024-07-10 15:00:50,668 - Executing command: dfx identity use player2
+2024-07-10 15:00:50,697 - Command succeeded: dfx identity use player2
+
+2024-07-10 15:00:50,697 - Constructed command: dfx canister call cosmicrafts saveFinishedGame '(18, record {energyUsed = 100.0; energyGenerated = 120.0; energyWasted = 20.0; energyChargeRate = 1.5; xpEarned = 50.0; damageDealt = 200.0; damageTaken = 150.0; damageCritic = 30.0; damageEvaded = 10.0; kills = 5.0; deploys = 3.0; secRemaining = 60.0; wonGame = true; faction = 1; characterID = "character1"; gameMode = 1; botMode = 0; botDifficulty = 1;})'
+2024-07-10 15:00:50,697 - Executing command: dfx canister call cosmicrafts saveFinishedGame '(18, record {energyUsed = 100.0; energyGenerated = 120.0; energyWasted = 20.0; energyChargeRate = 1.5; xpEarned = 50.0; damageDealt = 200.0; damageTaken = 150.0; damageCritic = 30.0; damageEvaded = 10.0; kills = 5.0; deploys = 3.0; secRemaining = 60.0; wonGame = true; faction = 1; characterID = "character1"; gameMode = 1; botMode = 0; botDifficulty = 1;})'
+2024-07-10 15:00:53,031 - Command succeeded: dfx canister call cosmicrafts saveFinishedGame '(18, record {energyUsed = 100.0; energyGenerated = 120.0; energyWasted = 20.0; energyChargeRate = 1.5; xpEarned = 50.0; damageDealt = 200.0; damageTaken = 150.0; damageCritic = 30.0; damageEvaded = 10.0; kills = 5.0; deploys = 3.0; secRemaining = 60.0; wonGame = true; faction = 1; characterID = "character1"; gameMode = 1; botMode = 0; botDifficulty = 1;})'
+(true, "NO REWARDS FOUND FOR THIS USER - Game saved")
+

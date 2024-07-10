@@ -1536,7 +1536,7 @@ shared actor class Cosmicrafts() {
   };
 
   public shared (msg) func setGameOver(caller : Principal) : async (Bool, Bool, ?Principal) {
-    assert (msg.caller == Principal.fromText("jybso-3iaaa-aaaan-qeima-cai"));
+    assert (msg.caller == Principal.fromText("bd3sg-teaaa-aaaaa-qaaba-cai"));
     switch (playerStatus.get(caller)) {
       case (null) {
         return (false, false, null);

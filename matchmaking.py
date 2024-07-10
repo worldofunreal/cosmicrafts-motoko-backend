@@ -1,6 +1,7 @@
 import subprocess
 import json
 import logging
+import re
 
 # Set up logging
 logging.basicConfig(filename='matchmaking.log', level=logging.INFO, format='%(asctime)s - %(message)s')
@@ -23,6 +24,12 @@ def execute_dfx_command(command):
 def switch_identity(identity_name):
     """Switches the DFX identity."""
     execute_dfx_command(f"dfx identity use {identity_name}")
+
+def get_principal(identity_name):
+    """Gets the principal of the current identity."""
+    switch_identity(identity_name)
+    principal = execute_dfx_command("dfx identity get-principal")
+    return principal
 
 def get_match_searching(identity_name, player_game_data):
     """Starts searching for a match."""
@@ -49,10 +56,57 @@ def cancel_matchmaking(identity_name):
     command = 'dfx canister call cosmicrafts cancelMatchmaking'
     return execute_dfx_command(command)
 
+def save_finished_game(identity_name, game_id, stats):
+    """Saves the finished game statistics."""
+    switch_identity(identity_name)
+    
+    stats_str = (
+        'record {'
+        f'energyUsed = {stats["energyUsed"]}; '
+        f'energyGenerated = {stats["energyGenerated"]}; '
+        f'energyWasted = {stats["energyWasted"]}; '
+        f'energyChargeRate = {stats["energyChargeRate"]}; '
+        f'xpEarned = {stats["xpEarned"]}; '
+        f'damageDealt = {stats["damageDealt"]}; '
+        f'damageTaken = {stats["damageTaken"]}; '
+        f'damageCritic = {stats["damageCritic"]}; '
+        f'damageEvaded = {stats["damageEvaded"]}; '
+        f'kills = {stats["kills"]}; '
+        f'deploys = {stats["deploys"]}; '
+        f'secRemaining = {stats["secRemaining"]}; '
+        f'wonGame = {str(stats["wonGame"]).lower()}; '
+        f'faction = {stats["faction"]}; '
+        f'characterID = "{stats["characterID"]}"; '
+        f'gameMode = {stats["gameMode"]}; '
+        f'botMode = {stats["botMode"]}; '
+        f'botDifficulty = {stats["botDifficulty"]};'
+        '}'
+    )
+
+    command = (
+        f'dfx canister call cosmicrafts saveFinishedGame \'({game_id}, {stats_str})\''
+    )
+    print(f"Constructed command: {command}")
+    logging.info(f"Constructed command: {command}")
+    return execute_dfx_command(command)
+
+def parse_match_id(search_result):
+    """Extracts the match ID from the search result."""
+    match = re.search(r'\(variant \{ Assigned \}, (\d+) : nat,', search_result)
+    if match:
+        return int(match.group(1))
+    else:
+        raise ValueError("Match ID not found in the search result")
+
 def main():
     """Main function to simulate the matchmaking process."""
     player1_identity = "player1"
     player2_identity = "player2"
+
+    # Get principals for both players
+    player1_principal = get_principal(player1_identity)
+    player2_principal = get_principal(player2_identity)
+
     player_game_data = {
         "userAvatar": 1,  # Replace with actual avatar ID
         "listSavedKeys": []  # Replace with actual saved keys if needed
@@ -64,6 +118,9 @@ def main():
     player1_search_result = get_match_searching(player1_identity, player_game_data)
     print(f"Player1 search result: {player1_search_result}")
     logging.info(f"Player1 search result: {player1_search_result}")
+
+    # Extract the match ID from Player1's search result
+    match_id = parse_match_id(player1_search_result)
 
     # Player2 joins the match
     print("Player2 joins the match")
@@ -96,6 +153,32 @@ def main():
             print("Match found! Ending search.")
             logging.info("Match found! Ending search.")
             break
+
+    # Send game statistics for both players
+    game_stats = {
+        "energyUsed": 100.0,  # Example values
+        "energyGenerated": 120.0,
+        "energyWasted": 20.0,
+        "energyChargeRate": 1.5,
+        "xpEarned": 50.0,
+        "damageDealt": 200.0,
+        "damageTaken": 150.0,
+        "damageCritic": 30.0,
+        "damageEvaded": 10.0,
+        "kills": 5.0,
+        "deploys": 3.0,
+        "secRemaining": 60.0,
+        "wonGame": True,
+        "faction": 1,
+        "characterID": "character1",
+        "gameMode": 1,
+        "botMode": 0,
+        "botDifficulty": 1
+    }
+    print(f"Sending statistics for match ID: {match_id}")
+    logging.info(f"Sending statistics for match ID: {match_id}")
+    save_finished_game(player1_identity, match_id, game_stats)
+    save_finished_game(player2_identity, match_id, game_stats)
 
 if __name__ == "__main__":
     main()
