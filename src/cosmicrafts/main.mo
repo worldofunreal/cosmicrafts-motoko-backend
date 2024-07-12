@@ -52,7 +52,7 @@ shared actor class Cosmicrafts() {
   let nftsToken : Collection.Collection = actor ("bw4dl-smaaa-aaaaa-qaacq-cai");
   let chestsToken : ChestsToken.Chests = actor ("bkyz2-fmaaa-aaaaa-qaaaq-cai");
 
-  private stable var _cosmicPrincipal : Principal = Principal.fromText("bcy24-rkxgs-yoxmr-qt7ub-qk2cy-2q6q7-mnztq-i7etk-noexw-ae7gi-wqe");
+  private stable var _cosmicPrincipal : Principal = Principal.fromText("bd3sg-teaaa-aaaaa-qaaba-cai");
   private stable var transfer_fee : Nat64 = 10_000;
   private stable var icrc1_fee : Nat64 = 1;
   private stable var upgrade_cost : TypesICRC1.Balance = 10;

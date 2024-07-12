@@ -276,7 +276,8 @@ type Cosmicrafts =
    ///     };
    ///     _gamesByELO;
    ///   };
-   /// *
+   /// *~}]$5J05At&j2S5AF)1bG"|Is&'pbUhEyeAS~}]$5J05At&j2S5AF)1bG"|Is&'pbUhEyeASu/
+   
    getMatchSearching: (text) -> (SearchStatus, nat, text);
    getMyAverageStats: () -> (opt AverageStats) query;
    getMyMatchData: () -> (opt FullMatchData, nat) composite_query;
