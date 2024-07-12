@@ -4,7 +4,7 @@ import random
 import string
 
 # Set up logging
-#logging.basicConfig(filename='register_users.log', level=logging.INFO, format='%(asctime)s - %(message)s')
+logging.basicConfig(filename='logs/register_users.log', level=logging.INFO, format='%(asctime)s - %(message)s')
 
 def execute_dfx_command(command, log_output=True):
     """Executes a shell command and logs the output."""

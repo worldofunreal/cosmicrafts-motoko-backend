@@ -5,27 +5,28 @@ import re
 import random
 
 # Set up logging
-#logging.basicConfig(filename='matchmaking.log', level=logging.INFO, format='%(asctime)s - %(message)s')
+logging.basicConfig(filename='logs/matchmaking.log', level=logging.INFO, format='%(asctime)s - %(message)s')
 
-def execute_dfx_command(command):
+def execute_dfx_command(command, log_output=True):
     """Executes a shell command and logs the output."""
-    print(f"Executing command: {command}")
-    logging.info(f"Executing command: {command}")
     result = subprocess.run(command, capture_output=True, text=True, shell=True)
     if result.returncode != 0:
-        error_message = f"Command failed: {command}\n{result.stderr}"
+        error_message = f"Command failed: {command}\n{result.stderr.strip()}"
         print(error_message)
         logging.error(error_message)
         raise Exception(error_message)  # Raise an exception to halt on error
     else:
-        success_message = f"Command succeeded: {command}\n{result.stdout}"
-        print(success_message)
-        logging.info(success_message)
-    return result.stdout.strip()
+        output = result.stdout.strip()
+        print(f"Command: {command}")
+        logging.info(f"Command: {command}")
+        if log_output:
+            print(f"Output: {output}\n")
+            logging.info(f"Output: {output}")
+    return output
 
 def switch_identity(identity_name):
     """Switches the DFX identity."""
-    execute_dfx_command(f"dfx identity use {identity_name}")
+    execute_dfx_command(f"dfx identity use {identity_name}", log_output=False)
 
 def get_principal(identity_name):
     """Gets the principal of the current identity."""
@@ -37,7 +38,7 @@ def get_match_searching(identity_name, player_game_data):
     """Starts searching for a match."""
     switch_identity(identity_name)
     player_game_data_str = json.dumps(player_game_data)
-    command = f'dfx canister call cosmicrafts getMatchSearching "{player_game_data_str}"'
+    command = f'dfx canister call cosmicrafts getMatchSearching \'{player_game_data_str}\''
     return execute_dfx_command(command)
 
 def set_player_active(identity_name):
@@ -153,10 +154,6 @@ def main():
         print(f"{player1} active result: {active_result1}")
         logging.info(f"{player1} active result: {active_result1}")
 
-        is_matched_result1 = is_game_matched(player1)
-        print(f"Is game matched result for {player1}: {is_matched_result1}")
-        logging.info(f"Is game matched result for {player1}: {is_matched_result1}")
-
         # Start searching for a match for player2
         print(f"{player2} starts searching for a match")
         logging.info(f"{player2} starts searching for a match")
@@ -171,33 +168,47 @@ def main():
         print(f"{player2} active result: {active_result2}")
         logging.info(f"{player2} active result: {active_result2}")
 
-        is_matched_result2 = is_game_matched(player2)
-        print(f"Is game matched result for {player2}: {is_matched_result2}")
-        logging.info(f"Is game matched result for {player2}: {is_matched_result2}")
+        # Wait until both players confirm the match
+        player1_matched = False
+        player2_matched = False
 
-        if "true" in is_matched_result1 and "true" in is_matched_result2:
-            print("Match found! Ending search.")
-            logging.info("Match found! Ending search.")
+        while not (player1_matched and player2_matched):
+            is_matched_result1 = is_game_matched(player1)
+            is_matched_result2 = is_game_matched(player2)
+            print(f"Is game matched result for {player1}: {is_matched_result1}")
+            logging.info(f"Is game matched result for {player1}: {is_matched_result1}")
+            print(f"Is game matched result for {player2}: {is_matched_result2}")
+            logging.info(f"Is game matched result for {player2}: {is_matched_result2}")
 
-            # Send statistics immediately for the matched players
-            shared_energy_generated = random.randint(50, 210)
-            shared_sec_remaining = random.randint(30, 300)
-            won = random.choice([True, False])
+            player1_matched = "true" in is_matched_result1
+            player2_matched = "true" in is_matched_result2
 
-            for player, match_id in match_ids:
-                print(f"Sending statistics for match ID: {match_id} for {player}")
-                logging.info(f"Sending statistics for match ID: {match_id} for {player}")
+            if not (player1_matched and player2_matched):
+                print("Waiting for both players to be matched...")
+                logging.info("Waiting for both players to be matched...")
 
-                stats = generate_random_stats(shared_energy_generated, shared_sec_remaining, won)
+        print("Match found! Ending search.")
+        logging.info("Match found! Ending search.")
 
-                try:
-                    save_finished_game(player, match_id, stats)
-                except Exception as e:
-                    print(f"Error saving statistics for {player} in match {match_id}: {e}")
-                    logging.error(f"Error saving statistics for {player} in match {match_id}: {e}")
-                    return  # Halt on error
+        # Send statistics immediately for the matched players
+        shared_energy_generated = random.randint(50, 210)
+        shared_sec_remaining = random.randint(30, 300)
+        won = random.choice([True, False])
 
-            match_ids.clear()  # Clear match IDs after saving stats
+        for player, match_id in [(player1, match_id1), (player2, match_id2)]:
+            print(f"Sending statistics for match ID: {match_id} for {player}")
+            logging.info(f"Sending statistics for match ID: {match_id} for {player}")
+
+            stats = generate_random_stats(shared_energy_generated, shared_sec_remaining, won)
+
+            try:
+                save_finished_game(player, match_id, stats)
+            except Exception as e:
+                print(f"Error saving statistics for {player} in match {match_id}: {e}")
+                logging.error(f"Error saving statistics for {player} in match {match_id}: {e}")
+                return  # Halt on error
+
+        match_ids.clear()  # Clear match IDs after saving stats
 
 if __name__ == "__main__":
     main()

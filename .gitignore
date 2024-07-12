@@ -4,3 +4,4 @@ node_modules
 .prettierrc
 package-lock.json
 myenv
+logs
