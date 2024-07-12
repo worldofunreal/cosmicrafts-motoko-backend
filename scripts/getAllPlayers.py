@@ -62,7 +62,7 @@ def main():
     
     if data:
         # Specify the CSV file name
-        csv_file = '/logs/players_data.csv'
+        csv_file = 'logs/players_data.csv'
         
         # Format and display data
         format_data(data, csv_file)

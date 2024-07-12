@@ -3,6 +3,7 @@ import json
 import logging
 import re
 import random
+import time
 
 # Set up logging
 logging.basicConfig(filename='logs/matchmaking.log', level=logging.INFO, format='%(asctime)s - %(message)s')
@@ -119,96 +120,109 @@ def generate_random_stats(shared_energy_generated, shared_sec_remaining, won):
     }
     return stats
 
-def main():
-    """Main function to simulate the matchmaking process."""
-    num_matches = int(input("Enter the number of matches to run: "))
+def run_matches(num_matches):
+    """Run the specified number of matches."""
     num_players = num_matches * 2  # Each match requires 2 players
 
     players = [f"player{i}" for i in range(1, num_players + 1)]  # Create player identities
 
-    # Get principals for all players
-    principals = {player: get_principal(player) for player in players}
+    while True:
+        # Shuffle the players
+        random.shuffle(players)
 
-    player_game_data = {
-        "userAvatar": 1,  # Replace with actual avatar ID
-        "listSavedKeys": []  # Replace with actual saved keys if needed
-    }
+        # Get principals for all players
+        principals = {player: get_principal(player) for player in players}
 
-    match_ids = []
+        player_game_data = {
+            "userAvatar": 1,  # Replace with actual avatar ID
+            "listSavedKeys": []  # Replace with actual saved keys if needed
+        }
 
-    for i in range(0, num_players, 2):  # Iterate in steps of 2 for pairs of players
-        player1 = players[i]
-        player2 = players[i + 1]
+        match_ids = []
 
-        # Start searching for a match for player1
-        print(f"{player1} starts searching for a match")
-        logging.info(f"{player1} starts searching for a match")
-        search_result1 = get_match_searching(player1, player_game_data)
-        print(f"{player1} search result: {search_result1}")
-        logging.info(f"{player1} search result: {search_result1}")
-        match_id1 = parse_match_id(search_result1)
-        match_ids.append((player1, match_id1))
+        for i in range(0, num_players, 2):  # Iterate in steps of 2 for pairs of players
+            player1 = players[i]
+            player2 = players[i + 1]
 
-        # Simulate player1 activation and match confirmation
-        active_result1 = set_player_active(player1)
-        print(f"{player1} active result: {active_result1}")
-        logging.info(f"{player1} active result: {active_result1}")
+            # Start searching for a match for player1
+            print(f"{player1} starts searching for a match")
+            logging.info(f"{player1} starts searching for a match")
+            search_result1 = get_match_searching(player1, player_game_data)
+            print(f"{player1} search result: {search_result1}")
+            logging.info(f"{player1} search result: {search_result1}")
+            match_id1 = parse_match_id(search_result1)
+            match_ids.append((player1, match_id1))
 
-        # Start searching for a match for player2
-        print(f"{player2} starts searching for a match")
-        logging.info(f"{player2} starts searching for a match")
-        search_result2 = get_match_searching(player2, player_game_data)
-        print(f"{player2} search result: {search_result2}")
-        logging.info(f"{player2} search result: {search_result2}")
-        match_id2 = parse_match_id(search_result2)
-        match_ids.append((player2, match_id2))
+            # Simulate player1 activation and match confirmation
+            active_result1 = set_player_active(player1)
+            print(f"{player1} active result: {active_result1}")
+            logging.info(f"{player1} active result: {active_result1}")
 
-        # Simulate player2 activation and match confirmation
-        active_result2 = set_player_active(player2)
-        print(f"{player2} active result: {active_result2}")
-        logging.info(f"{player2} active result: {active_result2}")
+            # Start searching for a match for player2
+            print(f"{player2} starts searching for a match")
+            logging.info(f"{player2} starts searching for a match")
+            search_result2 = get_match_searching(player2, player_game_data)
+            print(f"{player2} search result: {search_result2}")
+            logging.info(f"{player2} search result: {search_result2}")
+            match_id2 = parse_match_id(search_result2)
+            match_ids.append((player2, match_id2))
 
-        # Wait until both players confirm the match
-        player1_matched = False
-        player2_matched = False
+            # Simulate player2 activation and match confirmation
+            active_result2 = set_player_active(player2)
+            print(f"{player2} active result: {active_result2}")
+            logging.info(f"{player2} active result: {active_result2}")
 
-        while not (player1_matched and player2_matched):
-            is_matched_result1 = is_game_matched(player1)
-            is_matched_result2 = is_game_matched(player2)
-            print(f"Is game matched result for {player1}: {is_matched_result1}")
-            logging.info(f"Is game matched result for {player1}: {is_matched_result1}")
-            print(f"Is game matched result for {player2}: {is_matched_result2}")
-            logging.info(f"Is game matched result for {player2}: {is_matched_result2}")
+            # Wait until both players confirm the match
+            player1_matched = False
+            player2_matched = False
 
-            player1_matched = "true" in is_matched_result1
-            player2_matched = "true" in is_matched_result2
+            while not (player1_matched and player2_matched):
+                is_matched_result1 = is_game_matched(player1)
+                is_matched_result2 = is_game_matched(player2)
+                print(f"Is game matched result for {player1}: {is_matched_result1}")
+                logging.info(f"Is game matched result for {player1}: {is_matched_result1}")
+                print(f"Is game matched result for {player2}: {is_matched_result2}")
+                logging.info(f"Is game matched result for {player2}: {is_matched_result2}")
 
-            if not (player1_matched and player2_matched):
-                print("Waiting for both players to be matched...")
-                logging.info("Waiting for both players to be matched...")
+                player1_matched = "true" in is_matched_result1
+                player2_matched = "true" in is_matched_result2
 
-        print("Match found! Ending search.")
-        logging.info("Match found! Ending search.")
+                if not (player1_matched and player2_matched):
+                    print("Waiting for both players to be matched...")
+                    logging.info("Waiting for both players to be matched...")
 
-        # Send statistics immediately for the matched players
-        shared_energy_generated = random.randint(50, 210)
-        shared_sec_remaining = random.randint(30, 300)
-        won = random.choice([True, False])
+            print("Match found! Ending search.")
+            logging.info("Match found! Ending search.")
 
-        for player, match_id in [(player1, match_id1), (player2, match_id2)]:
-            print(f"Sending statistics for match ID: {match_id} for {player}")
-            logging.info(f"Sending statistics for match ID: {match_id} for {player}")
+            # Send statistics immediately for the matched players
+            shared_energy_generated = random.randint(50, 210)
+            shared_sec_remaining = random.randint(30, 300)
+            won = random.choice([True, False])
 
-            stats = generate_random_stats(shared_energy_generated, shared_sec_remaining, won)
+            for player, match_id in [(player1, match_id1), (player2, match_id2)]:
+                print(f"Sending statistics for match ID: {match_id} for {player}")
+                logging.info(f"Sending statistics for match ID: {match_id} for {player}")
 
-            try:
-                save_finished_game(player, match_id, stats)
-            except Exception as e:
-                print(f"Error saving statistics for {player} in match {match_id}: {e}")
-                logging.error(f"Error saving statistics for {player} in match {match_id}: {e}")
-                return  # Halt on error
+                stats = generate_random_stats(shared_energy_generated, shared_sec_remaining, won)
 
-        match_ids.clear()  # Clear match IDs after saving stats
+                try:
+                    save_finished_game(player, match_id, stats)
+                except Exception as e:
+                    print(f"Error saving statistics for {player} in match {match_id}: {e}")
+                    logging.error(f"Error saving statistics for {player} in match {match_id}: {e}")
+                    return  # Halt on error
+
+            match_ids.clear()  # Clear match IDs after saving stats
+
+        print(f"Finished {num_matches} matches. Looping..." if loop else "Finished {num_matches} matches.")
+        logging.info(f"Finished {num_matches} matches. Looping..." if loop else "Finished {num_matches} matches.")
+
+        if not loop:
+            break
+
+        time.sleep(5)  # Add a delay before starting the next loop, if desired
 
 if __name__ == "__main__":
-    main()
+    num_matches = int(input("Enter the number of matches to run: "))
+    loop = input("Do you want to loop indefinitely? (yes/no): ").strip().lower() == "yes"
+    run_matches(num_matches)
