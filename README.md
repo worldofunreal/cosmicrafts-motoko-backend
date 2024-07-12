@@ -12,6 +12,15 @@ Try with the following commands:
 
 - **Works with dfx 0.20.1
 
+# Python Scripts
+Use a virtual environment
+```python -m venv myenv```
+```source myenv/bin/activate```
+
+pip install pandas
+
+
+
 # Overview of `upgradeNFT` Function
 
 ## Verify Ownership

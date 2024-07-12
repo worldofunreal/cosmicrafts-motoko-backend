@@ -1,10 +1,10 @@
 #!/bin/bash
 
 #start
-dfx start --background --clean
+dfx start --background
 
 #create canisters
-dfx canister create --all
+#dfx canister create --all
 
 # Install icrc7 canister
 dfx deploy icrc7 --argument '( record {owner = principal "bd3sg-teaaa-aaaaa-qaaba-cai"; subaccount = null;}, record { "name" = "Cosmicrafts Game NFTs"; symbol = "CS"; royalties = null; royaltyRecipient = null; description = null; image = null; supplyCap = null; })' --mode=reinstall

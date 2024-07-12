@@ -5,7 +5,7 @@ import re
 import random
 
 # Set up logging
-logging.basicConfig(filename='matchmaking.log', level=logging.INFO, format='%(asctime)s - %(message)s')
+#logging.basicConfig(filename='matchmaking.log', level=logging.INFO, format='%(asctime)s - %(message)s')
 
 def execute_dfx_command(command):
     """Executes a shell command and logs the output."""
