@@ -972,7 +972,6 @@ private func getTokensAmount(rarity: Nat): (Nat, Nat) {
     };
 };
 
-
     func getBaseMetadataWithAttributes(rarity: Nat, unit_id: Nat, name: Text, damage: Nat, hp: Nat) : [(Text, TypesICRC7.Metadata)] {
         let baseMetadata = getBaseMetadata(rarity, unit_id);
 
@@ -1145,7 +1144,7 @@ private func getTokensAmount(rarity: Nat): (Nat, Nat) {
         };
     };
     
-public shared func generateUUID64() : async Nat {
+private shared func generateUUID64() : async Nat {
     let randomBytes = await Random.blob();
     var uuid : Nat = 0;
     let byteArray = Blob.toArray(randomBytes);
