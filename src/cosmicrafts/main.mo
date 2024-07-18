@@ -60,7 +60,6 @@ shared actor class Cosmicrafts() {
   private stable var nftID : TokenID = 10000;
   private stable var chestID : TokenID = 10000;
 
-
   func getUserSubaccount(u : Principal) : Account.AccountIdentifier {
     return Account.accountIdentifier(Principal.fromActor(actor ("onhpa-giaaa-aaaak-qaafa-cai")), Account.principalToSubaccount(u));
   };
@@ -75,44 +74,44 @@ shared actor class Cosmicrafts() {
   public shared (msg) func mintTokens(toPrincipal : Principal, shardsAmount : Nat, fluxAmount : Nat) : async (Bool, Text) {
     let shardsMinting = async {
       let _shardsArgs : TypesICRC1.Mint = {
-              to = { owner = toPrincipal; subaccount = null };
-              amount = shardsAmount;
-              memo = null;
-              created_at_time = ?Nat64.fromNat(Int.abs(Time.now()));
-          };
-          let _shardsMinted : TypesICRC1.TransferResult = await shardsToken.mint(_shardsArgs);
-
-          switch (_shardsMinted) {
-              case (#Ok(_tid)) {
-                  Debug.print("Shards minted successfully: " # Nat.toText(_tid));
-              };
-              case (#Err(_e)) {
-                  Debug.print("Error minting shards: ");
-              };
-          };
+        to = { owner = toPrincipal; subaccount = null };
+        amount = shardsAmount;
+        memo = null;
+        created_at_time = ?Nat64.fromNat(Int.abs(Time.now()));
       };
+      let _shardsMinted : TypesICRC1.TransferResult = await shardsToken.mint(_shardsArgs);
 
-      let fluxMinting = async {
-          let _fluxArgs : TypesICRC1.Mint = {
-              to = { owner = toPrincipal; subaccount = null };
-              amount = fluxAmount;
-              memo = null;
-              created_at_time = ?Nat64.fromNat(Int.abs(Time.now()));
-          };
-          let _fluxMinted : TypesICRC1.TransferResult = await fluxToken.mint(_fluxArgs);
-
-          switch (_fluxMinted) {
-              case (#Ok(_tid)) {
-                  Debug.print("Flux minted successfully: " # Nat.toText(_tid));
-              };
-              case (#Err(_e)) {
-                  Debug.print("Error minting flux:");
-              };
-          };
+      switch (_shardsMinted) {
+        case (#Ok(_tid)) {
+          Debug.print("Shards minted successfully: " # Nat.toText(_tid));
+        };
+        case (#Err(_e)) {
+          Debug.print("Error minting shards: ");
+        };
       };
-      await shardsMinting;
-      await fluxMinting;
-      return (true, "Tokens minted successfully");
+    };
+
+    let fluxMinting = async {
+      let _fluxArgs : TypesICRC1.Mint = {
+        to = { owner = toPrincipal; subaccount = null };
+        amount = fluxAmount;
+        memo = null;
+        created_at_time = ?Nat64.fromNat(Int.abs(Time.now()));
+      };
+      let _fluxMinted : TypesICRC1.TransferResult = await fluxToken.mint(_fluxArgs);
+
+      switch (_fluxMinted) {
+        case (#Ok(_tid)) {
+          Debug.print("Flux minted successfully: " # Nat.toText(_tid));
+        };
+        case (#Err(_e)) {
+          Debug.print("Error minting flux:");
+        };
+      };
+    };
+    await shardsMinting;
+    await fluxMinting;
+    return (true, "Tokens minted successfully");
   };
 
   public shared (msg) func mergeSkinNFTs(nftID : Nat, skinID : Nat) : async (Bool, Text) {
@@ -1536,7 +1535,7 @@ shared actor class Cosmicrafts() {
   };
 
   public shared (msg) func setGameOver(caller : Principal) : async (Bool, Bool, ?Principal) {
-    assert (msg.caller == Principal.fromText("bd3sg-teaaa-aaaaa-qaaba-cai"));
+    assert (msg.caller == Principal.fromText("bkyz2-fmaaa-aaaaa-qaaaq-cai"));
     switch (playerStatus.get(caller)) {
       case (null) {
         return (false, false, null);
@@ -1717,6 +1716,7 @@ shared actor class Cosmicrafts() {
               factionID = gf.factionID;
               gamesWon = gf.gamesWon + _winner;
             });
+
           } else {
             _totalGamesWithFaction.add(gf);
           };
@@ -3635,4 +3635,30 @@ shared actor class Cosmicrafts() {
     _inProgress := [];
     _finishedGames := [];
   };
+
+  type HistoryMatch = {
+    gameID : ?Nat;
+  };
+  public type MatchD7ata = {
+    gameId : Nat;
+    player1 : PlayerInfo;
+    player2 : ?PlayerInfo;
+    status : MatchmakingStatus;
+  };
+  //_playerGamesStats
+  //totalGamesWithFaction;
+  public query func getAllMatches() : async [MatchData] {
+    let matches : [MatchData] = Iter.toArray(finishedGames.vals());
+  };
+
+  type MatchHist = {
+
+  };
+  // getMyMatchData() : async (?FullMatchData, Nat)
+ // public query func findMatchHashMap(pID : PlayerId) : async ?MatchHist {
+    // let gameStats = _playerGamesStats.get()
+
+   // ?
+ // };
+
 };
