@@ -1,4 +1,5 @@
 //Imports
+    import Region "mo:base/Region";
     import Float "mo:base/Float";
     import HashMap "mo:base/HashMap";
     import Int "mo:base/Int";
@@ -23,6 +24,7 @@
     import ICRC7Utils "/icrc7/utils";
     import TypesICRC7 "/icrc7/types";
     import TypesICRC1 "/icrc1/Types";
+    import PseudoRandomX "mo:xtended-random/PseudoRandomX";
     import TypesAchievements "TypesAchievements";
     import Int64 "mo:base/Int64";
    // import AchievementMissionsTemplate "AchievementMissionsTemplate";
@@ -295,11 +297,8 @@ shared actor class Cosmicrafts(collectionOwner: TypesICRC7.Account, init: TypesI
 
     func getRandomReward(minReward: Nat, maxReward: Nat): async Nat {
         let randomBytes = await Random.blob(); // Generating random bytes
-        let byteArray = Blob.toArray(randomBytes);
-        let randomByte = byteArray[0]; // Use the first byte for randomness
-        let range = maxReward - minReward + 1;
-        let randomValue = Nat8.toNat(randomByte) % range;
-        return minReward + randomValue;
+        let prng = PseudoRandomX.fromBlob(randomBytes, #xorshift32); // Create a pseudo-random generator
+        return prng.nextNat(minReward, maxReward);
     };
 
 //----
@@ -3752,7 +3751,6 @@ shared actor class Cosmicrafts(collectionOwner: TypesICRC7.Account, init: TypesI
             };
         };
 
-
 //--
 // Referrals
   type UUID = Text;
@@ -6228,7 +6226,6 @@ shared actor class Cosmicrafts(collectionOwner: TypesICRC7.Account, init: TypesI
         return result;
     };
 
-
 // GameNFTs
 
     // Stable map to store the principal IDs of callers who have minted a deck
@@ -6248,7 +6245,7 @@ shared actor class Cosmicrafts(collectionOwner: TypesICRC7.Account, init: TypesI
         var uuids = Buffer.Buffer<TypesICRC7.TokenId>(8);
 
         // Generate the initial UUID
-        let initialUUID = await ICRC7Utils.generateUUID64();
+        let initialUUID = await Utils.generateUUID64();
 
         for (i in Iter.range(0, 7)) {
             let (name, damage, hp, rarity) = units[i];
@@ -6301,7 +6298,7 @@ shared actor class Cosmicrafts(collectionOwner: TypesICRC7.Account, init: TypesI
             
             // Check on supply cap overflow
             if (supplyCap != null) {
-                let _supplyCap: Nat = ICRC7Utils.nullishCoalescing<Nat>(supplyCap, 0);
+                let _supplyCap: Nat = Utils.nullishCoalescing<Nat>(supplyCap, 0);
                 if (totalSupply + 1 > _supplyCap) {
                     return (false, "Deck mint failed: SupplyCapOverflow", []);
                 };
@@ -6325,8 +6322,11 @@ shared actor class Cosmicrafts(collectionOwner: TypesICRC7.Account, init: TypesI
             _addTokenToOwners(acceptedTo, mintArgs.token_id);
             _incrementBalance(acceptedTo);
             _incrementTotalSupply(1);
-            _deckTokens := ICRC7Utils.pushIntoArray<TypesICRC7.TokenId>(tokenId, _deckTokens);
+            _deckTokens := Utils.pushIntoArray<TypesICRC7.TokenId>(tokenId, _deckTokens);
             lastTokenMinted := tokenId;
+
+            // Update the minted game NFTs for the user
+            await updateMintedGameNFTs(caller, tokenId);
         };
 
         let _transaction: TypesICRC7.Transaction = _addTransaction(#mint, now, ?_deckTokens, ?acceptedTo, null, null, null, null, null);
