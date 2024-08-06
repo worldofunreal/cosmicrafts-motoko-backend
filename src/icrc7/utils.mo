@@ -1,4 +1,3 @@
-import Hash "mo:base/Hash";
 import Array "mo:base/Array";
 import Principal "mo:base/Principal";
 import Char "mo:base/Char";
@@ -7,12 +6,12 @@ import Buffer "mo:base/Buffer";
 import Nat8 "mo:base/Nat8";
 import SHA224 "./SHA224";
 import CRC32 "./CRC32";
-import HashMap "mo:base/HashMap";
-import Nat "mo:base/Nat";
-import Option "mo:base/Option";
-import Nat32 "mo:base/Nat32";
 import Iter "mo:base/Iter";
 import Text "mo:base/Text";
+import Hash "mo:base/Hash";
+import Nat32 "mo:base/Nat32";
+import Random "mo:base/Random";
+import Nat "mo:base/Nat";
 import Types "./types";
 
 module {
@@ -76,5 +75,50 @@ module {
 	public func compareAccounts(a: Types.Account, b: Types.Account): {#less; #equal; #greater} {
 		return Text.compare(accountToText(a), accountToText(b));
 	};
+
+	public func natToBytes(n: Nat): [Nat8] {
+	var bytes = Buffer.Buffer<Nat8>(0);
+	var num = n;
+	while (num > 0) {
+		bytes.add(Nat8.fromNat(num % 256));
+		num := num / 256;
+	};
+	return Buffer.toArray(bytes);
+	};
+
+	public func _natHash(a: Nat): Hash.Hash {
+	let byteArray = natToBytes(a);
+	var hash: Hash.Hash = 0;
+	for (i in Iter.range(0, byteArray.size() - 1)) {
+		hash := (hash * 31 + Nat32.fromNat(Nat8.toNat(byteArray[i])));
+	};
+	return hash;
+	};
+
+	// NFT Metadata
+    public func initDeck(): [(Text, Nat, Nat, Nat)] {
+            return [
+                ("Blackbird", 30, 120, 3),
+                ("Predator", 20, 140, 2),
+                ("Warhawk", 30, 180, 4),
+                ("Tigershark", 10, 100, 1),
+                ("Devastator", 20, 120, 2),
+                ("Pulverizer", 10, 180, 3),
+                ("Barracuda", 20, 140, 2),
+                ("Farragut", 10, 220, 4)
+            ];
+    };
+
+      public func generateUUID64() : async Nat {
+        let randomBytes = await Random.blob();
+        var uuid : Nat = 0;
+        let byteArray = Blob.toArray(randomBytes);
+        for (i in Iter.range(0, 7)) {
+            uuid := Nat.add(Nat.bitshiftLeft(uuid, 8), Nat8.toNat(byteArray[i]));
+        };
+        uuid := uuid % 2147483647;
+        return uuid;
+	};
+
 
 };
