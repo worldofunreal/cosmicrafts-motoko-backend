@@ -36,3 +36,6 @@ myenv
 #scripts
 icscripts
 scripts
+
+#mops
+.mops
