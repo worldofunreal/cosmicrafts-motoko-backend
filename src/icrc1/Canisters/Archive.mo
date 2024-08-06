@@ -7,7 +7,7 @@ import Nat64 "mo:base/Nat64";
 import Result "mo:base/Result";
 
 import ExperimentalCycles "mo:base/ExperimentalCycles";
-import ExperimentalStableMemory "mo:base/ExperimentalStableMemory";
+import Region "mo:base/Region";
 
 import Itertools "mo:itertools/Iter";
 import StableTrieMap "../.././Utils/StableTrieMap";
@@ -25,14 +25,17 @@ shared ({ caller = ledger_canister_id }) actor class Archive() : async T.Archive
     stable let KiB = 1024;
     stable let GiB = KiB ** 3;
     stable let MEMORY_PER_PAGE : Nat64 = Nat64.fromNat(64 * KiB);
-    stable let MIN_PAGES : Nat64 = 32; // 2MiB == 32 * 64KiB
-    stable var PAGES_TO_GROW : Nat64 = 2048; // 64MiB
     stable let MAX_MEMORY = 32 * GiB;
 
     stable let BUCKET_SIZE = 1000;
     stable let MAX_TRANSACTIONS_PER_REQUEST = 5000;
 
-    stable var memory_pages : Nat64 = ExperimentalStableMemory.size();
+    // Initialize the memory regions
+    stable var state = {
+        memory_region = Region.new();
+    };
+
+    stable var memory_pages : Nat64 = Region.size(state.memory_region);
     stable var total_memory_used : Nat64 = 0;
 
     stable var filled_buckets = 0;
@@ -174,14 +177,12 @@ shared ({ caller = ledger_canister_id }) actor class Archive() : async T.Archive
         assert (accepted == amount);
     };
 
-
-
     func to_blob(tx : Transaction) : Blob {
-        to_candid (tx);
+        to_candid(tx);
     };
 
     func from_blob(tx : Blob) : Transaction {
-        switch (from_candid (tx) : ?Transaction) {
+        switch (from_candid(tx) : ?Transaction) {
             case (?tx) tx;
             case (_) Debug.trap("Could not decode tx blob");
         };
@@ -190,17 +191,17 @@ shared ({ caller = ledger_canister_id }) actor class Archive() : async T.Archive
     func store_tx(tx : Transaction) : MemoryBlock {
         let blob = to_blob(tx);
 
-        if ((memory_pages * MEMORY_PER_PAGE) - total_memory_used < (MIN_PAGES * MEMORY_PER_PAGE)) {
-            ignore ExperimentalStableMemory.grow(PAGES_TO_GROW);
-            memory_pages += PAGES_TO_GROW;
+        let new_total_memory_used = total_memory_used + Nat64.fromNat(blob.size());
+        if (new_total_memory_used > memory_pages * MEMORY_PER_PAGE) {
+            let pages_needed = ((new_total_memory_used - (memory_pages * MEMORY_PER_PAGE)) / MEMORY_PER_PAGE) + 1;
+            let grown_pages = Region.grow(state.memory_region, pages_needed);
+            assert grown_pages != 0xFFFF_FFFF_FFFF_FFFF;
+            memory_pages += grown_pages;
         };
 
         let offset = total_memory_used;
 
-        ExperimentalStableMemory.storeBlob(
-            offset,
-            blob,
-        );
+        Region.storeBlob(state.memory_region, offset, blob);
 
         let mem_block = {
             offset;
@@ -212,12 +213,9 @@ shared ({ caller = ledger_canister_id }) actor class Archive() : async T.Archive
     };
 
     func get_tx({ offset; size } : MemoryBlock) : Transaction {
-        let blob = ExperimentalStableMemory.loadBlob(offset, size);
-
-        let tx = from_blob(blob);
-        tx; // Use tx if necessary
+        let blob = Region.loadBlob(state.memory_region, offset, size);
+        from_blob(blob);
     };
-
 
     func store_bucket(bucket : [MemoryBlock]) {
 
