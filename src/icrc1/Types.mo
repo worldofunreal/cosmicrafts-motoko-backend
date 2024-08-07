@@ -31,6 +31,7 @@ module {
     public type TxLog = StableBuffer<Transaction>;
 
     public type MetaDatum = (Text, Value);
+
     public type MetaData = [MetaDatum];
 
     public type TxKind = {
@@ -192,6 +193,7 @@ module {
         max_supply : Balance;
         initial_balances : [(Account, Balance)];
         min_burn_amount : Balance;
+        logo : Text;
 
         /// optional settings for the icrc1 canister
         advanced_settings: ?AdvancedSettings
@@ -206,6 +208,7 @@ module {
         max_supply : Balance;
         initial_balances : [(Account, Balance)];
         min_burn_amount : Balance;
+        logo : Text;
 
         /// optional value that defaults to the caller if not provided
         minting_account : ?Account;

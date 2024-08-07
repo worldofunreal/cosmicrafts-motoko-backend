@@ -20,7 +20,8 @@ import T "Types";
 module {
     // Creates a Stable Buffer with the default metadata and returns it.
     public func init_metadata(args : T.InitArgs) : StableBuffer.StableBuffer<T.MetaDatum> {
-        let metadata = SB.initPresized<T.MetaDatum>(4);
+        let metadata = SB.initPresized<T.MetaDatum>(5);
+        SB.add(metadata, ("icrc1:logo", #Text(args.logo)));
         SB.add(metadata, ("icrc1:fee", #Nat(args.fee)));
         SB.add(metadata, ("icrc1:name", #Text(args.name)));
         SB.add(metadata, ("icrc1:symbol", #Text(args.symbol)));

@@ -32,7 +32,9 @@
     import Validator "Validator";
     import MissionOptions "MissionOptions";
 
-shared actor class Cosmicrafts() = Self {
+shared actor class Cosmicrafts(
+    init_args : ICRC1.TokenInitArgs,
+) : async ICRC1.FullInterface {
 // Types
   public type PlayerId = Types.PlayerId;
   public type Username = Types.Username;
@@ -116,10 +118,12 @@ shared actor class Cosmicrafts() = Self {
     let ADMIN_PRINCIPAL = Principal.fromText("vam5o-bdiga-izgux-6cjaz-53tck-eezzo-fezki-t2sh6-xefok-dkdx7-pae");
 
     //mainnet
-    //let CANISTER_ID = Principal.fromText("fdaor-cqaaa-aaaao-ai7nq-cai");
+    let CANISTER_ID = Principal.fromText("fdaor-cqaaa-aaaao-ai7nq-cai");
 
     //local
-    let CANISTER_ID = Principal.fromText("bkyz2-fmaaa-aaaaa-qaaaq-cai");
+    //let CANISTER_ID = Principal.fromText("bkyz2-fmaaa-aaaaa-qaaaq-cai");
+
+    public type InitArgs = TypesICRC1.InitArgs;
 
     public type AdminFunction = {
         #CreateMission : (Text, MissionType, RewardType, Nat, Nat, Nat64);
@@ -128,7 +132,7 @@ shared actor class Cosmicrafts() = Self {
         #BurnToken : (?TypesICRC7.Account, TypesICRC7.Account, TypesICRC7.TokenId, Nat64);
         #GetCollectionOwner : TypesICRC7.Account;
         #GetInitArgs : TypesICRC7.CollectionInitArgs;
-    };
+        };
 
     public shared({ caller }) func admin(funcToCall: AdminFunction) : async (Bool, Text) {
         if (caller == ADMIN_PRINCIPAL) {
@@ -164,7 +168,6 @@ shared actor class Cosmicrafts() = Self {
             return (false, "Access denied: Only admin can call this function.");
         }
     };
-
 
 //--
 // Missions
@@ -5459,30 +5462,15 @@ shared actor class Cosmicrafts() = Self {
 //--
 // ICRC1
 
-    private let init_args: ICRC1.TokenInitArgs = {
-        name = "Stardust";
-        symbol = "SD";
-        decimals = 8;
-        fee = 1;
-        max_supply = 18_446_744_073_709_551_615;
-        initial_balances = [
-        ({ owner = CANISTER_ID; subaccount = null }, 0)
-        ];
-        minting_account = ?{ owner = CANISTER_ID; subaccount = null };
-        description = ? "Glittering particles born from the heart of dying stars. Stardust is the rarest and most precious substance in the Cosmicrafts universe, imbued with the power to create, enhance, and transform. Collect Stardust to unlock extraordinary crafts, upgrade your NFTs, and forge your own destiny among the stars.";
-        advanced_settings = null;
-        min_burn_amount = 0;
-    };
-
     let icrc1_args : ICRC1.InitArgs = {
-        init_args with minting_account = Option.get(
-            init_args.minting_account,
-            {
-                owner = CANISTER_ID;
-                subaccount = null;
-            },
-        );
-    };
+            init_args with minting_account = Option.get(
+                init_args.minting_account,
+                {
+                    owner = CANISTER_ID;
+                    subaccount = null;
+                },
+            );
+        };
 
     stable let token = ICRC1.init(icrc1_args);
 
@@ -5638,4 +5626,5 @@ shared actor class Cosmicrafts() = Self {
     };
 
 //--
+
 }
