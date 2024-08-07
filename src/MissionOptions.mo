@@ -7,7 +7,7 @@ module MissionOptions {
         {
             name = "Complete 1 Game";
             missionType = #GamesCompleted;
-            rewardType = #Shards;
+            rewardType = #Stardust;
             minReward = 18;
             maxReward = 36;
             total = 1;
@@ -25,7 +25,7 @@ module MissionOptions {
         {
             name = "Deal 1000 Damage";
             missionType = #DamageDealt;
-            rewardType = #Shards;
+            rewardType = #Stardust;
             minReward = 20;
             maxReward = 42;
             total = 1000;
@@ -43,7 +43,7 @@ module MissionOptions {
         {
             name = "Use 35 Energy";
             missionType = #EnergyUsed;
-            rewardType = #Shards;
+            rewardType = #Stardust;
             minReward = 22;
             maxReward = 38;
             total = 35;
@@ -52,7 +52,7 @@ module MissionOptions {
         {
             name = "Deploy 20 NFTs";
             missionType = #UnitsDeployed;
-            rewardType = #Shards;
+            rewardType = #Stardust;
             minReward = 22;
             maxReward = 42;
             total = 20;
@@ -82,7 +82,7 @@ module MissionOptions {
         {
             name = "Complete 5 Games";
             missionType = #GamesCompleted;
-            rewardType = #Shards;
+            rewardType = #Stardust;
             minReward = 128;
             maxReward = 256;
             total = 5;
@@ -100,7 +100,7 @@ module MissionOptions {
         {
             name = "Deal 10000 Damage";
             missionType = #DamageDealt;
-            rewardType = #Shards;
+            rewardType = #Stardust;
             minReward = 128;
             maxReward = 256;
             total = 10000;
@@ -118,7 +118,7 @@ module MissionOptions {
         {
             name = "Use 300 Energy";
             missionType = #EnergyUsed;
-            rewardType = #Shards;
+            rewardType = #Stardust;
             minReward = 128;
             maxReward = 360;
             total = 300;
@@ -127,7 +127,7 @@ module MissionOptions {
         {
             name = "Deploy 100 NFTs";
             missionType = #UnitsDeployed;
-            rewardType = #Shards;
+            rewardType = #Stardust;
             minReward = 128;
             maxReward = 300;
             total = 100;
@@ -157,7 +157,7 @@ module MissionOptions {
         {
             name = "Complete 20 Games";
             missionType = #GamesCompleted;
-            rewardType = #Shards;
+            rewardType = #Stardust;
             minReward = 768;  // Adjusted to fit the 20% more/less range
             maxReward = 1728;  // Adjusted to fit the 20% more/less range
             total = 25;
@@ -175,7 +175,7 @@ module MissionOptions {
         {
             name = "Deal 50000 Damage";
             missionType = #DamageDealt;
-            rewardType = #Shards;
+            rewardType = #Stardust;
             minReward = 800;  // Adjusted to fit the 20% more/less range
             maxReward = 2200;  // Adjusted to fit the 20% more/less range
             total = 50000;
@@ -193,7 +193,7 @@ module MissionOptions {
         {
             name = "Use 1000 Energy";
             missionType = #EnergyUsed;
-            rewardType = #Shards;
+            rewardType = #Stardust;
             minReward = 768;  // Adjusted to fit the 20% more/less range
             maxReward = 1728;  // Adjusted to fit the 20% more/less range
             total = 1000;
@@ -202,7 +202,7 @@ module MissionOptions {
         {
             name = "Deploy 250 NFTs";
             missionType = #UnitsDeployed;
-            rewardType = #Shards;
+            rewardType = #Stardust;
             minReward = 900;  // Adjusted to fit the 20% more/less range
             maxReward = 2400;  // Adjusted to fit the 20% more/less range
             total = 250;

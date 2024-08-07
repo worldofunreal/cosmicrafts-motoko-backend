@@ -190,7 +190,7 @@ module Utils {
     };
 
     // Function to get token amounts based on rarity
-    public func getTokensAmount(rarity: Nat): (Nat, Nat) {
+    public func getTokensAmount(rarity: Nat): Nat {
         var factor: Nat = 1;
         if (rarity <= 5) {
             factor := Nat.pow(2, rarity - 1);
@@ -203,11 +203,9 @@ module Utils {
         } else {
             factor := Nat.mul(Nat.mul(Nat.mul(Nat.mul(Nat.pow(2, 5), Nat.div(Nat.pow(3, 5), Nat.pow(2, 5))), Nat.div(Nat.pow(5, 5), Nat.pow(4, 5))), Nat.div(Nat.pow(11, 5), Nat.pow(10, 5))), Nat.div(Nat.pow(21, rarity - 21), Nat.pow(20, rarity - 21)));
         };
-        let shardsAmount = Nat.mul(12, factor);
-        let fluxAmount = Nat.mul(4, factor);
-        return (shardsAmount, fluxAmount);
+        let stardustAmount = Nat.mul(16, factor);
+        return stardustAmount;
     };
-
 
     // Function to calculate the upgrade cost based on level
     public func calculateCost(level: Nat): Nat {

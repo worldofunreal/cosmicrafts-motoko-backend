@@ -183,8 +183,7 @@ module Types {
 
   public type MissionRewardType = {
     #Chest;
-    #Flux;
-    #Shards;
+    #Stardust;
   };
 
   public type MissionOption = {
