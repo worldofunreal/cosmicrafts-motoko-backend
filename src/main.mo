@@ -1,5 +1,4 @@
 //Imports
-    import Region "mo:base/Region";
     import Float "mo:base/Float";
     import HashMap "mo:base/HashMap";
     import Int "mo:base/Int";
@@ -107,9 +106,8 @@ shared actor class Cosmicrafts(collectionOwner: TypesICRC7.Account, init: TypesI
 //--
 // Admin Tools
 
-    // mint deck should only be called once per PID
-
     // migrations BEFORE deployment
+    
 
     stable var _cosmicraftsPrincipal : Principal = Principal.fromText("bkyz2-fmaaa-aaaaa-qaaaq-cai");
 
@@ -120,9 +118,10 @@ shared actor class Cosmicrafts(collectionOwner: TypesICRC7.Account, init: TypesI
         #CreateMission : (Text, MissionType, RewardType, Nat, Nat, Nat64);
         #CreateMissionsPeriodically : ();
         #MintChest : (Principal, Nat);
+        #BurnToken : (?TypesICRC7.Account, TypesICRC7.Account, TypesICRC7.TokenId, Nat64);
     };
 
-    public shared({ caller }) func adminManagement(funcToCall: AdminFunction) : async (Bool, Text) {
+    public shared({ caller }) func admin(funcToCall: AdminFunction) : async (Bool, Text) {
         if (caller == ADMIN_PRINCIPAL) {
             Debug.print("Admin function called by admin.");
             switch (funcToCall) {
@@ -137,6 +136,13 @@ shared actor class Cosmicrafts(collectionOwner: TypesICRC7.Account, init: TypesI
                 case (#MintChest(PlayerId, rarity)) {
                     let (success, message) = await mintChest(PlayerId, rarity);
                     return (success, message);
+                };
+                case (#BurnToken(_caller, from, tokenId, now)) {
+                    let result = await _burnToken(_caller, from, tokenId, now);
+                    switch (result) {
+                        case null return (true, "Token burned successfully.");
+                        case (?error) return (false, "Failed to burn token: " # transferErrorToText(error));
+                    }
                 };
             }
         } else {
@@ -268,26 +274,39 @@ shared actor class Cosmicrafts(collectionOwner: TypesICRC7.Account, init: TypesI
         let now = Nat64.fromIntWrap(Time.now());
         Debug.print("[createMissionsPeriodically] Current time: " # Nat64.toText(now));
 
-        // Create and assign daily missions
-        if (now - lastDailyMissionCreationTime >= ONE_DAY) {
-            let dailyResults = await createDailyMissions();
-            await Utils.logMissionResults(dailyResults, "Daily");
-            lastDailyMissionCreationTime := now;
+        // Create and start all tasks concurrently
+        let dailyTask = async {
+            if (now - lastDailyMissionCreationTime >= ONE_DAY) {
+                let dailyResults = await createDailyMissions();
+                await Utils.logMissionResults(dailyResults, "Daily");
+                lastDailyMissionCreationTime := now;
+            };
         };
 
-        // Create and assign weekly missions
-        if (now - lastWeeklyMissionCreationTime >= ONE_WEEK) {
-            let weeklyResults = await createWeeklyMissions();
-            await Utils.logMissionResults(weeklyResults, "Weekly");
-            lastWeeklyMissionCreationTime := now;
+        let weeklyTask = async {
+            if (now - lastWeeklyMissionCreationTime >= ONE_WEEK) {
+                let weeklyResults = await createWeeklyMissions();
+                await Utils.logMissionResults(weeklyResults, "Weekly");
+                lastWeeklyMissionCreationTime := now;
+            };
         };
 
-        // Create and assign daily free reward missions every 4 hours
-        if (now - lastDailyFreeRewardMissionCreationTime >= ONE_HOUR * 4) {
-            let dailyFreeResults = await createDailyFreeRewardMissions();
-            await Utils.logMissionResults(dailyFreeResults, "Daily Free Reward");
-            lastDailyFreeRewardMissionCreationTime := now;
+        let dailyFreeRewardTask = async {
+            if (now - lastDailyFreeRewardMissionCreationTime >= ONE_HOUR * 4) {
+                let dailyFreeResults = await createDailyFreeRewardMissions();
+                await Utils.logMissionResults(dailyFreeResults, "Daily Free Reward");
+                lastDailyFreeRewardMissionCreationTime := now;
+            };
         };
+
+        // Await all tasks concurrently
+        let dailyTaskFuture = dailyTask;
+        let weeklyTaskFuture = weeklyTask;
+        let dailyFreeRewardTaskFuture = dailyFreeRewardTask;
+
+        await dailyTaskFuture;
+        await weeklyTaskFuture;
+        await dailyFreeRewardTaskFuture;
 
         // Set the timer to call this function again after 1 hour
         let _ : Timer.TimerId = Timer.setTimer<system>(#seconds(60 * 60), func(): async () {
@@ -308,12 +327,14 @@ shared actor class Cosmicrafts(collectionOwner: TypesICRC7.Account, init: TypesI
     stable var _missions: [(Nat, Mission)] = [];
     stable var _activeMissions: [(Nat, Mission)] = [];
     stable var _claimedRewards: [(Principal, [Nat])] = [];
+    stable var _generalMissionIDCounter: Nat = 1;
 
     // HashMaps for General Missions
     var missions: HashMap.HashMap<Nat, Mission> = HashMap.fromIter(_missions.vals(), 0, Utils._natEqual, Utils._natHash);
     var activeMissions: HashMap.HashMap<Nat, Mission> = HashMap.fromIter(_activeMissions.vals(), 0, Utils._natEqual, Utils._natHash);
     var claimedRewards: HashMap.HashMap<Principal, [Nat]> = HashMap.fromIter(_claimedRewards.vals(), 0, Principal.equal, Principal.hash);
     var generalUserProgress: HashMap.HashMap<Principal, [MissionsUser]> = HashMap.fromIter(_generalUserProgress.vals(), 0, Principal.equal, Principal.hash);
+
 
     // Function to create a new general mission
     func createGeneralMission(name: Text, missionType: MissionType, rewardType: RewardType, rewardAmount: Nat, total: Nat, hoursActive: Nat64): async (Bool, Text, Nat) {
@@ -3545,9 +3566,9 @@ shared actor class Cosmicrafts(collectionOwner: TypesICRC7.Account, init: TypesI
 
     type Result <S, E> = Result.Result<S, E>;
 
-    let shards: ICRC1Interface = actor("bw4dl-smaaa-aaaaa-qaacq-cai") : ICRC1Interface;
+    let shards: ICRC1Interface = actor("be2us-64aaa-aaaaa-qaabq-cai") : ICRC1Interface;
 
-    let flux: ICRC1Interface = actor("b77ix-eeaaa-aaaaa-qaada-cai") : ICRC1Interface;
+    let flux: ICRC1Interface = actor("bd3sg-teaaa-aaaaa-qaaba-cai") : ICRC1Interface;
 
 
     // ICRC 1
@@ -3821,28 +3842,6 @@ shared actor class Cosmicrafts(collectionOwner: TypesICRC7.Account, init: TypesI
     Principal.hash,
   );
 
-  system func preupgrade() {
-    _accounts := Iter.toArray(accounts.entries());
-    _refTokens := Iter.toArray(refTokens.entries());
-    _tiers := Buffer.toArray(tiers);
-  };
-  system func postupgrade() {
-    accounts := HashMap.fromIter(
-      Iter.fromArray(_accounts),
-      0,
-      Principal.equal,
-      Principal.hash,
-    );
-    refTokens := HashMap.fromIter(
-      Iter.fromArray(_refTokens),
-      0,
-      Principal.equal,
-      Principal.hash,
-    );
-    tiers := Buffer.fromArray<Tier>(_tiers);
-    _tiers := [];
-    _refTokens := [];
-  };
 
   let signupToken : Token = {
     title = "Referral Signup token";
@@ -5032,7 +5031,6 @@ shared actor class Cosmicrafts(collectionOwner: TypesICRC7.Account, init: TypesI
             return text;
         };
 
-
         public shared func updateBracket(tournamentId: Nat) : async Bool {
             if (tournamentId >= tournaments.size()) {
                 // Debug.print("Tournament does not exist.");
@@ -5082,7 +5080,7 @@ shared actor class Cosmicrafts(collectionOwner: TypesICRC7.Account, init: TypesI
                 allParticipants.add(p);
             };
             for (i in Iter.range(0, byesCount - 1)) {
-                allParticipants.add(Principal.fromText("2vxsx-fae"));
+                allParticipants.add(Principal.fromText("aaaaa-aa"));
             };
 
             // Shuffle all participants and byes together
@@ -5260,25 +5258,6 @@ shared actor class Cosmicrafts(collectionOwner: TypesICRC7.Account, init: TypesI
     private stable var approvalSequentialIndex: Nat = 0;
     private stable var transactionSequentialIndex: Nat = 0;
 
-    public type Metadata = TypesICRC7.Metadata;
-    public type GeneralMetadata = TypesICRC7.GeneralMetadata;
-    public type BasicMetadata = TypesICRC7.BasicMetadata;
-    public type Category = TypesICRC7.Category;
-    public type CharacterMetadata = TypesICRC7.CharacterMetadata;
-    public type Unit = TypesICRC7.Unit;
-    public type SpaceshipMetadata = TypesICRC7.SpaceshipMetadata;
-    public type StationMetadata = TypesICRC7.StationMetadata;
-    public type WeaponMetadata = TypesICRC7.WeaponMetadata;
-    public type AvatarMetadata = TypesICRC7.AvatarMetadata;
-    public type ChestMetadata = TypesICRC7.ChestMetadata;
-    public type TrophyMetadata = TypesICRC7.TrophyMetadata;
-    public type SkinMetadata = TypesICRC7.SkinMetadata;
-    public type SoulMetadata = TypesICRC7.SoulMetadata;
-    public type SkillMetadata = TypesICRC7.SkillMetadata;
-    public type ShieldMetadata = TypesICRC7.ShieldMetadata;
-    public type EvasionMetadata = TypesICRC7.EvasionMetadata;
-    public type CriticalStrikeMetadata = TypesICRC7.CriticalStrikeMetadata;
-    public type Faction = TypesICRC7.Faction;
 
     private var PERMITTED_DRIFT : Nat64 = 2 * 60 * 1_000_000_000; // 2 minutes in nanoseconds
     private var TX_WINDOW : Nat64 = 24 * 60 * 60 * 1_000_000_000; // 24 hours in nanoseconds
@@ -5995,56 +5974,62 @@ shared actor class Cosmicrafts(collectionOwner: TypesICRC7.Account, init: TypesI
     };
 
     private func _burnToken(_caller: ?TypesICRC7.Account, from: TypesICRC7.Account, tokenId: TypesICRC7.TokenId, now: Nat64): async ?TypesICRC7.TransferError {
-        // Check if token exists
-        if (_exists(tokenId) == false) {
-            return ?#Unauthorized({
-                token_ids = [tokenId];
-            });
+    // Check if token exists
+    if (_exists(tokenId) == false) {
+        Debug.print("Token does not exist: " # Nat.toText(tokenId));
+        return ?#Unauthorized({
+            token_ids = [tokenId];
+        });
+    };
+
+    // Check if the from is owner of the token
+    if (_isOwner(from, tokenId) == false) {
+        Debug.print("Unauthorized: Account " # Principal.toText(from.owner) # " is not the owner of token " # Nat.toText(tokenId));
+        return ?#Unauthorized({
+            token_ids = [tokenId];
+        });
+    };
+
+    // Debug print for verification
+    Debug.print("Burning token: " # Nat.toText(tokenId) # " from account: " # Principal.toText(from.owner));
+
+    // Delete all token approvals
+    _deleteAllTokenApprovals(tokenId);
+
+    // Remove the token from the owner's list
+    _removeTokenFromOwners(from, tokenId);
+
+    // Decrement the owner's balance
+    _decrementBalance(from);
+
+    // Update the token ownership to the null principal
+    let nullOwner: TypesICRC7.Account = {
+        owner = NULL_PRINCIPAL;
+        subaccount = null;
+    };
+
+    _updateToken(tokenId, ?nullOwner, null);
+
+    // Record the burn transaction
+    let transaction: TypesICRC7.Transaction = {
+        kind = "burn";
+        timestamp = now;
+        mint = null;
+        icrc7_transfer = null;
+        icrc7_approve = null;
+        upgrade = null;
+        burn = ?{
+            from = from;
+            token_id = tokenId;
         };
-
-        // Check if the from is owner of the token
-        if (_isOwner(from, tokenId) == false) {
-            return ?#Unauthorized({
-                token_ids = [tokenId];
-            });
-        };
-
-        // Delete all token approvals
-        _deleteAllTokenApprovals(tokenId);
-
-        // Remove the token from the owner's list
-        _removeTokenFromOwners(from, tokenId);
-
-        // Decrement the owner's balance
-        _decrementBalance(from);
-
-        // Update the token ownership to the null principal
-        let nullOwner: TypesICRC7.Account = {
-            owner = NULL_PRINCIPAL;
-            subaccount = null;
-        };
-
-        _updateToken(tokenId, ?nullOwner, null);
-
-        // Record the burn transaction
-        let transaction: TypesICRC7.Transaction = {
-            kind = "burn";
-            timestamp = now;
-            mint = null;
-            icrc7_transfer = null;
-            icrc7_approve = null;
-            upgrade = null;
-            burn = ?{
-                from = from;
-                token_id = tokenId;
-            };
-        };
-        transactions := Trie.put(transactions, _keyFromTransactionId(transactionSequentialIndex), Nat.equal, transaction).0;
+    };
+    transactions := Trie.put(transactions, _keyFromTransactionId(transactionSequentialIndex), Nat.equal, transaction).0;
         _incrementTransactionIndex();
         _addTransactionIdToAccount(transactionSequentialIndex, from);
 
         return null;
     };
+
 
     public shared(msg) func upgradeNFT(nftID: TokenID): async (Bool, Text) {
         // Perform ownership check
@@ -6111,7 +6096,7 @@ shared actor class Cosmicrafts(collectionOwner: TypesICRC7.Account, init: TypesI
                         let newDamage = Int64.toNat64(Float.toInt64(upgradedDamage));
 
                         // Create a new BasicMetadata record with updated values
-                        let newBasic: BasicMetadata = {
+                        let newBasic: TypesICRC7.BasicMetadata = {
                             level = newLevel;
                             health = Nat64.toNat(newHealth);
                             damage = Nat64.toNat(newDamage);
@@ -6485,5 +6470,97 @@ shared actor class Cosmicrafts(collectionOwner: TypesICRC7.Account, init: TypesI
         }
     };
 
+    func transferErrorToText(error: TypesICRC7.TransferError): Text {
+        switch (error) {
+            case (#CreatedInFuture(details)) "Created in future: Ledger time - " # Nat64.toText(details.ledger_time);
+            case (#Duplicate(details)) "Duplicate: Duplicate of - " # Nat.toText(details.duplicate_of);
+            case (#GenericError(details)) "Generic error: Code - " # Nat.toText(details.error_code) # ", Message - " # details.message;
+            case (#TemporarilyUnavailable {}) "Temporarily unavailable";
+            case (#TooOld) "Too old";
+            case (#Unauthorized(_)) "Unauthorized";
+        }
+    };
+
 //--
-};
+// Migrations
+
+    // Pre-upgrade hook to save the state
+    system func preupgrade() {
+        _generalUserProgress := Iter.toArray(generalUserProgress.entries());
+        _missions := Iter.toArray(missions.entries());
+        _activeMissions := Iter.toArray(activeMissions.entries());
+        _claimedRewards := Iter.toArray(claimedRewards.entries());
+
+        _individualAchievements := Iter.toArray(individualAchievements.entries());
+        _achievements := Iter.toArray(achievements.entries());
+        _categories := Iter.toArray(categories.entries());
+        _achievementProgress := Iter.toArray(achievementProgress.entries());
+        _playerAchievements := Iter.toArray(playerAchievements.entries());
+        _categoryProgress := Iter.toArray(categoryProgress.entries());
+        _claimedAchievementRewards := Iter.toArray(claimedAchievementRewards.entries());
+
+        _players := Iter.toArray(players.entries());
+        _friendRequests := Iter.toArray(friendRequests.entries());
+        _privacySettings := Iter.toArray(privacySettings.entries());
+        _blockedUsers := Iter.toArray(blockedUsers.entries());
+        _mutualFriendships := Iter.toArray(mutualFriendships.entries());
+        _notifications := Iter.toArray(notifications.entries());
+        _updateTimestamps := Iter.toArray(updateTimestamps.entries());
+
+        _userMissionProgress := Iter.toArray(userMissionProgress.entries());
+        _userMissions := Iter.toArray(userMissions.entries());
+        _userMissionCounters := Iter.toArray(userMissionCounters.entries());
+        _userClaimedRewards := Iter.toArray(userClaimedRewards.entries());
+
+        _basicStats := Iter.toArray(basicStats.entries());
+        _playerGamesStats := Iter.toArray(playerGamesStats.entries());
+        _onValidation := Iter.toArray(onValidation.entries());
+        _countedMatches := Iter.toArray(countedMatches.entries());
+
+        _searching := Iter.toArray(searching.entries());
+        _playerStatus := Iter.toArray(playerStatus.entries());
+        _inProgress := Iter.toArray(inProgress.entries());
+        _finishedGames := Iter.toArray(finishedGames.entries());
+    };
+
+    // Post-upgrade hook to restore the state
+    system func postupgrade() {
+        generalUserProgress := HashMap.fromIter(_generalUserProgress.vals(), 0, Principal.equal, Principal.hash);
+        missions := HashMap.fromIter(_missions.vals(), 0, Utils._natEqual, Utils._natHash);
+        activeMissions := HashMap.fromIter(_activeMissions.vals(), 0, Utils._natEqual, Utils._natHash);
+        claimedRewards := HashMap.fromIter(_claimedRewards.vals(), 0, Principal.equal, Principal.hash);
+
+        individualAchievements := HashMap.fromIter(_individualAchievements.vals(), 0, Utils._natEqual, Utils._natHash);
+        achievements := HashMap.fromIter(_achievements.vals(), 0, Utils._natEqual, Utils._natHash);
+        categories := HashMap.fromIter(_categories.vals(), 0, Utils._natEqual, Utils._natHash);
+        achievementProgress := HashMap.fromIter(_achievementProgress.vals(), 0, Principal.equal, Principal.hash);
+        playerAchievements := HashMap.fromIter(_playerAchievements.vals(), 0, Principal.equal, Principal.hash);
+        categoryProgress := HashMap.fromIter(_categoryProgress.vals(), 0, Principal.equal, Principal.hash);
+        claimedAchievementRewards := HashMap.fromIter(_claimedAchievementRewards.vals(), 0, Principal.equal, Principal.hash);
+
+        players := HashMap.fromIter(_players.vals(), 0, Principal.equal, Principal.hash);
+        friendRequests := HashMap.fromIter(_friendRequests.vals(), 0, Principal.equal, Principal.hash);
+        privacySettings := HashMap.fromIter(_privacySettings.vals(), 0, Principal.equal, Principal.hash);
+        blockedUsers := HashMap.fromIter(_blockedUsers.vals(), 0, Principal.equal, Principal.hash);
+        mutualFriendships := HashMap.fromIter(_mutualFriendships.vals(), 0, Utils.tupleEqual, Utils.tupleHash);
+        notifications := HashMap.fromIter(_notifications.vals(), 0, Principal.equal, Principal.hash);
+        updateTimestamps := HashMap.fromIter(_updateTimestamps.vals(), 0, Principal.equal, Principal.hash);
+
+        userMissionProgress := HashMap.fromIter(_userMissionProgress.vals(), 0, Principal.equal, Principal.hash);
+        userMissions := HashMap.fromIter(_userMissions.vals(), 0, Principal.equal, Principal.hash);
+        userMissionCounters := HashMap.fromIter(_userMissionCounters.vals(), 0, Principal.equal, Principal.hash);
+        userClaimedRewards := HashMap.fromIter(_userClaimedRewards.vals(), 0, Principal.equal, Principal.hash);
+
+        basicStats := HashMap.fromIter(_basicStats.vals(), 0, Utils._natEqual, Utils._natHash);
+        playerGamesStats := HashMap.fromIter(_playerGamesStats.vals(), 0, Principal.equal, Principal.hash);
+        onValidation := HashMap.fromIter(_onValidation.vals(), 0, Utils._natEqual, Utils._natHash);
+        countedMatches := HashMap.fromIter(_countedMatches.vals(), 0, Utils._natEqual, Utils._natHash);
+
+        searching := HashMap.fromIter(_searching.vals(), 0, Utils._natEqual, Utils._natHash);
+        playerStatus := HashMap.fromIter(_playerStatus.vals(), 0, Principal.equal, Principal.hash);
+        inProgress := HashMap.fromIter(_inProgress.vals(), 0, Utils._natEqual, Utils._natHash);
+        finishedGames := HashMap.fromIter(_finishedGames.vals(), 0, Utils._natEqual, Utils._natHash);
+    };
+
+//--
+}
