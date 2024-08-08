@@ -676,116 +676,115 @@ shared actor class Cosmicrafts() = Self {
         var userClaimedRewards: HashMap.HashMap<Principal, [Nat]> = HashMap.fromIter(_userClaimedRewards.vals(), 0, Principal.equal, Principal.hash);
 
     // Function to create a new user-specific mission
-public func createUserMission(user: PlayerId): async (Bool, Text, Nat) {
-    Debug.print("[createUserMission] Start creating mission for user: " # Principal.toText(user));
+    public func createUserMission(user: PlayerId): async (Bool, Text, Nat) {
+        Debug.print("[createUserMission] Start creating mission for user: " # Principal.toText(user));
 
-    var _userMissionsList: Buffer.Buffer<Mission> = switch (userMissions.get(user)) {
-        case (null) { Buffer.Buffer<Mission>(0) };
-        case (?missions) { Buffer.fromArray<Mission>(missions) };
-    };
+        var _userMissionsList: Buffer.Buffer<Mission> = switch (userMissions.get(user)) {
+            case (null) { Buffer.Buffer<Mission>(0) };
+            case (?missions) { Buffer.fromArray<Mission>(missions) };
+        };
 
-    var userSpecificProgressList: Buffer.Buffer<MissionsUser> = switch (userMissionProgress.get(user)) {
-        case (null) { Buffer.Buffer<MissionsUser>(0) };
-        case (?progress) { Buffer.fromArray<MissionsUser>(progress) };
-    };
+        var userSpecificProgressList: Buffer.Buffer<MissionsUser> = switch (userMissionProgress.get(user)) {
+            case (null) { Buffer.Buffer<MissionsUser>(0) };
+            case (?progress) { Buffer.fromArray<MissionsUser>(progress) };
+        };
 
-    if (userSpecificProgressList.size() > 0) {
-        let lastMissionProgress = userSpecificProgressList.get(userSpecificProgressList.size() - 1);
-        let currentTime = Nat64.fromNat(Int.abs(Time.now()));
+        if (userSpecificProgressList.size() > 0) {
+            let lastMissionProgress = userSpecificProgressList.get(userSpecificProgressList.size() - 1);
+            let currentTime = Nat64.fromNat(Int.abs(Time.now()));
 
-        if (not lastMissionProgress.finished and currentTime <= lastMissionProgress.expiration) {
-            Debug.print("[createUserMission] Current mission is still active: " # debug_show(lastMissionProgress));
-            return (false, "Current mission is still active", lastMissionProgress.id_mission);
+            if (not lastMissionProgress.finished and currentTime <= lastMissionProgress.expiration) {
+                Debug.print("[createUserMission] Current mission is still active: " # debug_show(lastMissionProgress));
+                return (false, "Current mission is still active", lastMissionProgress.id_mission);
+            } else {
+                Debug.print("[createUserMission] Current mission is not active or is finished");
+            }
+        };
+
+        // Initialize shuffled indices concurrently
+        let initHourlyFuture = if (shuffledHourlyIndices.size() == 0 or currentHourlyIndex >= shuffledHourlyIndices.size()) {
+            initializeShuffledHourlyMissions();
         } else {
-            Debug.print("[createUserMission] Current mission is not active or is finished");
-        }
+            async {};
+        };
+
+        let initDailyFuture = if (shuffledDailyIndices.size() == 0 or currentDailyIndex >= shuffledDailyIndices.size()) {
+            initializeShuffledDailyMissions();
+        } else {
+            async {};
+        };
+
+        let initWeeklyFuture = if (shuffledWeeklyIndices.size() == 0 or currentWeeklyIndex >= shuffledWeeklyIndices.size()) {
+            initializeShuffledWeeklyMissions();
+        } else {
+            async {};
+        };
+
+        // Wait for all initialization futures to complete
+        await initHourlyFuture;
+        await initDailyFuture;
+        await initWeeklyFuture;
+
+        // Concurrently create missions
+        let hourlyMissionFuture = createUserSpecificMission(user, MissionOptions.hourlyMissions, shuffledHourlyIndices, currentHourlyIndex, ONE_HOUR);
+        let dailyMissionFuture = createUserSpecificMission(user, MissionOptions.dailyMissions, shuffledDailyIndices, currentDailyIndex, ONE_DAY);
+        let weeklyMissionFuture = createUserSpecificMission(user, MissionOptions.weeklyMissions, shuffledWeeklyIndices, currentWeeklyIndex, ONE_WEEK);
+
+        // Await mission creation futures
+        let hourlyResult = await hourlyMissionFuture;
+        let _dailyResult = await dailyMissionFuture;
+        let _weeklyResult = await weeklyMissionFuture;
+
+        currentHourlyIndex += 1;
+        currentDailyIndex += 1;
+        currentWeeklyIndex += 1;
+
+        await assignUserMissions(user);
+
+        return (true, "User-specific missions created.", hourlyResult.2);
     };
 
-    // Initialize shuffled indices concurrently
-    let initHourlyFuture = if (shuffledHourlyIndices.size() == 0 or currentHourlyIndex >= shuffledHourlyIndices.size()) {
-        initializeShuffledHourlyMissions();
-    } else {
-        async {};
+    // Helper function to create a user-specific mission
+    func createUserSpecificMission(
+        user: PlayerId,
+        missionOptions: [Types.MissionTemplate],
+        shuffledIndices: [Nat],
+        currentIndex: Nat,
+        duration: Nat64
+        ): async (Bool, Text, Nat) {
+        let index = shuffledIndices[currentIndex];
+        let template = missionOptions[index];
+        let rewardAmount = await Utils.getRandomReward(template.minReward, template.maxReward);
+
+        var userMissionsList: Buffer.Buffer<Mission> = switch (userMissions.get(user)) {
+            case (null) { Buffer.Buffer<Mission>(0) };
+            case (?missions) { Buffer.fromArray<Mission>(missions) };
+        };
+
+        let missionIDCounter = switch (userMissionCounters.get(user)) {
+            case (null) { 0 };
+            case (?counter) { counter };
+        };
+
+        let now = Nat64.fromNat(Int.abs(Time.now()));
+        let newMission: Mission = {
+            id = missionIDCounter;
+            name = template.name;
+            missionType = template.missionType;
+            reward_type = template.rewardType;
+            reward_amount = rewardAmount;
+            start_date = now;
+            end_date = now + duration;
+            total = template.total;
+            finished = false;
+        };
+
+        userMissionCounters.put(user, missionIDCounter + 1);
+        userMissionsList.add(newMission);
+        userMissions.put(user, Buffer.toArray(userMissionsList));
+
+        return (true, "User-specific mission created.", newMission.id);
     };
-
-    let initDailyFuture = if (shuffledDailyIndices.size() == 0 or currentDailyIndex >= shuffledDailyIndices.size()) {
-        initializeShuffledDailyMissions();
-    } else {
-        async {};
-    };
-
-    let initWeeklyFuture = if (shuffledWeeklyIndices.size() == 0 or currentWeeklyIndex >= shuffledWeeklyIndices.size()) {
-        initializeShuffledWeeklyMissions();
-    } else {
-        async {};
-    };
-
-    // Wait for all initialization futures to complete
-    await initHourlyFuture;
-    await initDailyFuture;
-    await initWeeklyFuture;
-
-    // Concurrently create missions
-    let hourlyMissionFuture = createUserSpecificMission(user, MissionOptions.hourlyMissions, shuffledHourlyIndices, currentHourlyIndex, ONE_HOUR);
-    let dailyMissionFuture = createUserSpecificMission(user, MissionOptions.dailyMissions, shuffledDailyIndices, currentDailyIndex, ONE_DAY);
-    let weeklyMissionFuture = createUserSpecificMission(user, MissionOptions.weeklyMissions, shuffledWeeklyIndices, currentWeeklyIndex, ONE_WEEK);
-
-    // Await mission creation futures
-    let hourlyResult = await hourlyMissionFuture;
-    let dailyResult = await dailyMissionFuture;
-    let weeklyResult = await weeklyMissionFuture;
-
-    currentHourlyIndex += 1;
-    currentDailyIndex += 1;
-    currentWeeklyIndex += 1;
-
-    await assignUserMissions(user);
-
-    return (true, "User-specific missions created.", hourlyResult.2);
-};
-
-// Helper function to create a user-specific mission
-func createUserSpecificMission(
-    user: PlayerId,
-    missionOptions: [Types.MissionTemplate],
-    shuffledIndices: [Nat],
-    currentIndex: Nat,
-    duration: Nat64
-    ): async (Bool, Text, Nat) {
-    let index = shuffledIndices[currentIndex];
-    let template = missionOptions[index];
-    let rewardAmount = await Utils.getRandomReward(template.minReward, template.maxReward);
-
-    var userMissionsList: Buffer.Buffer<Mission> = switch (userMissions.get(user)) {
-        case (null) { Buffer.Buffer<Mission>(0) };
-        case (?missions) { Buffer.fromArray<Mission>(missions) };
-    };
-
-    let missionIDCounter = switch (userMissionCounters.get(user)) {
-        case (null) { 0 };
-        case (?counter) { counter };
-    };
-
-    let now = Nat64.fromNat(Int.abs(Time.now()));
-    let newMission: Mission = {
-        id = missionIDCounter;
-        name = template.name;
-        missionType = template.missionType;
-        reward_type = template.rewardType;
-        reward_amount = rewardAmount;
-        start_date = now;
-        end_date = now + duration;
-        total = template.total;
-        finished = false;
-    };
-
-    userMissionCounters.put(user, missionIDCounter + 1);
-    userMissionsList.add(newMission);
-    userMissions.put(user, Buffer.toArray(userMissionsList));
-
-    return (true, "User-specific mission created.", newMission.id);
-};
-
 
     // Function to update progress for user-specific missions
     func updateUserMissionsProgress(user: Principal, playerStats: {
