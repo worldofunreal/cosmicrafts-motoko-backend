@@ -32,9 +32,7 @@
     import Validator "Validator";
     import MissionOptions "MissionOptions";
 
-shared actor class Cosmicrafts(
-    init_args : ICRC1.TokenInitArgs,
-) : async ICRC1.FullInterface {
+shared actor class CosmicraftsCosmicrafts() = Self {
 // Types
   public type PlayerId = Types.PlayerId;
   public type Username = Types.Username;
@@ -4851,8 +4849,8 @@ shared actor class Cosmicrafts(
         _incrementApprovalIndex();
 
         return approvalId;
-        };
-
+    };
+    
     private func _incrementApprovalIndex() {
         approvalSequentialIndex := approvalSequentialIndex + 1;
     };
@@ -4970,62 +4968,61 @@ shared actor class Cosmicrafts(
     };
 
     private func _burnToken(_caller: ?TypesICRC7.Account, from: TypesICRC7.Account, tokenId: TypesICRC7.TokenId, now: Nat64): async ?TypesICRC7.TransferError {
-    // Check if token exists
-    if (_exists(tokenId) == false) {
-        Debug.print("Token does not exist: " # Nat.toText(tokenId));
-        return ?#Unauthorized({
-            token_ids = [tokenId];
-        });
-    };
-
-    // Check if the from is owner of the token
-    if (_isOwner(from, tokenId) == false) {
-        Debug.print("Unauthorized: Account " # Principal.toText(from.owner) # " is not the owner of token " # Nat.toText(tokenId));
-        return ?#Unauthorized({
-            token_ids = [tokenId];
-        });
-    };
-
-    // Debug print for verification
-    Debug.print("Burning token: " # Nat.toText(tokenId) # " from account: " # Principal.toText(from.owner));
-
-    // Delete all token approvals
-    _deleteAllTokenApprovals(tokenId);
-
-    // Remove the token from the owner's list
-    _removeTokenFromOwners(from, tokenId);
-
-    // Decrement the owner's balance
-    _decrementBalance(from);
-
-    // Update the token ownership to the null principal
-    let nullOwner: TypesICRC7.Account = {
-        owner = NULL_PRINCIPAL;
-        subaccount = null;
-    };
-
-    _updateToken(tokenId, ?nullOwner, null);
-
-    // Record the burn transaction
-    let transaction: TypesICRC7.Transaction = {
-        kind = "burn";
-        timestamp = now;
-        mint = null;
-        icrc7_transfer = null;
-        icrc7_approve = null;
-        upgrade = null;
-        burn = ?{
-            from = from;
-            token_id = tokenId;
+        // Check if token exists
+        if (_exists(tokenId) == false) {
+            Debug.print("Token does not exist: " # Nat.toText(tokenId));
+            return ?#Unauthorized({
+                token_ids = [tokenId];
+            });
         };
-    };
-    transactions := Trie.put(transactions, _keyFromTransactionId(transactionSequentialIndex), Nat.equal, transaction).0;
-        _incrementTransactionIndex();
-        _addTransactionIdToAccount(transactionSequentialIndex, from);
 
-        return null;
-    };
+        // Check if the from is owner of the token
+        if (_isOwner(from, tokenId) == false) {
+            Debug.print("Unauthorized: Account " # Principal.toText(from.owner) # " is not the owner of token " # Nat.toText(tokenId));
+            return ?#Unauthorized({
+                token_ids = [tokenId];
+            });
+        };
 
+        // Debug print for verification
+        Debug.print("Burning token: " # Nat.toText(tokenId) # " from account: " # Principal.toText(from.owner));
+
+        // Delete all token approvals
+        _deleteAllTokenApprovals(tokenId);
+
+        // Remove the token from the owner's list
+        _removeTokenFromOwners(from, tokenId);
+
+        // Decrement the owner's balance
+        _decrementBalance(from);
+
+        // Update the token ownership to the null principal
+        let nullOwner: TypesICRC7.Account = {
+            owner = NULL_PRINCIPAL;
+            subaccount = null;
+        };
+
+        _updateToken(tokenId, ?nullOwner, null);
+
+        // Record the burn transaction
+        let transaction: TypesICRC7.Transaction = {
+            kind = "burn";
+            timestamp = now;
+            mint = null;
+            icrc7_transfer = null;
+            icrc7_approve = null;
+            upgrade = null;
+            burn = ?{
+                from = from;
+                token_id = tokenId;
+            };
+        };
+        transactions := Trie.put(transactions, _keyFromTransactionId(transactionSequentialIndex), Nat.equal, transaction).0;
+            _incrementTransactionIndex();
+            _addTransactionIdToAccount(transactionSequentialIndex, from);
+
+            return null;
+    };
 
     public shared(msg) func upgradeNFT(nftID: TokenID): async (Bool, Text) {
         // Perform ownership check
@@ -5194,8 +5191,7 @@ shared actor class Cosmicrafts(
         return #Ok(mintArgs.token_id);
     };
 
-
-    // Self-query function to get all token IDs with their respective metadata for the caller
+    // Queries
     public query ({ caller }) func getNFTs() : async [(TypesICRC7.TokenId, TypesICRC7.TokenMetadata)] {
         let entries = Iter.toArray(Trie.iter(tokens));
         var result: [(TypesICRC7.TokenId, TypesICRC7.TokenMetadata)] = [];
@@ -5208,6 +5204,148 @@ shared actor class Cosmicrafts(
         };
         return result;
     };
+
+public query ({ caller }) func getUnits() : async [(TypesICRC7.TokenId, TypesICRC7.TokenMetadata)] {
+    return _filterNFTsByUnitCategory(caller);
+};
+
+public query ({ caller }) func getChests() : async [(TypesICRC7.TokenId, TypesICRC7.TokenMetadata)] {
+    return _filterNFTsByChestCategory(caller);
+};
+
+public query ({ caller }) func getAvatars() : async [(TypesICRC7.TokenId, TypesICRC7.TokenMetadata)] {
+    return _filterNFTsByAvatarCategory(caller);
+};
+
+public query ({ caller }) func getCharacters() : async [(TypesICRC7.TokenId, TypesICRC7.TokenMetadata)] {
+    return _filterNFTsByCharacterCategory(caller);
+};
+
+public query ({ caller }) func getTrophies() : async [(TypesICRC7.TokenId, TypesICRC7.TokenMetadata)] {
+    return _filterNFTsByTrophyCategory(caller);
+};
+
+// Helper function to filter NFTs by unit categories
+private func _filterNFTsByUnitCategory(caller: Principal) : [(TypesICRC7.TokenId, TypesICRC7.TokenMetadata)] {
+    let entries = Iter.toArray(Trie.iter(tokens));
+    var result: [(TypesICRC7.TokenId, TypesICRC7.TokenMetadata)] = [];
+    for (entry in entries.vals()) {
+        let key = entry.0;
+        let value = entry.1;
+        if (value.owner.owner == caller) {
+            switch (value.metadata.general.category) {
+                case (?cat) {
+                    switch (cat) {
+                        case (#unit(_)) {
+                            result := Array.append(result, [(key, value)]);
+                        };
+                        case (_) {};
+                    };
+                };
+                case null {};
+            };
+        };
+    };
+    return result;
+};
+
+// Helper function to filter NFTs by chest category
+private func _filterNFTsByChestCategory(caller: Principal) : [(TypesICRC7.TokenId, TypesICRC7.TokenMetadata)] {
+    let entries = Iter.toArray(Trie.iter(tokens));
+    var result: [(TypesICRC7.TokenId, TypesICRC7.TokenMetadata)] = [];
+    for (entry in entries.vals()) {
+        let key = entry.0;
+        let value = entry.1;
+        if (value.owner.owner == caller) {
+            switch (value.metadata.general.category) {
+                case (?cat) {
+                    switch (cat) {
+                        case (#chest(_)) {
+                            result := Array.append(result, [(key, value)]);
+                        };
+                        case (_) {}; // No match
+                    };
+                };
+                case null {};
+            };
+        };
+    };
+    return result;
+};
+
+// Helper function to filter NFTs by avatar category
+private func _filterNFTsByAvatarCategory(caller: Principal) : [(TypesICRC7.TokenId, TypesICRC7.TokenMetadata)] {
+    let entries = Iter.toArray(Trie.iter(tokens));
+    var result: [(TypesICRC7.TokenId, TypesICRC7.TokenMetadata)] = [];
+    for (entry in entries.vals()) {
+        let key = entry.0;
+        let value = entry.1;
+        if (value.owner.owner == caller) {
+            switch (value.metadata.general.category) {
+                case (?cat) {
+                    switch (cat) {
+                        case (#avatar(_)) {
+                            result := Array.append(result, [(key, value)]);
+                        };
+                        case (_) {}; // No match
+                    };
+                };
+                case null {};
+            };
+        };
+    };
+    return result;
+};
+
+// Helper function to filter NFTs by character category
+private func _filterNFTsByCharacterCategory(caller: Principal) : [(TypesICRC7.TokenId, TypesICRC7.TokenMetadata)] {
+    let entries = Iter.toArray(Trie.iter(tokens));
+    var result: [(TypesICRC7.TokenId, TypesICRC7.TokenMetadata)] = [];
+    for (entry in entries.vals()) {
+        let key = entry.0;
+        let value = entry.1;
+        if (value.owner.owner == caller) {
+            switch (value.metadata.general.category) {
+                case (?cat) {
+                    switch (cat) {
+                        case (#character(_)) {
+                            result := Array.append(result, [(key, value)]);
+                        };
+                        case (_) {}; // No match
+                    };
+                };
+                case null {};
+            };
+        };
+    };
+    return result;
+};
+
+// Helper function to filter NFTs by trophy category
+private func _filterNFTsByTrophyCategory(caller: Principal) : [(TypesICRC7.TokenId, TypesICRC7.TokenMetadata)] {
+    let entries = Iter.toArray(Trie.iter(tokens));
+    var result: [(TypesICRC7.TokenId, TypesICRC7.TokenMetadata)] = [];
+    for (entry in entries.vals()) {
+        let key = entry.0;
+        let value = entry.1;
+        if (value.owner.owner == caller) {
+            switch (value.metadata.general.category) {
+                case (?cat) {
+                    switch (cat) {
+                        case (#trophy(_)) {
+                            result := Array.append(result, [(key, value)]);
+                        };
+                        case (_) {}; // No match
+                    };
+                };
+                case null {};
+            };
+        };
+    };
+    return result;
+};
+
+
 //--
 // GameNFTs
 
@@ -5462,7 +5600,23 @@ shared actor class Cosmicrafts(
 //--
 // ICRC1
 
-    let icrc1_args : ICRC1.InitArgs = {
+    private var init_args: TypesICRC1.TokenInitArgs = {
+        name = "Stardust";
+        symbol = "SD";
+        decimals = 8;
+        logo = "logoGoesHere";
+        fee = 1;
+        max_supply = 18_446_744_073_709_551_615;
+        initial_balances = [
+            ({ owner = CANISTER_ID; subaccount = null }, 0)
+        ];
+        minting_account = ?{ owner = CANISTER_ID; subaccount = null };
+        description = ? "Glittering particles born from the heart of dying stars. Stardust is the rarest and most precious substance in the Cosmicrafts universe, imbued with the power to create, enhance, and transform. Collect Stardust to unlock extraordinary crafts, upgrade your NFTs, and forge your own destiny among the stars.";
+        advanced_settings = null;
+        min_burn_amount = 0;
+    };
+
+        let icrc1_args : ICRC1.InitArgs = {
             init_args with minting_account = Option.get(
                 init_args.minting_account,
                 {
@@ -5471,6 +5625,10 @@ shared actor class Cosmicrafts(
                 },
             );
         };
+
+    public query func getInitArgs() : async TypesICRC1.TokenInitArgs {
+        return init_args;
+    };
 
     stable let token = ICRC1.init(icrc1_args);
 
