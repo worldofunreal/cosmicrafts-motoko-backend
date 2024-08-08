@@ -430,12 +430,16 @@ shared actor class Cosmicrafts() = Self {
         return (true, "Progress added successfully to general missions");
     };
 
+    // Function to assign new general missions to a user
     func assignGeneralMissions(user: Principal): async () {
-        // Retrieve user missions and claimed rewards
+        Debug.print("[assignGeneralMissions] Assigning new general missions to user: " # Principal.toText(user));
+
         var userMissions: [MissionsUser] = switch (generalUserProgress.get(user)) {
             case (null) { [] };
             case (?missions) { missions };
         };
+
+        Debug.print("[assignGeneralMissions] User missions before update: " # debug_show(userMissions));
 
         var claimedRewardsForUser: [Nat] = switch (claimedRewards.get(user)) {
             case (null) { [] };
@@ -444,21 +448,25 @@ shared actor class Cosmicrafts() = Self {
 
         let now = Nat64.fromNat(Int.abs(Time.now()));
         let buffer = Buffer.Buffer<MissionsUser>(0);
-        let currentMissionIds = Buffer.Buffer<Nat>(0);
 
-        // Remove expired or claimed missions and collect current mission IDs
+        // Remove expired or claimed missions
         for (mission in userMissions.vals()) {
             if (mission.expiration >= now and not Utils.arrayContains<Nat>(claimedRewardsForUser, mission.id_mission, Utils._natEqual)) {
                 buffer.add(mission);
-                currentMissionIds.add(mission.id_mission);
             }
         };
 
-        // Collect new active missions concurrently
-        let newMissions = activeMissions.entries().map<(MissionsUser)>(async ((id, mission)) -> {
+        // Collect IDs of current missions to avoid duplication
+        let currentMissionIds = Buffer.Buffer<Nat>(buffer.size());
+        for (mission in buffer.vals()) {
+            currentMissionIds.add(mission.id_mission);
+        };
+
+        // Add new active missions to the user
+        for ((id, mission) in activeMissions.entries()) {
             if (not Utils.arrayContains<Nat>(Buffer.toArray(currentMissionIds), id, Utils._natEqual) and not Utils.arrayContains<Nat>(claimedRewardsForUser, id, Utils._natEqual)) {
-                let isDailyFreeReward = await checkIfDailyFreeRewardMission(mission); // Check if the mission is a daily free reward mission
-                return {
+                let isDailyFreeReward = checkIfDailyFreeRewardMission(mission); // Check if the mission is a daily free reward mission
+                buffer.add({
                     id_mission = id;
                     reward_amount = mission.reward_amount;
                     start_date = mission.start_date;
@@ -469,22 +477,13 @@ shared actor class Cosmicrafts() = Self {
                     finished = isDailyFreeReward; // Set finished based on mission type
                     reward_type = mission.reward_type;
                     total = mission.total;
-                };
-            } else {
-                return null;
-            }
-        });
-
-        // Await all futures and add non-null new missions to the buffer
-        for (future in newMissions.vals()) {
-            let newMission = await future;
-            if (newMission != null) {
-                buffer.add(newMission);
+                });
             }
         };
 
         // Update user missions
         generalUserProgress.put(user, Buffer.toArray(buffer));
+        Debug.print("[assignGeneralMissions] User missions after update: " # debug_show(Buffer.toArray(buffer)));
     };
 
     // Helper function to check if a mission is a daily free reward mission
