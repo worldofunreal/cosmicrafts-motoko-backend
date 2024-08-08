@@ -862,19 +862,24 @@ private func _updateToken(tokenId: Types.TokenId, newOwner: ?Types.Account, newM
     return #Ok(upgradeArgs.token_id);
   };
 
-// Self-query function to get all token IDs with their respective metadata for the caller
-public query ({ caller }) func getNFTs() : async [(Types.TokenId, Types.TokenMetadata)] {
-    let entries = Iter.toArray(Trie.iter(tokens));
-    var result: [(Types.TokenId, Types.TokenMetadata)] = [];
-    for (entry in entries.vals()) {
-        let key = entry.0;
-        let value = entry.1;
-        if (value.owner.owner == caller) {
-            result := Array.append(result, [(key, value)]);
-        };
-    };
-    return result;
-};
+  // Self-query function to get all token IDs with their respective metadata for the caller
+  public query ({ caller }) func getNFTs() : async [(Types.TokenId, Types.TokenMetadata)] {
+      let entries = Iter.toArray(Trie.iter(tokens));
+      
+      // Initialize a buffer with an estimated size based on the number of entries
+      let resultBuffer = Buffer.Buffer<(Types.TokenId, Types.TokenMetadata)>(entries.size());
+      
+      for (entry in entries.vals()) {
+          let key = entry.0;
+          let value = entry.1;
+          if (value.owner.owner == caller) {
+              resultBuffer.add((key, value));
+          };
+      };
+      
+      // Convert the buffer to an array before returning
+      return Buffer.toArray(resultBuffer);
+  };
 
 
   // Stable map to store the principal IDs of callers who have minted a deck

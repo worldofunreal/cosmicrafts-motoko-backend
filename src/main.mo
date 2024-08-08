@@ -216,7 +216,7 @@ shared actor class CosmicraftsCosmicrafts() = Self {
     };
 
     func createDailyMissions(): async [(Bool, Text, Nat)] {
-        var results: [(Bool, Text, Nat)] = [];
+        var resultBuffer = Buffer.Buffer<(Bool, Text, Nat)>(0);
 
         // Check if the list needs to be shuffled
         if (shuffledDailyIndices.size() == 0 or currentDailyIndex >= shuffledDailyIndices.size()) {
@@ -227,16 +227,16 @@ shared actor class CosmicraftsCosmicrafts() = Self {
         let index = shuffledDailyIndices[currentDailyIndex];
         let template = MissionOptions.dailyMissions[index];
         let result = await createSingleConcurrentMission(template);
-        results := Array.append(results, [result]);
+        resultBuffer.add(result);
 
         // Move to the next index
         currentDailyIndex += 1;
 
-        return results;
+        return Buffer.toArray(resultBuffer);
     };
 
     func createWeeklyMissions(): async [(Bool, Text, Nat)] {
-        var results: [(Bool, Text, Nat)] = [];
+        var resultBuffer = Buffer.Buffer<(Bool, Text, Nat)>(0);
 
         // Check if the list needs to be shuffled
         if (shuffledWeeklyIndices.size() == 0 or currentWeeklyIndex >= shuffledWeeklyIndices.size()) {
@@ -247,16 +247,16 @@ shared actor class CosmicraftsCosmicrafts() = Self {
         let index = shuffledWeeklyIndices[currentWeeklyIndex];
         let template = MissionOptions.weeklyMissions[index];
         let result = await createSingleConcurrentMission(template);
-        results := Array.append(results, [result]);
+        resultBuffer.add(result);
 
         // Move to the next index
         currentWeeklyIndex += 1;
 
-        return results;
+        return Buffer.toArray(resultBuffer);
     };
 
     func createDailyFreeRewardMissions(): async [(Bool, Text, Nat)] {
-        var results: [(Bool, Text, Nat)] = [];
+        var resultBuffer = Buffer.Buffer<(Bool, Text, Nat)>(0);
 
         // Check if the list needs to be shuffled
         if (shuffledDailyFreeRewardIndices.size() == 0 or currentDailyFreeRewardIndex >= shuffledDailyFreeRewardIndices.size()) {
@@ -267,12 +267,12 @@ shared actor class CosmicraftsCosmicrafts() = Self {
         let index = shuffledDailyFreeRewardIndices[currentDailyFreeRewardIndex];
         let template = MissionOptions.dailyFreeReward[index];
         let result = await createSingleConcurrentMission(template);
-        results := Array.append(results, [result]);
+        resultBuffer.add(result);
 
         // Move to the next index
         currentDailyFreeRewardIndex += 1;
 
-        return results;
+        return Buffer.toArray(resultBuffer);
     };
 
     func createSingleConcurrentMission(template: Types.MissionTemplate): async (Bool, Text, Nat) {
@@ -557,7 +557,6 @@ shared actor class CosmicraftsCosmicrafts() = Self {
         return null;
     };
 
-    // Function to claim a reward for a general mission
     public shared(msg) func claimGeneralReward(idMission: Nat): async (Bool, Text) {
         let missionOpt = await getGeneralMissionProgress(msg.caller, idMission);
         switch (missionOpt) {
@@ -608,7 +607,12 @@ shared actor class CosmicraftsCosmicrafts() = Self {
                     generalUserProgress.put(msg.caller, Buffer.toArray(updatedMissions));
 
                     // Add claimed reward to claimedRewards
-                    claimedRewards.put(msg.caller, Array.append(claimedRewardsForUser, [idMission]));
+                    let updatedRewardsBuffer = Buffer.Buffer<Nat>(claimedRewardsForUser.size() + 1);
+                    for (reward in claimedRewardsForUser.vals()) {
+                        updatedRewardsBuffer.add(reward);
+                    };
+                    updatedRewardsBuffer.add(idMission);
+                    claimedRewards.put(msg.caller, Buffer.toArray(updatedRewardsBuffer));
                 };
                 return (success, message);
             };
@@ -629,8 +633,12 @@ shared actor class CosmicraftsCosmicrafts() = Self {
             case (#Chest) {
                 let (success, message) = await mintChest(caller, mission.reward_amount);
                 if (success) {
-                    claimHistory := Array.append(claimHistory, [mission.id_mission]);
-                    claimedRewards.put(caller, claimHistory);
+                    let updatedClaimHistoryBuffer = Buffer.Buffer<Nat>(claimHistory.size() + 1);
+                    for (reward in claimHistory.vals()) {
+                        updatedClaimHistoryBuffer.add(reward);
+                    };
+                    updatedClaimHistoryBuffer.add(mission.id_mission);
+                    claimedRewards.put(caller, Buffer.toArray(updatedClaimHistoryBuffer));
                 };
                 return (success, message);
             };
@@ -645,8 +653,12 @@ shared actor class CosmicraftsCosmicrafts() = Self {
                 switch (mintResult) {
                     case (#Ok(_transactionID)) {
                         await updateMintedStardust(caller, mission.reward_amount);
-                        claimHistory := Array.append(claimHistory, [mission.id_mission]);
-                        claimedRewards.put(caller, claimHistory);
+                        let updatedClaimHistoryBuffer = Buffer.Buffer<Nat>(claimHistory.size() + 1);
+                        for (reward in claimHistory.vals()) {
+                            updatedClaimHistoryBuffer.add(reward);
+                        };
+                        updatedClaimHistoryBuffer.add(mission.id_mission);
+                        claimedRewards.put(caller, Buffer.toArray(updatedClaimHistoryBuffer));
                         return (true, "Stardust minted and reward claimed. Quantity: " # Nat.toText(mission.reward_amount));
                     };
                     case (#Err(_error)) {
@@ -991,7 +1003,6 @@ shared actor class CosmicraftsCosmicrafts() = Self {
         return null;
     };
 
-    // Function to claim reward for a user-specific mission
     public shared(msg) func claimUserReward(idMission: Nat): async (Bool, Text) {
         let missionOpt = await getUserMissionProgress(msg.caller, idMission);
         switch (missionOpt) {
@@ -1042,7 +1053,12 @@ shared actor class CosmicraftsCosmicrafts() = Self {
                     userMissionProgress.put(msg.caller, Buffer.toArray(updatedMissions));
 
                     // Add claimed reward to userClaimedRewards
-                    userClaimedRewards.put(msg.caller, Array.append(claimedRewardsForUser, [idMission]));
+                    let updatedClaimedRewardsBuffer = Buffer.Buffer<Nat>(claimedRewardsForUser.size() + 1);
+                    for (reward in claimedRewardsForUser.vals()) {
+                        updatedClaimedRewardsBuffer.add(reward);
+                    };
+                    updatedClaimedRewardsBuffer.add(idMission);
+                    userClaimedRewards.put(msg.caller, Buffer.toArray(updatedClaimedRewardsBuffer));
                 };
                 return (success, message);
             };
@@ -1063,8 +1079,12 @@ shared actor class CosmicraftsCosmicrafts() = Self {
             case (#Chest) {
                 let (success, message) = await mintChest(caller, mission.reward_amount);
                 if (success) {
-                    claimHistory := Array.append(claimHistory, [mission.id_mission]);
-                    userClaimedRewards.put(caller, claimHistory);
+                    let updatedClaimHistoryBuffer = Buffer.Buffer<Nat>(claimHistory.size() + 1);
+                    for (reward in claimHistory.vals()) {
+                        updatedClaimHistoryBuffer.add(reward);
+                    };
+                    updatedClaimHistoryBuffer.add(mission.id_mission);
+                    userClaimedRewards.put(caller, Buffer.toArray(updatedClaimHistoryBuffer));
                 };
                 return (success, message);
             };
@@ -1079,8 +1099,12 @@ shared actor class CosmicraftsCosmicrafts() = Self {
                 switch (mintResult) {
                     case (#Ok(_transactionID)) {
                         await updateMintedStardust(caller, mission.reward_amount);
-                        claimHistory := Array.append(claimHistory, [mission.id_mission]);
-                        userClaimedRewards.put(caller, claimHistory);
+                        let updatedClaimHistoryBuffer = Buffer.Buffer<Nat>(claimHistory.size() + 1);
+                        for (reward in claimHistory.vals()) {
+                            updatedClaimHistoryBuffer.add(reward);
+                        };
+                        updatedClaimHistoryBuffer.add(mission.id_mission);
+                        userClaimedRewards.put(caller, Buffer.toArray(updatedClaimHistoryBuffer));
                         return (true, "Stardust minted and reward claimed. Quantity: " # Nat.toText(mission.reward_amount));
                     };
                     case (#Err(_error)) {
@@ -1377,7 +1401,6 @@ shared actor class CosmicraftsCosmicrafts() = Self {
         };
     };
 
-    // Function to assign achievements to a user
     public func assignAchievementsToUser(user: PlayerId): async () {
         Debug.print("[assignAchievementsToUser] Assigning achievements to user: " # Principal.toText(user));
 
@@ -1386,21 +1409,28 @@ shared actor class CosmicraftsCosmicrafts() = Self {
             case (?achievements) { achievements };
         };
 
+        let userAchievementsBuffer = Buffer.Buffer<Nat>(userAchievementsList.size());
+
+        // Copy existing achievements to the buffer
+        for (achievement in userAchievementsList.vals()) {
+            userAchievementsBuffer.add(achievement);
+        };
+
         // Assign individual achievements
         for ((id, _) in individualAchievements.entries()) {
             if (not Utils.arrayContains<Nat>(userAchievementsList, id, Utils._natEqual)) {
-                userAchievementsList := Array.append(userAchievementsList, [id]);
+                userAchievementsBuffer.add(id);
             }
         };
 
         // Assign general achievements
         for ((id, _) in achievements.entries()) {
             if (not Utils.arrayContains<Nat>(userAchievementsList, id, Utils._natEqual)) {
-                userAchievementsList := Array.append(userAchievementsList, [id]);
+                userAchievementsBuffer.add(id);
             }
         };
 
-        playerAchievements.put(user, userAchievementsList);
+        playerAchievements.put(user, Buffer.toArray(userAchievementsBuffer));
         Debug.print("[assignAchievementsToUser] User achievements after update: " # debug_show(playerAchievements.get(user)));
     };
 
@@ -1528,7 +1558,12 @@ shared actor class CosmicraftsCosmicrafts() = Self {
                                 };
 
                                 // Add to claimed rewards
-                                claimedAchievementRewards.put(msg.caller, Array.append(claimedRewards, [achievementId]));
+                                let updatedClaimedRewardsBuffer = Buffer.Buffer<Nat>(claimedRewards.size() + 1);
+                                for (reward in claimedRewards.vals()) {
+                                    updatedClaimedRewardsBuffer.add(reward);
+                                };
+                                updatedClaimedRewardsBuffer.add(achievementId);
+                                claimedAchievementRewards.put(msg.caller, Buffer.toArray(updatedClaimedRewardsBuffer));
 
                                 return (true, "Rewards claimed successfully");
                             };
@@ -1609,23 +1644,23 @@ shared actor class CosmicraftsCosmicrafts() = Self {
         kills: Nat;
         wonGame: Bool;
         }): [AchievementProgress] {
-            var achievementProgress: [AchievementProgress] = [
-                { achievementId = 0; playerId = user; progress = 1; completed = false }, // GamesCompleted
-                { achievementId = 1; playerId = user; progress = playerStats.damageDealt; completed = false }, // DamageDealt
-                { achievementId = 2; playerId = user; progress = playerStats.damageTaken; completed = false }, // DamageTaken
-                { achievementId = 3; playerId = user; progress = playerStats.energyUsed; completed = false }, // EnergyUsed
-                { achievementId = 4; playerId = user; progress = playerStats.deploys; completed = false }, // UnitsDeployed
-                { achievementId = 5; playerId = user; progress = playerStats.faction; completed = false }, // FactionPlayed
-                { achievementId = 6; playerId = user; progress = playerStats.gameMode; completed = false }, // GameModePlayed
-                { achievementId = 7; playerId = user; progress = playerStats.xpEarned; completed = false }, // XPEarned
-                { achievementId = 8; playerId = user; progress = playerStats.kills; completed = false }, // Kills
-            ];
+        let achievementProgressBuffer = Buffer.Buffer<AchievementProgress>(9);
+
+        achievementProgressBuffer.add({ achievementId = 0; playerId = user; progress = 1; completed = false }); // GamesCompleted
+        achievementProgressBuffer.add({ achievementId = 1; playerId = user; progress = playerStats.damageDealt; completed = false }); // DamageDealt
+        achievementProgressBuffer.add({ achievementId = 2; playerId = user; progress = playerStats.damageTaken; completed = false }); // DamageTaken
+        achievementProgressBuffer.add({ achievementId = 3; playerId = user; progress = playerStats.energyUsed; completed = false }); // EnergyUsed
+        achievementProgressBuffer.add({ achievementId = 4; playerId = user; progress = playerStats.deploys; completed = false }); // UnitsDeployed
+        achievementProgressBuffer.add({ achievementId = 5; playerId = user; progress = playerStats.faction; completed = false }); // FactionPlayed
+        achievementProgressBuffer.add({ achievementId = 6; playerId = user; progress = playerStats.gameMode; completed = false }); // GameModePlayed
+        achievementProgressBuffer.add({ achievementId = 7; playerId = user; progress = playerStats.xpEarned; completed = false }); // XPEarned
+        achievementProgressBuffer.add({ achievementId = 8; playerId = user; progress = playerStats.kills; completed = false }); // Kills
 
         if (playerStats.wonGame) {
-            achievementProgress := Array.append(achievementProgress, [{ achievementId = 9; playerId = user; progress = 1; completed = false }]); // GamesWon
+            achievementProgressBuffer.add({ achievementId = 9; playerId = user; progress = 1; completed = false }); // GamesWon
         };
 
-        return achievementProgress;
+        return Buffer.toArray(achievementProgressBuffer);
     };
 
     public query func searchActiveAchievements(user: PlayerId): async ([(AchievementCategory, [Achievement], [IndividualAchievementProgress])]) {
@@ -1706,6 +1741,7 @@ shared actor class CosmicraftsCosmicrafts() = Self {
 //--
 // Progress Manager
 
+    // Function to update achievement progress manager
     func updateAchievementProgressManager(user: Principal, playerStats: {
         secRemaining: Nat;
         energyGenerated: Nat;
@@ -1721,17 +1757,29 @@ shared actor class CosmicraftsCosmicrafts() = Self {
         // Add other criteria like tokens minted, friends added, etc. here
         }): async (Bool, Text) {
 
-            var achievementProgressList = mapPlayerStatsToAchievementProgress(user, playerStats);
+        // Step 1: Generate initial achievement progress list
+        var achievementProgressList = mapPlayerStatsToAchievementProgress(user, playerStats);
 
-            // Add progress from other sources (tokens minted, friends added, etc.)
-            // Example: 
-            // achievementProgressList := Array.append(achievementProgressList, [{ achievementId = 10; playerId = user; progress = tokensMinted; completed = false }]);
+        // Step 2: Initialize a buffer with the size of the initial list
+        let progressBuffer = Buffer.Buffer<AchievementProgress>(achievementProgressList.size());
 
-            let (result, message) = await updateIndividualAchievementProgress(user, achievementProgressList);
-            
+        // Step 3: Add initial achievement progress to the buffer
+        for (progress in achievementProgressList.vals()) {
+            progressBuffer.add(progress);
+        };
+
+        // Step 4: Add progress from other sources (tokens minted, friends added, etc.)
+        // Example:
+        // progressBuffer.add({ achievementId = 10; playerId = user; progress = tokensMinted; completed = false });
+
+        // Convert the buffer back to an array before sending it to the next function
+        let finalAchievementProgressList = Buffer.toArray(progressBuffer);
+
+        // Step 5: Call the function to update individual achievement progress with the final list
+        let (result, message) = await updateIndividualAchievementProgress(user, finalAchievementProgressList);
+
         return (result, message);
     };
-
 
     func updateProgressManager(user: Principal, playerStats: {
         secRemaining: Nat;
@@ -1746,31 +1794,32 @@ shared actor class CosmicraftsCosmicrafts() = Self {
         kills: Nat;
         wonGame: Bool;
         }): async (Bool, Text) {
+        let generalProgressBuffer = Buffer.Buffer<MissionProgress>(9);
 
-            var generalProgress: [MissionProgress] = [
-                { missionType = #GamesCompleted; progress = 1; },
-                { missionType = #DamageDealt; progress = playerStats.damageDealt },
-                { missionType = #DamageTaken; progress = playerStats.damageTaken },
-                { missionType = #EnergyUsed; progress = playerStats.energyUsed },
-                { missionType = #UnitsDeployed; progress = playerStats.deploys },
-                { missionType = #FactionPlayed; progress = playerStats.faction },
-                { missionType = #GameModePlayed; progress = playerStats.gameMode },
-                { missionType = #XPEarned; progress = playerStats.xpEarned },
-                { missionType = #Kills; progress = playerStats.kills }
-            ];
+        generalProgressBuffer.add({ missionType = #GamesCompleted; progress = 1 });
+        generalProgressBuffer.add({ missionType = #DamageDealt; progress = playerStats.damageDealt });
+        generalProgressBuffer.add({ missionType = #DamageTaken; progress = playerStats.damageTaken });
+        generalProgressBuffer.add({ missionType = #EnergyUsed; progress = playerStats.energyUsed });
+        generalProgressBuffer.add({ missionType = #UnitsDeployed; progress = playerStats.deploys });
+        generalProgressBuffer.add({ missionType = #FactionPlayed; progress = playerStats.faction });
+        generalProgressBuffer.add({ missionType = #GameModePlayed; progress = playerStats.gameMode });
+        generalProgressBuffer.add({ missionType = #XPEarned; progress = playerStats.xpEarned });
+        generalProgressBuffer.add({ missionType = #Kills; progress = playerStats.kills });
 
-            if (playerStats.wonGame) {
-                generalProgress := Array.append(generalProgress, [{ missionType = #GamesWon; progress = 1 }]);
-            };
+        if (playerStats.wonGame) {
+            generalProgressBuffer.add({ missionType = #GamesWon; progress = 1 });
+        };
 
-            let (result1, message1) = await updateGeneralMissionProgress(user, generalProgress);
-            let (result2, message2) = await updateUserMissionsProgress(user, playerStats);
-            let (result3, message3) = await updateAchievementProgressManager(user, playerStats);
-            
-            let success = result1 and result2 and result3;
-            let message = message1 # " | " # message2 # " | " # message3 ;
+        let generalProgress = Buffer.toArray(generalProgressBuffer);
 
-            return (success, message);
+        let (result1, message1) = await updateGeneralMissionProgress(user, generalProgress);
+        let (result2, message2) = await updateUserMissionsProgress(user, playerStats);
+        let (result3, message3) = await updateAchievementProgressManager(user, playerStats);
+
+        let success = result1 and result2 and result3;
+        let message = message1 # " | " # message2 # " | " # message3;
+
+        return (success, message);
     };
 
     public shared (msg) func saveFinishedGame(matchID: MatchID, _playerStats: {
@@ -1975,8 +2024,15 @@ shared actor class CosmicraftsCosmicrafts() = Self {
 
     private func addNotification(to: PlayerId, notification: Notification) {
         var userNotifications = Utils.nullishCoalescing<[Notification]>(notifications.get(to), []);
-        userNotifications := Array.append(userNotifications, [notification]);
-        notifications.put(to, userNotifications);
+        
+        let notificationBuffer = Buffer.Buffer<Notification>(userNotifications.size() + 1);
+
+        for (notif in userNotifications.vals()) {
+            notificationBuffer.add(notif);
+        };
+        notificationBuffer.add(notification);
+
+        notifications.put(to, Buffer.toArray(notificationBuffer));
     };
 
     private func getDefaultTimestamps() : UpdateTimestamps {
@@ -2213,8 +2269,13 @@ shared actor class CosmicraftsCosmicrafts() = Self {
                             timestamp = Time.now();
                         };
 
-                        requests := Array.append<FriendRequest>(requests, [newRequest]);
-                        friendRequests.put(friendId, requests);
+                        let requestBuffer = Buffer.Buffer<FriendRequest>(requests.size() + 1);
+                        for (req in requests.vals()) {
+                            requestBuffer.add(req);
+                        };
+                        requestBuffer.add(newRequest);
+
+                        friendRequests.put(friendId, Buffer.toArray(requestBuffer));
                         
                         sendNotification(friendId, "You have a new friend request from " # player.username);
 
@@ -2307,19 +2368,22 @@ shared actor class CosmicraftsCosmicrafts() = Self {
                     return (false, "User is already blocked");
                 };
                 
-                blockedUsersList := Array.append(blockedUsersList, [blockedId]);
-                blockedUsers.put(playerId, blockedUsersList);
+                let blockedUsersBuffer = Buffer.Buffer<PlayerId>(blockedUsersList.size() + 1);
+                for (blockedUser in blockedUsersList.vals()) {
+                    blockedUsersBuffer.add(blockedUser);
+                };
+                blockedUsersBuffer.add(blockedId);
+                blockedUsers.put(playerId, Buffer.toArray(blockedUsersBuffer));
 
                 // Remove friend request from blocked user if it exists
                 var requests = Utils.nullishCoalescing<[FriendRequest]>(friendRequests.get(playerId), []);
-                let requestIndex = findFriendRequestIndex(requests, blockedId);
-                switch (requestIndex) {
-                    case (null) {};
-                    case (?_index) {
-                        requests := Array.filter<FriendRequest>(requests, func(req: FriendRequest) : Bool { req.from != blockedId });
-                        friendRequests.put(playerId, requests);
-                    };
+                let requestBuffer = Buffer.Buffer<FriendRequest>(requests.size());
+                for (req in requests.vals()) {
+                    if (req.from != blockedId) {
+                        requestBuffer.add(req);
+                    }
                 };
+                friendRequests.put(playerId, Buffer.toArray(requestBuffer));
 
                 return (true, "User blocked successfully");
             };
@@ -2371,22 +2435,30 @@ shared actor class CosmicraftsCosmicrafts() = Self {
                     case (?friend) {
                         // Ensure friend is not already in user's friends list
                         if (Array.find(user.friends, func (f: FriendDetails): Bool { f.playerId == friendId }) == null) {
-                            let updatedUserFriends = Array.append(user.friends, [{
+                            let userFriendsBuffer = Buffer.Buffer<FriendDetails>(user.friends.size() + 1);
+                            for (f in user.friends.vals()) {
+                                userFriendsBuffer.add(f);
+                            };
+                            userFriendsBuffer.add({
                                 playerId = friendId;
                                 username = friend.username;
                                 avatar = friend.avatar;
-                            }]);
-                            players.put(userId, { user with friends = updatedUserFriends });
+                            });
+                            players.put(userId, { user with friends = Buffer.toArray(userFriendsBuffer) });
                         };
 
                         // Ensure user is not already in friend's friends list
                         if (Array.find(friend.friends, func (f: FriendDetails): Bool { f.playerId == userId }) == null) {
-                            let updatedFriendFriends = Array.append(friend.friends, [{
+                            let friendFriendsBuffer = Buffer.Buffer<FriendDetails>(friend.friends.size() + 1);
+                            for (f in friend.friends.vals()) {
+                                friendFriendsBuffer.add(f);
+                            };
+                            friendFriendsBuffer.add({
                                 playerId = userId;
                                 username = user.username;
                                 avatar = user.avatar;
-                            }]);
-                            players.put(friendId, { friend with friends = updatedFriendFriends });
+                            });
+                            players.put(friendId, { friend with friends = Buffer.toArray(friendFriendsBuffer) });
                         };
                     };
                 };
@@ -3534,155 +3606,6 @@ shared actor class CosmicraftsCosmicrafts() = Self {
 
 //--
 // Custom Matchmaking
-//--
-//Logging
-
-    // Types
-        public type MintedStardust = {
-            quantity: Nat;
-        };
-
-        public type MintedChest = {
-            tokenIDs: [TokenID];
-            quantity: Nat;
-        };
-
-        public type MintedGameNFT = {
-            tokenIDs: [TokenID];
-            quantity: Nat;
-        };
-
-        type LogEntry = {
-            itemType: ItemType;
-            user: Principal;
-            amount: ?Nat;
-            tokenID: ?TokenID;
-            timestamp: Nat64;
-        };
-
-        type ItemType = {
-            #Stardust;
-            #GameNFTs;
-            #Chest;
-        };
-
-
-    // Stable variables for storing minted token information
-        stable var mintedStardust: [(Principal, MintedStardust)] = [];
-        stable var mintedChests: [(Principal, MintedChest)] = [];
-        stable var mintedGameNFTs: [(Principal, MintedGameNFT)] = [];
-        stable var transactionLogs: [LogEntry] = [];
-
-    // HashMaps for minted token information
-        var mintedStardustMap: HashMap.HashMap<Principal, MintedStardust> = HashMap.HashMap<Principal, MintedStardust>(10, Principal.equal, Principal.hash);
-        var mintedChestsMap: HashMap.HashMap<Principal, MintedChest> = HashMap.HashMap<Principal, MintedChest>(10, Principal.equal, Principal.hash);
-        var mintedGameNFTsMap: HashMap.HashMap<Principal, MintedGameNFT> = HashMap.HashMap<Principal, MintedGameNFT>(10, Principal.equal, Principal.hash);
-
-    
-    //Functions
-        // Function to update stable variables
-        func updateStableVariables() {
-            mintedStardust := Iter.toArray(mintedStardustMap.entries());
-            mintedChests := Iter.toArray(mintedChestsMap.entries());
-            mintedGameNFTs := Iter.toArray(mintedGameNFTsMap.entries());
-        };
-
-
-        // Function to update minted flux
-        func updateMintedStardust(user: Principal, amount: Nat): async () {
-            let current = switch (mintedStardustMap.get(user)) {
-                case (null) { { quantity = 0 } };
-                case (?flux) { flux };
-            };
-            let updated = { quantity = current.quantity + amount };
-            mintedStardustMap.put(user, updated);
-            let timestamp: Nat64 = Nat64.fromIntWrap(Time.now());
-            logTransaction(#Stardust, user, amount, timestamp);
-            updateStableVariables();
-        };
-
-        func updateMintedChests(user: Principal, tokenID: TokenID): async () {
-            let current = switch (mintedChestsMap.get(user)) {
-                case (null) { { tokenIDs = []; quantity = 0 } };
-                case (?chests) { chests };
-            };
-            let updated = { tokenIDs = Array.append(current.tokenIDs, [tokenID]); quantity = current.quantity + 1 };
-            mintedChestsMap.put(user, updated);
-            let timestamp: Nat64 = Nat64.fromIntWrap(Time.now());
-            logTransactionWithTokenID(#Chest, user, tokenID, timestamp);
-            updateStableVariables();
-        };
-
-        // Function to update minted gameNFTs
-        func updateMintedGameNFTs(user: Principal, tokenID: TokenID): async () {
-            let current = switch (mintedGameNFTsMap.get(user)) {
-                case (null) { { tokenIDs = []; quantity = 0 } };
-                case (?nfts) { nfts };
-            };
-            let updated = { tokenIDs = Array.append(current.tokenIDs, [tokenID]); quantity = current.quantity + 1 };
-            mintedGameNFTsMap.put(user, updated);
-            let timestamp: Nat64 = Nat64.fromIntWrap(Time.now());
-            logTransactionWithTokenID(#GameNFTs, user, tokenID, timestamp);
-            updateStableVariables();
-        };
-
-        // Function to add a log entry
-        func addLogEntry(itemType: ItemType, user: Principal, amount: ?Nat, tokenID: ?TokenID, timestamp: Nat64) {
-            let logEntry: LogEntry = {
-                itemType = itemType;
-                user = user;
-                amount = amount;
-                tokenID = tokenID;
-                timestamp = timestamp;
-            };
-            transactionLogs := Array.append(transactionLogs, [logEntry]);
-        };
-
-        // Function to log transactions with amount
-        func logTransaction(itemType: ItemType, user: Principal, amount: Nat, timestamp: Nat64) {
-            addLogEntry(itemType, user, ?amount, null, timestamp);
-        };
-
-        // Function to log transactions with tokenID
-        func logTransactionWithTokenID(itemType: ItemType, user: Principal, tokenID: TokenID, timestamp: Nat64) {
-            addLogEntry(itemType, user, null, ?tokenID, timestamp);
-        };
-
-        // Function to retrieve logs for a specific user and item type
-        public query func getTransactionLogs(user: Principal, itemType: ItemType): async [LogEntry] {
-            return Array.filter<LogEntry>(transactionLogs, func(log: LogEntry): Bool {
-                log.user == user and log.itemType == itemType
-            });
-        };
-
-        public query func getMintedInfo(user: Principal): async {
-            stardust: Nat;
-            chests: { quantity: Nat; tokenIDs: [TokenID] };
-            gameNFTs: { quantity: Nat; tokenIDs: [TokenID] };
-            } {
-            let stardust = switch (mintedStardustMap.get(user)) {
-                case (null) 0;
-                case (?stardustData) stardustData.quantity;
-            };
-            
-            
-            let chests = switch (mintedChestsMap.get(user)) {
-                case (null) ({ quantity = 0; tokenIDs = [] });
-                case (?chestsData) chestsData;
-            };
-            
-            let gameNFTs = switch (mintedGameNFTsMap.get(user)) {
-                case (null) ({ quantity = 0; tokenIDs = [] });
-                case (?gameNFTsData) gameNFTsData;
-            };
-            
-            return {
-                stardust = stardust;      
-                chests = chests;
-                gameNFTs = gameNFTs;
-            };
-        };
-
 //--
 // Tournaments
     stable var tournaments: [Tournament] = [];
@@ -5194,156 +5117,156 @@ shared actor class CosmicraftsCosmicrafts() = Self {
     // Queries
     public query ({ caller }) func getNFTs() : async [(TypesICRC7.TokenId, TypesICRC7.TokenMetadata)] {
         let entries = Iter.toArray(Trie.iter(tokens));
-        var result: [(TypesICRC7.TokenId, TypesICRC7.TokenMetadata)] = [];
+        var resultBuffer = Buffer.Buffer<(TypesICRC7.TokenId, TypesICRC7.TokenMetadata)>(0);
         for (entry in entries.vals()) {
             let key = entry.0;
             let value = entry.1;
             if (value.owner.owner == caller) {
-                result := Array.append(result, [(key, value)]);
+                resultBuffer.add((key, value));
             };
         };
-        return result;
+        return Buffer.toArray(resultBuffer);
     };
 
-public query ({ caller }) func getUnits() : async [(TypesICRC7.TokenId, TypesICRC7.TokenMetadata)] {
-    return _filterNFTsByUnitCategory(caller);
-};
+    public query ({ caller }) func getUnits() : async [(TypesICRC7.TokenId, TypesICRC7.TokenMetadata)] {
+        return _filterNFTsByUnitCategory(caller);
+    };
 
-public query ({ caller }) func getChests() : async [(TypesICRC7.TokenId, TypesICRC7.TokenMetadata)] {
-    return _filterNFTsByChestCategory(caller);
-};
+    public query ({ caller }) func getChests() : async [(TypesICRC7.TokenId, TypesICRC7.TokenMetadata)] {
+        return _filterNFTsByChestCategory(caller);
+    };
 
-public query ({ caller }) func getAvatars() : async [(TypesICRC7.TokenId, TypesICRC7.TokenMetadata)] {
-    return _filterNFTsByAvatarCategory(caller);
-};
+    public query ({ caller }) func getAvatars() : async [(TypesICRC7.TokenId, TypesICRC7.TokenMetadata)] {
+        return _filterNFTsByAvatarCategory(caller);
+    };
 
-public query ({ caller }) func getCharacters() : async [(TypesICRC7.TokenId, TypesICRC7.TokenMetadata)] {
-    return _filterNFTsByCharacterCategory(caller);
-};
+    public query ({ caller }) func getCharacters() : async [(TypesICRC7.TokenId, TypesICRC7.TokenMetadata)] {
+        return _filterNFTsByCharacterCategory(caller);
+    };
 
-public query ({ caller }) func getTrophies() : async [(TypesICRC7.TokenId, TypesICRC7.TokenMetadata)] {
-    return _filterNFTsByTrophyCategory(caller);
-};
+    public query ({ caller }) func getTrophies() : async [(TypesICRC7.TokenId, TypesICRC7.TokenMetadata)] {
+        return _filterNFTsByTrophyCategory(caller);
+    };
 
-// Helper function to filter NFTs by unit categories
-private func _filterNFTsByUnitCategory(caller: Principal) : [(TypesICRC7.TokenId, TypesICRC7.TokenMetadata)] {
-    let entries = Iter.toArray(Trie.iter(tokens));
-    var result: [(TypesICRC7.TokenId, TypesICRC7.TokenMetadata)] = [];
-    for (entry in entries.vals()) {
-        let key = entry.0;
-        let value = entry.1;
-        if (value.owner.owner == caller) {
-            switch (value.metadata.general.category) {
-                case (?cat) {
-                    switch (cat) {
-                        case (#unit(_)) {
-                            result := Array.append(result, [(key, value)]);
+    // Helper function to filter NFTs by unit categories
+    private func _filterNFTsByUnitCategory(caller: Principal) : [(TypesICRC7.TokenId, TypesICRC7.TokenMetadata)] {
+        let entries = Iter.toArray(Trie.iter(tokens));
+        var resultBuffer = Buffer.Buffer<(TypesICRC7.TokenId, TypesICRC7.TokenMetadata)>(0);
+        for (entry in entries.vals()) {
+            let key = entry.0;
+            let value = entry.1;
+            if (value.owner.owner == caller) {
+                switch (value.metadata.general.category) {
+                    case (?cat) {
+                        switch (cat) {
+                            case (#unit(_)) {
+                                resultBuffer.add((key, value));
+                            };
+                            case (_) {};
                         };
-                        case (_) {};
                     };
+                    case null {};
                 };
-                case null {};
             };
         };
+        return Buffer.toArray(resultBuffer);
     };
-    return result;
-};
 
-// Helper function to filter NFTs by chest category
-private func _filterNFTsByChestCategory(caller: Principal) : [(TypesICRC7.TokenId, TypesICRC7.TokenMetadata)] {
-    let entries = Iter.toArray(Trie.iter(tokens));
-    var result: [(TypesICRC7.TokenId, TypesICRC7.TokenMetadata)] = [];
-    for (entry in entries.vals()) {
-        let key = entry.0;
-        let value = entry.1;
-        if (value.owner.owner == caller) {
-            switch (value.metadata.general.category) {
-                case (?cat) {
-                    switch (cat) {
-                        case (#chest(_)) {
-                            result := Array.append(result, [(key, value)]);
+    // Helper function to filter NFTs by chest category
+    private func _filterNFTsByChestCategory(caller: Principal) : [(TypesICRC7.TokenId, TypesICRC7.TokenMetadata)] {
+        let entries = Iter.toArray(Trie.iter(tokens));
+        var resultBuffer = Buffer.Buffer<(TypesICRC7.TokenId, TypesICRC7.TokenMetadata)>(0);
+        for (entry in entries.vals()) {
+            let key = entry.0;
+            let value = entry.1;
+            if (value.owner.owner == caller) {
+                switch (value.metadata.general.category) {
+                    case (?cat) {
+                        switch (cat) {
+                            case (#chest(_)) {
+                                resultBuffer.add((key, value));
+                            };
+                            case (_) {}; // No match
                         };
-                        case (_) {}; // No match
                     };
+                    case null {};
                 };
-                case null {};
             };
         };
+        return Buffer.toArray(resultBuffer);
     };
-    return result;
-};
 
-// Helper function to filter NFTs by avatar category
-private func _filterNFTsByAvatarCategory(caller: Principal) : [(TypesICRC7.TokenId, TypesICRC7.TokenMetadata)] {
-    let entries = Iter.toArray(Trie.iter(tokens));
-    var result: [(TypesICRC7.TokenId, TypesICRC7.TokenMetadata)] = [];
-    for (entry in entries.vals()) {
-        let key = entry.0;
-        let value = entry.1;
-        if (value.owner.owner == caller) {
-            switch (value.metadata.general.category) {
-                case (?cat) {
-                    switch (cat) {
-                        case (#avatar(_)) {
-                            result := Array.append(result, [(key, value)]);
+    // Helper function to filter NFTs by avatar category
+    private func _filterNFTsByAvatarCategory(caller: Principal) : [(TypesICRC7.TokenId, TypesICRC7.TokenMetadata)] {
+        let entries = Iter.toArray(Trie.iter(tokens));
+        var resultBuffer = Buffer.Buffer<(TypesICRC7.TokenId, TypesICRC7.TokenMetadata)>(0);
+        for (entry in entries.vals()) {
+            let key = entry.0;
+            let value = entry.1;
+            if (value.owner.owner == caller) {
+                switch (value.metadata.general.category) {
+                    case (?cat) {
+                        switch (cat) {
+                            case (#avatar(_)) {
+                                resultBuffer.add((key, value));
+                            };
+                            case (_) {}; // No match
                         };
-                        case (_) {}; // No match
                     };
+                    case null {};
                 };
-                case null {};
             };
         };
+        return Buffer.toArray(resultBuffer);
     };
-    return result;
-};
 
-// Helper function to filter NFTs by character category
-private func _filterNFTsByCharacterCategory(caller: Principal) : [(TypesICRC7.TokenId, TypesICRC7.TokenMetadata)] {
-    let entries = Iter.toArray(Trie.iter(tokens));
-    var result: [(TypesICRC7.TokenId, TypesICRC7.TokenMetadata)] = [];
-    for (entry in entries.vals()) {
-        let key = entry.0;
-        let value = entry.1;
-        if (value.owner.owner == caller) {
-            switch (value.metadata.general.category) {
-                case (?cat) {
-                    switch (cat) {
-                        case (#character(_)) {
-                            result := Array.append(result, [(key, value)]);
+    // Helper function to filter NFTs by character category
+    private func _filterNFTsByCharacterCategory(caller: Principal) : [(TypesICRC7.TokenId, TypesICRC7.TokenMetadata)] {
+        let entries = Iter.toArray(Trie.iter(tokens));
+        var resultBuffer = Buffer.Buffer<(TypesICRC7.TokenId, TypesICRC7.TokenMetadata)>(0);
+        for (entry in entries.vals()) {
+            let key = entry.0;
+            let value = entry.1;
+            if (value.owner.owner == caller) {
+                switch (value.metadata.general.category) {
+                    case (?cat) {
+                        switch (cat) {
+                            case (#character(_)) {
+                                resultBuffer.add((key, value));
+                            };
+                            case (_) {}; // No match
                         };
-                        case (_) {}; // No match
                     };
+                    case null {};
                 };
-                case null {};
             };
         };
+        return Buffer.toArray(resultBuffer);
     };
-    return result;
-};
 
-// Helper function to filter NFTs by trophy category
-private func _filterNFTsByTrophyCategory(caller: Principal) : [(TypesICRC7.TokenId, TypesICRC7.TokenMetadata)] {
-    let entries = Iter.toArray(Trie.iter(tokens));
-    var result: [(TypesICRC7.TokenId, TypesICRC7.TokenMetadata)] = [];
-    for (entry in entries.vals()) {
-        let key = entry.0;
-        let value = entry.1;
-        if (value.owner.owner == caller) {
-            switch (value.metadata.general.category) {
-                case (?cat) {
-                    switch (cat) {
-                        case (#trophy(_)) {
-                            result := Array.append(result, [(key, value)]);
+    // Helper function to filter NFTs by trophy category
+    private func _filterNFTsByTrophyCategory(caller: Principal) : [(TypesICRC7.TokenId, TypesICRC7.TokenMetadata)] {
+        let entries = Iter.toArray(Trie.iter(tokens));
+        var resultBuffer = Buffer.Buffer<(TypesICRC7.TokenId, TypesICRC7.TokenMetadata)>(0);
+        for (entry in entries.vals()) {
+            let key = entry.0;
+            let value = entry.1;
+            if (value.owner.owner == caller) {
+                switch (value.metadata.general.category) {
+                    case (?cat) {
+                        switch (cat) {
+                            case (#trophy(_)) {
+                                resultBuffer.add((key, value));
+                            };
+                            case (_) {}; // No match
                         };
-                        case (_) {}; // No match
                     };
+                    case null {};
                 };
-                case null {};
             };
         };
+        return Buffer.toArray(resultBuffer);
     };
-    return result;
-};
 
 
 //--
@@ -5703,6 +5626,179 @@ private func _filterNFTsByTrophyCategory(caller: Principal) : [(TypesICRC7.Token
     };
 
 //--
+//Logging
+
+    // Types
+        public type MintedStardust = {
+            quantity: Nat;
+        };
+
+        public type MintedChest = {
+            tokenIDs: [TokenID];
+            quantity: Nat;
+        };
+
+        public type MintedGameNFT = {
+            tokenIDs: [TokenID];
+            quantity: Nat;
+        };
+
+        type LogEntry = {
+            itemType: ItemType;
+            user: Principal;
+            amount: ?Nat;
+            tokenID: ?TokenID;
+            timestamp: Nat64;
+        };
+
+        type ItemType = {
+            #Stardust;
+            #GameNFTs;
+            #Chest;
+        };
+
+
+    // Stable variables for storing minted token information
+        stable var mintedStardust: [(Principal, MintedStardust)] = [];
+        stable var mintedChests: [(Principal, MintedChest)] = [];
+        stable var mintedGameNFTs: [(Principal, MintedGameNFT)] = [];
+        stable var transactionLogs: [LogEntry] = [];
+
+    // HashMaps for minted token information
+        var mintedStardustMap: HashMap.HashMap<Principal, MintedStardust> = HashMap.HashMap<Principal, MintedStardust>(10, Principal.equal, Principal.hash);
+        var mintedChestsMap: HashMap.HashMap<Principal, MintedChest> = HashMap.HashMap<Principal, MintedChest>(10, Principal.equal, Principal.hash);
+        var mintedGameNFTsMap: HashMap.HashMap<Principal, MintedGameNFT> = HashMap.HashMap<Principal, MintedGameNFT>(10, Principal.equal, Principal.hash);
+
+    
+    //Functions
+        // Function to update stable variables
+        func updateStableVariables() {
+            mintedStardust := Iter.toArray(mintedStardustMap.entries());
+            mintedChests := Iter.toArray(mintedChestsMap.entries());
+            mintedGameNFTs := Iter.toArray(mintedGameNFTsMap.entries());
+        };
+
+
+        // Function to update minted flux
+        func updateMintedStardust(user: Principal, amount: Nat): async () {
+            let current = switch (mintedStardustMap.get(user)) {
+                case (null) { { quantity = 0 } };
+                case (?flux) { flux };
+            };
+            let updated = { quantity = current.quantity + amount };
+            mintedStardustMap.put(user, updated);
+            let timestamp: Nat64 = Nat64.fromIntWrap(Time.now());
+            logTransaction(#Stardust, user, amount, timestamp);
+            updateStableVariables();
+        };
+
+        // Function to update minted chests for a user
+        func updateMintedChests(user: Principal, tokenID: TokenID): async () {
+            let current = switch (mintedChestsMap.get(user)) {
+                case (null) { { tokenIDs = []; quantity = 0 } };
+                case (?chests) { chests };
+            };
+            
+            let tokenIDsBuffer = Buffer.Buffer<TokenID>(current.tokenIDs.size() + 1);
+            for (id in current.tokenIDs.vals()) {
+                tokenIDsBuffer.add(id);
+            };
+            tokenIDsBuffer.add(tokenID);
+
+            let updated = { tokenIDs = Buffer.toArray(tokenIDsBuffer); quantity = current.quantity + 1 };
+            mintedChestsMap.put(user, updated);
+            
+            let timestamp: Nat64 = Nat64.fromIntWrap(Time.now());
+            logTransactionWithTokenID(#Chest, user, tokenID, timestamp);
+            updateStableVariables();
+        };
+
+        // Function to update minted gameNFTs
+        func updateMintedGameNFTs(user: Principal, tokenID: TokenID): async () {
+            let current = switch (mintedGameNFTsMap.get(user)) {
+                case (null) { { tokenIDs = []; quantity = 0 } };
+                case (?nfts) { nfts };
+            };
+            
+            let tokenIDsBuffer = Buffer.Buffer<TokenID>(current.tokenIDs.size() + 1);
+            for (id in current.tokenIDs.vals()) {
+                tokenIDsBuffer.add(id);
+            };
+            tokenIDsBuffer.add(tokenID);
+
+            let updated = { tokenIDs = Buffer.toArray(tokenIDsBuffer); quantity = current.quantity + 1 };
+            mintedGameNFTsMap.put(user, updated);
+            
+            let timestamp: Nat64 = Nat64.fromIntWrap(Time.now());
+            logTransactionWithTokenID(#GameNFTs, user, tokenID, timestamp);
+            updateStableVariables();
+        };
+
+        // Function to add a log entry
+        func addLogEntry(itemType: ItemType, user: Principal, amount: ?Nat, tokenID: ?TokenID, timestamp: Nat64) {
+            let logEntry: LogEntry = {
+                itemType = itemType;
+                user = user;
+                amount = amount;
+                tokenID = tokenID;
+                timestamp = timestamp;
+            };
+
+            let logsBuffer = Buffer.Buffer<LogEntry>(transactionLogs.size() + 1);
+            for (log in transactionLogs.vals()) {
+                logsBuffer.add(log);
+            };
+            logsBuffer.add(logEntry);
+
+            transactionLogs := Buffer.toArray(logsBuffer);
+        };
+
+        // Function to log transactions with amount
+        func logTransaction(itemType: ItemType, user: Principal, amount: Nat, timestamp: Nat64) {
+            addLogEntry(itemType, user, ?amount, null, timestamp);
+        };
+
+        // Function to log transactions with tokenID
+        func logTransactionWithTokenID(itemType: ItemType, user: Principal, tokenID: TokenID, timestamp: Nat64) {
+            addLogEntry(itemType, user, null, ?tokenID, timestamp);
+        };
+
+        // Function to retrieve logs for a specific user and item type
+        public query func getTransactionLogs(user: Principal, itemType: ItemType): async [LogEntry] {
+            return Array.filter<LogEntry>(transactionLogs, func(log: LogEntry): Bool {
+                log.user == user and log.itemType == itemType
+            });
+        };
+
+        public query func getMintedInfo(user: Principal): async {
+            stardust: Nat;
+            chests: { quantity: Nat; tokenIDs: [TokenID] };
+            gameNFTs: { quantity: Nat; tokenIDs: [TokenID] };
+            } {
+            let stardust = switch (mintedStardustMap.get(user)) {
+                case (null) 0;
+                case (?stardustData) stardustData.quantity;
+            };
+            
+            
+            let chests = switch (mintedChestsMap.get(user)) {
+                case (null) ({ quantity = 0; tokenIDs = [] });
+                case (?chestsData) chestsData;
+            };
+            
+            let gameNFTs = switch (mintedGameNFTsMap.get(user)) {
+                case (null) ({ quantity = 0; tokenIDs = [] });
+                case (?gameNFTsData) gameNFTsData;
+            };
+            
+            return {
+                stardust = stardust;      
+                chests = chests;
+                gameNFTs = gameNFTs;
+            };
+        };
+
+//--
 // Migrations
 
     // Pre-upgrade hook to save the state
@@ -5784,5 +5880,4 @@ private func _filterNFTsByTrophyCategory(caller: Principal) : [(TypesICRC7.Token
     };
 
 //--
-
 }
