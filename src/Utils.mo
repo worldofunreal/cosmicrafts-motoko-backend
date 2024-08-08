@@ -312,12 +312,16 @@ module Utils {
     public func shuffleArray(arr: [Nat]): async [Nat] {
         let len = Array.size<Nat>(arr);
         var shuffled = Array.thaw<Nat>(arr);
+        
+        // Initialize a PseudoRandomGenerator (use your specific seed and kind)
+        let seed: Nat32 = 12345; // Example seed
+        let kind: PseudoRandomX.PseudoRandomKind = #xorshift32;
+        let prng: PseudoRandomX.PseudoRandomGenerator = PseudoRandomX.fromSeed(seed, kind);
+
         var i = len;
         while (i > 1) {
             i -= 1;
-            let randomBytes = await Random.blob();
-            let randomValue = Blob.toArray(randomBytes)[0];
-            let j = Nat8.toNat(randomValue) % (i + 1);
+            let j = prng.nextNat(0, i + 1);
             let temp = shuffled[i];
             shuffled[i] := shuffled[j];
             shuffled[j] := temp;
