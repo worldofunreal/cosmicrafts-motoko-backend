@@ -23,7 +23,7 @@
     import ICRC7Utils "/icrc7/utils";
     import TypesICRC7 "/icrc7/types";
     import TypesICRC1 "/icrc1/Types";
-    import PseudoRandomX "mo:xtended-random/PseudoRandomX";
+
     import TypesAchievements "TypesAchievements";
     import Int64 "mo:base/Int64";
     import ExperimentalCycles "mo:base/ExperimentalCycles";
@@ -281,7 +281,7 @@ shared actor class Cosmicrafts() = Self {
     };
 
     func createSingleConcurrentMission(template: Types.MissionTemplate): async (Bool, Text, Nat) {
-        let rewardAmount = await getRandomReward(template.minReward, template.maxReward);
+        let rewardAmount = await Utils.getRandomReward(template.minReward, template.maxReward);
         return await createGeneralMission(
             template.name,
             template.missionType,
@@ -336,11 +336,7 @@ shared actor class Cosmicrafts() = Self {
         });
     };
 
-    func getRandomReward(minReward: Nat, maxReward: Nat): async Nat {
-        let randomBytes = await Random.blob(); // Generating random bytes
-        let prng = PseudoRandomX.fromBlob(randomBytes, #xorshift32); // Create a pseudo-random generator
-        return prng.nextNat(minReward, maxReward);
-    };
+
 
 //----
 // General Missions
@@ -434,16 +430,12 @@ shared actor class Cosmicrafts() = Self {
         return (true, "Progress added successfully to general missions");
     };
 
-    // Function to assign new general missions to a user
     func assignGeneralMissions(user: Principal): async () {
-        Debug.print("[assignGeneralMissions] Assigning new general missions to user: " # Principal.toText(user));
-
+        // Retrieve user missions and claimed rewards
         var userMissions: [MissionsUser] = switch (generalUserProgress.get(user)) {
             case (null) { [] };
             case (?missions) { missions };
         };
-
-        Debug.print("[assignGeneralMissions] User missions before update: " # debug_show(userMissions));
 
         var claimedRewardsForUser: [Nat] = switch (claimedRewards.get(user)) {
             case (null) { [] };
@@ -452,25 +444,21 @@ shared actor class Cosmicrafts() = Self {
 
         let now = Nat64.fromNat(Int.abs(Time.now()));
         let buffer = Buffer.Buffer<MissionsUser>(0);
+        let currentMissionIds = Buffer.Buffer<Nat>(0);
 
-        // Remove expired or claimed missions
+        // Remove expired or claimed missions and collect current mission IDs
         for (mission in userMissions.vals()) {
             if (mission.expiration >= now and not Utils.arrayContains<Nat>(claimedRewardsForUser, mission.id_mission, Utils._natEqual)) {
                 buffer.add(mission);
+                currentMissionIds.add(mission.id_mission);
             }
         };
 
-        // Collect IDs of current missions to avoid duplication
-        let currentMissionIds = Buffer.Buffer<Nat>(buffer.size());
-        for (mission in buffer.vals()) {
-            currentMissionIds.add(mission.id_mission);
-        };
-
-        // Add new active missions to the user
-        for ((id, mission) in activeMissions.entries()) {
+        // Collect new active missions concurrently
+        let newMissions = activeMissions.entries().map<(MissionsUser)>(async ((id, mission)) -> {
             if (not Utils.arrayContains<Nat>(Buffer.toArray(currentMissionIds), id, Utils._natEqual) and not Utils.arrayContains<Nat>(claimedRewardsForUser, id, Utils._natEqual)) {
-                let isDailyFreeReward = checkIfDailyFreeRewardMission(mission); // Check if the mission is a daily free reward mission
-                buffer.add({
+                let isDailyFreeReward = await checkIfDailyFreeRewardMission(mission); // Check if the mission is a daily free reward mission
+                return {
                     id_mission = id;
                     reward_amount = mission.reward_amount;
                     start_date = mission.start_date;
@@ -481,13 +469,22 @@ shared actor class Cosmicrafts() = Self {
                     finished = isDailyFreeReward; // Set finished based on mission type
                     reward_type = mission.reward_type;
                     total = mission.total;
-                });
+                };
+            } else {
+                return null;
+            }
+        });
+
+        // Await all futures and add non-null new missions to the buffer
+        for (future in newMissions.vals()) {
+            let newMission = await future;
+            if (newMission != null) {
+                buffer.add(newMission);
             }
         };
 
         // Update user missions
         generalUserProgress.put(user, Buffer.toArray(buffer));
-        Debug.print("[assignGeneralMissions] User missions after update: " # debug_show(Buffer.toArray(buffer)));
     };
 
     // Helper function to check if a mission is a daily free reward mission
@@ -509,20 +506,10 @@ shared actor class Cosmicrafts() = Self {
         // Step 2: Search for active general missions assigned to the user
         let activeMissions: [MissionsUser] = await searchActiveGeneralMissions(caller);
 
-        // Step 3: Get progress for each active general mission
-        let missionsWithProgress = Buffer.Buffer<MissionsUser>(activeMissions.size());
-        for (mission in activeMissions.vals()) {
-            let missionProgress = await getGeneralMissionProgress(caller, mission.id_mission);
-            switch (missionProgress) {
-                case (null) {};
-                case (?progress) {
-                    missionsWithProgress.add(progress);
-                };
-            };
-        };
-
-        return Buffer.toArray(missionsWithProgress);
+        // Directly return the active missions with updated progress
+        return activeMissions;
     };
+
 
     // Function to search for active general missions for a user
     public query func searchActiveGeneralMissions(user: Principal): async [MissionsUser] {
@@ -755,7 +742,7 @@ shared actor class Cosmicrafts() = Self {
         ): async (Bool, Text, Nat) {
         let index = shuffledIndices[currentIndex];
         let template = missionOptions[index];
-        let rewardAmount = await getRandomReward(template.minReward, template.maxReward);
+        let rewardAmount = await Utils.getRandomReward(template.minReward, template.maxReward);
 
         var userMissionsList: Buffer.Buffer<Mission> = switch (userMissions.get(user)) {
             case (null) { Buffer.Buffer<Mission>(0) };
@@ -5447,7 +5434,8 @@ shared actor class Cosmicrafts() = Self {
             case (#Err(_)) 1;
         };
 
-        let stardustAmount = Utils.getTokensAmount(rarity);
+        // Await the result of getTokensAmount
+        let stardustAmount = await Utils.getTokensAmount(rarity);
 
         // Burn the token (send to NULL address)
         let now = Nat64.fromIntWrap(Time.now());

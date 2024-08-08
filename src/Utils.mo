@@ -1,28 +1,63 @@
-import Hash "mo:base/Hash";
-import Iter "mo:base/Iter";
-import Nat8 "mo:base/Nat8";
-import Buffer "mo:base/Buffer";
-import Nat32 "mo:base/Nat32";
-import Random "mo:base/Random";
-import Blob "mo:base/Blob";
-import Nat "mo:base/Nat";
-import Float "mo:base/Float";
-import Debug "mo:base/Debug";
-import Array "mo:base/Array";
-import Bool "mo:base/Bool";
-import Nat64 "mo:base/Nat64";
-import Text "mo:base/Text";
-import Time "mo:base/Time";
-import Principal "mo:base/Principal";
-import Types "Types";
-import TypesICRC7 "/icrc7/types";
-import TypesICRC1 "/icrc1/Types";
+// Imports
+    import Hash "mo:base/Hash";
+    import Iter "mo:base/Iter";
+    import Nat8 "mo:base/Nat8";
+    import Buffer "mo:base/Buffer";
+    import Nat32 "mo:base/Nat32";
+    import Random "mo:base/Random";
+    import Blob "mo:base/Blob";
+    import Nat "mo:base/Nat";
+    import Float "mo:base/Float";
+    import Debug "mo:base/Debug";
+    import Array "mo:base/Array";
+    import Bool "mo:base/Bool";
+    import Nat64 "mo:base/Nat64";
+    import Text "mo:base/Text";
+    import Time "mo:base/Time";
+    import Principal "mo:base/Principal";
+    import Types "Types";
+    import TypesICRC7 "/icrc7/types";
+    import TypesICRC1 "/icrc1/Types";
+    import PseudoRandomX "mo:xtended-random/PseudoRandomX";
 
 module Utils {
 
-    public type PlayerId = Types.PlayerId;
 
+    public func getTokensAmount(rarity: Nat): async Nat {
+        let randomBytes = await Random.blob(); // Generate random bytes
+        let prng = PseudoRandomX.fromBlob(randomBytes, #xorshift32); // Create a pseudo-random generator
 
+        // Define base and initial gap
+        let baseMin: Nat = 10;
+        let baseMax: Nat = 20;
+        let initialGap: Nat = 10;
+        let gapMultiplier: Nat = 2;
+
+        // Calculate the range for the given rarity
+        let minAmount: Nat = if (rarity == 1) {
+            baseMin
+        } else {
+            let previousMax = Nat.add(baseMax, Nat.mul(Nat.sub(rarity, 2), Nat.add(initialGap, Nat.mul(gapMultiplier, Nat.sub(rarity, 2)))));
+            Nat.add(previousMax, 1)
+        };
+
+        let maxAmount: Nat = if (rarity == 1) {
+            baseMax
+        } else {
+            Nat.add(minAmount, Nat.add(initialGap, Nat.mul(gapMultiplier, Nat.sub(rarity, 1))))
+        };
+
+        // Generate a random amount within the calculated range
+        let randomAmount = prng.nextNat(minAmount, maxAmount);
+
+        return randomAmount;
+    };
+
+    public func getRandomReward(minReward: Nat, maxReward: Nat): async Nat {
+        let randomBytes = await Random.blob(); // Generating random bytes
+        let prng = PseudoRandomX.fromBlob(randomBytes, #xorshift32); // Create a pseudo-random generator
+        return prng.nextNat(minReward, maxReward);
+    };
 
     public func calculateLevel(xp: Nat) : Nat {
         // Assuming each level requires twice as much XP as the previous one, starting with 100 XP for level 2.
@@ -39,24 +74,6 @@ module Utils {
         return level;
     };
 
-    // Function to get token amounts based on rarity
-    public func getTokensAmount(rarity: Nat): Nat {
-        var factor: Nat = 1;
-        if (rarity <= 5) {
-            factor := Nat.pow(2, rarity - 1);
-        } else if (rarity <= 10) {
-            factor := Nat.mul(Nat.pow(2, 5), Nat.div(Nat.pow(3, rarity - 6), Nat.pow(2, rarity - 6)));
-        } else if (rarity <= 15) {
-            factor := Nat.mul(Nat.mul(Nat.pow(2, 5), Nat.div(Nat.pow(3, 5), Nat.pow(2, 5))), Nat.div(Nat.pow(5, rarity - 11), Nat.pow(4, rarity - 11)));
-        } else if (rarity <= 20) {
-            factor := Nat.mul(Nat.mul(Nat.mul(Nat.pow(2, 5), Nat.div(Nat.pow(3, 5), Nat.pow(2, 5))), Nat.div(Nat.pow(5, 5), Nat.pow(4, 5))), Nat.div(Nat.pow(11, rarity - 16), Nat.pow(10, rarity - 16)));
-        } else {
-            factor := Nat.mul(Nat.mul(Nat.mul(Nat.mul(Nat.pow(2, 5), Nat.div(Nat.pow(3, 5), Nat.pow(2, 5))), Nat.div(Nat.pow(5, 5), Nat.pow(4, 5))), Nat.div(Nat.pow(11, 5), Nat.pow(10, 5))), Nat.div(Nat.pow(21, rarity - 21), Nat.pow(20, rarity - 21)));
-        };
-        let stardustAmount = Nat.mul(16, factor);
-        return stardustAmount;
-    };
-
     // Function to calculate the upgrade cost based on level
     public func calculateCost(level: Nat): Nat {
         var cost: Nat = 9;
@@ -65,6 +82,8 @@ module Utils {
         };
         return cost;
     };
+
+    public type PlayerId = Types.PlayerId;
 
 
 // Missions Utils
