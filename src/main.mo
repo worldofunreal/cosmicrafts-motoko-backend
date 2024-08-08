@@ -33,7 +33,7 @@
     import Validator "Validator";
     import MissionOptions "MissionOptions";
 
-shared actor class CosmicraftsCosmicrafts() = Self {
+shared actor class Cosmicrafts() = Self {
 // Types
   public type PlayerId = Types.PlayerId;
   public type Username = Types.Username;
@@ -110,6 +110,10 @@ shared actor class CosmicraftsCosmicrafts() = Self {
 // Admin Tools
 
     // migrations BEFORE deployment
+
+    // Nulls or Anons cannot use matchmaking (later add non registered players and Level req. + loss default inactivity)
+    let NULL_PRINCIPAL: Principal = Principal.fromText("aaaaa-aa");
+    let ANON_PRINCIPAL: Principal = Principal.fromText("2vxsx-fae");
     
 
     stable var _cosmicraftsPrincipal : Principal = Principal.fromText("bkyz2-fmaaa-aaaaa-qaaaq-cai");
@@ -153,7 +157,7 @@ shared actor class CosmicraftsCosmicrafts() = Self {
                     let result = await _burnToken(_caller, from, tokenId, now);
                     switch (result) {
                         case null return (true, "Token burned successfully.");
-                        case (?error) return (false, "Failed to burn token: " # transferErrorToText(error));
+                        case (?error) return (false, "Failed to burn token: " # Utils.transferErrorToText(error));
                     }
                 };
                 case (#GetCollectionOwner(_)) {
@@ -2612,10 +2616,6 @@ shared actor class CosmicraftsCosmicrafts() = Self {
 
 //--
 // Statistics
-
-  // Nulls or Anons cannot use matchmaking (later add non registered players and Level req. + loss default inactivity)
-  let NULL_PRINCIPAL: Principal = Principal.fromText("aaaaa-aa");
-  let ANON_PRINCIPAL: Principal = Principal.fromText("2vxsx-fae");
 
   stable var _basicStats: [(MatchID, BasicStats)] = [];
   var basicStats: HashMap.HashMap<MatchID, BasicStats> = HashMap.fromIter(_basicStats.vals(), 0, Utils._natEqual, Utils._natHash);
@@ -5282,7 +5282,6 @@ shared actor class CosmicraftsCosmicrafts() = Self {
 
     public shared({ caller }) func mintDeck(): async (Bool, Text, [TypesICRC7.TokenId]) {
 
-
         let units = ICRC7Utils.initDeck();
 
         var _deck = Buffer.Buffer<TypesICRC7.MintArgs>(8);
@@ -5335,6 +5334,15 @@ shared actor class CosmicraftsCosmicrafts() = Self {
         lastMintedId += 8;
 
         var lastTokenMinted: Nat = 0;
+
+        // Check if the caller has already minted a deck
+        if (mintedCallersMap.get(caller) != null) {
+            return (false, "Deck mint failed: Caller has already minted a deck", []);
+        };
+
+        // Record the caller's principal ID as having minted a deck
+        mintedCallersMap.put(caller, true);
+
         let now = Nat64.fromIntWrap(Time.now());
         let acceptedTo: TypesICRC7.Account = _acceptAccount({ owner = caller; subaccount = null });
         var _deckTokens: [TypesICRC7.TokenId] = [];
@@ -5379,9 +5387,6 @@ shared actor class CosmicraftsCosmicrafts() = Self {
         let _transaction: TypesICRC7.Transaction = _addTransaction(#mint, now, ?_deckTokens, ?acceptedTo, null, null, null, null, null);
         transactionSequentialIndex += 1;
 
-        // Record the caller's principal ID as having minted a deck
-        mintedCallersMap.put(caller, true);
-
         return (true, "Deck minted. # NFTs: " # Nat.toText(_deckTokens.size()), _deckTokens);
     };
     
@@ -5407,7 +5412,7 @@ shared actor class CosmicraftsCosmicrafts() = Self {
                     return (true, "NFT minted. Transaction ID: " # Nat.toText(_transactionID));
                 };
                 case (#Err(_e)) {
-                    return (false, "NFT mint failed: " # errorToText(_e));
+                    return (false, "NFT mint failed: " # Utils.errorToText(_e));
                 };
             };
     };
@@ -5476,28 +5481,6 @@ shared actor class CosmicraftsCosmicrafts() = Self {
                 return (false, Utils.handleChestError(_elem));
             };
         };
-    };
-
-    // Function to convert error to text
-    func errorToText(error: TypesICRC7.MintError): Text {
-        switch (error) {
-            case (#AlreadyExistTokenId) "Token ID already exists";
-            case (#GenericError(_g)) "GenericError: " # _g.message;
-            case (#InvalidRecipient) "InvalidRecipient";
-            case (#Unauthorized) "Unauthorized";
-            case (#SupplyCapOverflow) "SupplyCapOverflow";
-        }
-    };
-
-    func transferErrorToText(error: TypesICRC7.TransferError): Text {
-        switch (error) {
-            case (#CreatedInFuture(details)) "Created in future: Ledger time - " # Nat64.toText(details.ledger_time);
-            case (#Duplicate(details)) "Duplicate: Duplicate of - " # Nat.toText(details.duplicate_of);
-            case (#GenericError(details)) "Generic error: Code - " # Nat.toText(details.error_code) # ", Message - " # details.message;
-            case (#TemporarilyUnavailable {}) "Temporarily unavailable";
-            case (#TooOld) "Too old";
-            case (#Unauthorized(_)) "Unauthorized";
-        }
     };
 
 //--
