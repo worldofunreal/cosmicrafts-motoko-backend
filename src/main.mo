@@ -28,6 +28,7 @@
     import Int64 "mo:base/Int64";
     import ExperimentalCycles "mo:base/ExperimentalCycles";
     import ICRC1 "/icrc1/Canisters/..";
+    import MetadataUtils "MetadataUtils";
    // import AchievementMissionsTemplate "AchievementMissionsTemplate";
     import Validator "Validator";
     import MissionOptions "MissionOptions";
@@ -4153,13 +4154,15 @@ shared actor class CosmicraftsCosmicrafts() = Self {
     
     private let icrc7_InitArgs: TypesICRC7.CollectionInitArgs = {
         name = "Cosmicrafts NFTs";
-        symbol = "CCNFTs";
+        symbol = "Cosmicrafts";
         royalties = null; 
         royaltyRecipient = null;
-        description = ?"Cosmicrafts NFTs Collections";
+        description = ?"Trade, upgrade, and share with friends to unleash mayhem in the metaverse! Collect powerful spaceships, unlock legendary loot in mysterious metacubes, and craft your own style with unique avatars and rare items. Forge your cosmic empire and become a legend among the stars.";
         image = null;
         supplyCap = null; // No cap
     };
+
+    stable var lastMintedId: Nat = 0;
 
     private stable var owner: TypesICRC7.Account = icrc7_CollectionOwner;
     
@@ -5278,28 +5281,25 @@ shared actor class CosmicraftsCosmicrafts() = Self {
     var mintedCallersMap: HashMap.HashMap<Principal, Bool> = HashMap.fromIter(_mintedCallers.vals(), 0, Principal.equal, Principal.hash);
 
     public shared({ caller }) func mintDeck(): async (Bool, Text, [TypesICRC7.TokenId]) {
-        // Check if the caller has already minted a deck
-        if (mintedCallersMap.get(caller) != null) {
-            return (false, "Deck mint failed: Caller has already minted a deck", []);
-        };
+
 
         let units = ICRC7Utils.initDeck();
 
         var _deck = Buffer.Buffer<TypesICRC7.MintArgs>(8);
         var uuids = Buffer.Buffer<TypesICRC7.TokenId>(8);
 
-        // Generate the initial UUID
-        let initialUUID = await Utils.generateUUID64();
+        // Initialize the initial token ID from the counter
+        let initialTokenId = lastMintedId;
 
         for (i in Iter.range(0, 7)) {
             let (name, damage, hp, rarity) = units[i];
-            // Increment the UUID for each NFT
-            let uuid = initialUUID + i;
+            // Increment the token ID for each NFT
+            let tokenId = initialTokenId + i + 1; // Ensure we start from the next ID
             let generalMetadata: TypesICRC7.GeneralMetadata = {
                 category = ?#unit(#spaceship(null));
                 rarity = ?rarity;
                 faction = ?#Cosmicon;
-                id = uuid;
+                id = tokenId;
                 name = name;
                 description = name # " NFT";
                 image = "url_to_image";
@@ -5324,12 +5324,15 @@ shared actor class CosmicraftsCosmicrafts() = Self {
             };
             let _mintArgs: TypesICRC7.MintArgs = {
                 to = { owner = caller; subaccount = null };
-                token_id = uuid;
+                token_id = tokenId;
                 metadata = metadata; // Directly use the new NFTMetadata type
             };
             _deck.add(_mintArgs);
-            uuids.add(uuid); // Collect the UUIDs
+            uuids.add(tokenId); // Collect the token IDs
         };
+
+        // Update the last minted ID counter
+        lastMintedId += 8;
 
         var lastTokenMinted: Nat = 0;
         let now = Nat64.fromIntWrap(Time.now());
@@ -5384,51 +5387,29 @@ shared actor class CosmicraftsCosmicrafts() = Self {
     
 //--
 // Chests
-    private func mintChest(PlayerId: Principal, rarity: Nat): async (Bool, Text) {
-        let uuid = await Utils.generateUUID64();
-        let chestMetadata: TypesICRC7.Metadata = {
-            general = {
-                category = ?#chest({
-                    general = {
-                        category = null;
-                        rarity = ?rarity;
-                        faction = null;
-                        id = uuid;
-                        name = "Chest";
-                        description = "A treasure chest";
-                        image = "url_to_image";
-                    };
-                    soul = null;
-                });
-                rarity = ?rarity;
-                faction = null;
-                id = uuid;
-                name = "Chest";
-                description = "A treasure chest";
-                image = "url_to_image";
-            };
-            basic = null;
-            skills = null;
-            skins = null;
-            soul = null;
-        };
 
-        let _mintArgs: TypesICRC7.MintArgs = {
-            to = { owner = PlayerId; subaccount = null };
-            token_id = uuid;
-            metadata = chestMetadata;
-        };
+    public func mintChest(PlayerId: Principal, rarity: Nat): async (Bool, Text) {
+            let uuid = lastMintedId + 1;
+            lastMintedId := uuid;
+            
+            let chestMetadata = MetadataUtils.getChestMetadata(uuid, rarity);
 
-        let mintResult = await mintNFT(_mintArgs);
-        switch (mintResult) {
-            case (#Ok(_transactionID)) {
-                await updateMintedChests(PlayerId, uuid);
-                return (true, "NFT minted. Transaction ID: " # Nat.toText(_transactionID));
+            let _mintArgs: TypesICRC7.MintArgs = {
+                to = { owner = PlayerId; subaccount = null };
+                token_id = uuid;
+                metadata = chestMetadata;
             };
-            case (#Err(_e)) {
-                return (false, "NFT mint failed: " # errorToText(_e));
+
+            let mintResult = await mintNFT(_mintArgs);
+            switch (mintResult) {
+                case (#Ok(_transactionID)) {
+                    await updateMintedChests(PlayerId, uuid);
+                    return (true, "NFT minted. Transaction ID: " # Nat.toText(_transactionID));
+                };
+                case (#Err(_e)) {
+                    return (false, "NFT mint failed: " # errorToText(_e));
+                };
             };
-        };
     };
 
     public shared({ caller }) func openChest(chestID: Nat): async (Bool, Text) {
@@ -5497,7 +5478,6 @@ shared actor class CosmicraftsCosmicrafts() = Self {
         };
     };
 
-
     // Function to convert error to text
     func errorToText(error: TypesICRC7.MintError): Text {
         switch (error) {
@@ -5525,11 +5505,11 @@ shared actor class CosmicraftsCosmicrafts() = Self {
 
     private var init_args: TypesICRC1.TokenInitArgs = {
         name = "Stardust";
-        symbol = "SD";
+        symbol = "STDs";
         decimals = 8;
         logo = "logoGoesHere";
         fee = 1;
-        max_supply = 18_446_744_073_709_551_615;
+        max_supply = 10_000_000_000_000_000_000;
         initial_balances = [
             ({ owner = CANISTER_ID; subaccount = null }, 0)
         ];
