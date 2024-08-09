@@ -359,6 +359,7 @@ public type SoulMetadata = {
     gamesPlayed: ?Nat;
     totalKills: ?Nat;
     totalDamageDealt: ?Nat;
+    combatExperience: Nat;
 };
 
 // Skill Metadata

@@ -2,6 +2,7 @@
     import Float "mo:base/Float";
     import HashMap "mo:base/HashMap";
     import Int "mo:base/Int";
+    import Result "mo:base/Result";
     import Iter "mo:base/Iter";
     import Nat "mo:base/Nat";
     import Nat64 "mo:base/Nat64";
@@ -69,6 +70,7 @@ shared actor class Cosmicrafts() = Self {
   public type MatchData = Types.MatchData;
   public type FullMatchData = Types.FullMatchData;
   public type MatchID = Types.MatchID;
+  public type PlayerGameData = Types.PlayerGameData;
 
   public type MissionType = Types.MissionType;
   public type RewardType = Types.MissionRewardType;
@@ -6603,4 +6605,148 @@ shared actor class Cosmicrafts() = Self {
     };
 
 //--
+// Combat XP
+
+// Function to randomly select 3 units from the player's deck
+public func selectRandomUnits(deck: [TypesICRC7.TokenId]): async [TypesICRC7.TokenId] {
+    let indices: [Nat] = Array.tabulate(deck.size(), func(i: Nat): Nat { i });
+    let shuffledIndices = await Utils.shuffleArray(indices);
+    let selectedUnitsBuffer = Buffer.Buffer<TypesICRC7.TokenId>(3);
+
+    for (i in Iter.range(0, 2)) {
+        selectedUnitsBuffer.add(deck[shuffledIndices[i]]);
+    };
+
+    return Buffer.toArray(selectedUnitsBuffer);
+};
+
+// Function to distribute XP among selected units
+func distributeXP(totalXP: Nat, selectedUnits: [TypesICRC7.TokenId]): async [Nat] {
+    let totalCombatXP = totalXP / 100;
+    var xpDistribution = Buffer.Buffer<Nat>(3);
+
+    // Distribute XP based on rarity
+    for (i in Iter.range(0, 2)) {
+        let unit = selectedUnits[i];
+        let metadataResult = await icrc7_metadata(unit);
+        let unitXP = switch (metadataResult) {
+            case (#Ok(metadata)) {
+                let rarityFactor = switch (metadata.general.rarity) {
+                    case (?1) 1;  // Common
+                    case (?2) 2;  // Rare
+                    case (?3) 3;  // Epic
+                    case (?4) 4;  // Legendary
+                    case null 1;  // Default to common
+                };
+                totalCombatXP * rarityFactor;
+            };
+            case (#Err(_)) 0; // In case of an error, assign no XP
+        };
+        xpDistribution.add(unitXP);
+    };
+
+    // Convert Buffer to Array
+    let xpArray = Buffer.toArray(xpDistribution);
+
+    // Sum the distributed XP using foldLeft
+    let totalDistributedXP = Array.foldLeft<Nat, Nat>(xpArray, 0, func(acc: Nat, xp: Nat): Nat {
+        acc + xp
+    });
+
+    let remainingXP = totalCombatXP - totalDistributedXP;
+
+    // Convert to mutable array, modify, then freeze it back
+    let mutableXPArray = Array.thaw<Nat>(xpArray);
+    mutableXPArray[0] += remainingXP;  // Add any remaining XP to the first unit
+    let finalXPArray = Array.freeze<Nat>(mutableXPArray);
+
+    return finalXPArray;
+};
+
+// Function to apply XP to the units' Soul metadata
+func applyXPToUnits(selectedUnits: [TypesICRC7.TokenId], xpDistribution: [Nat], caller: Principal): async [TypesICRC7.TokenId] {
+    var updatedUnits = Buffer.Buffer<TypesICRC7.TokenId>(3); // Using a Buffer for efficient memory management
+    
+    for (i in Iter.range(0, 2)) {
+        let unit = selectedUnits[i];
+        let xp = xpDistribution[i];
+        
+        // Retrieve the full TokenMetadata, including owner and metadata
+        let tokenResult = await icrc7_metadata(unit);
+        
+        switch (tokenResult) {
+            case (#Ok(tokenMetadata)) {
+                // `tokenMetadata` is of type `TokenMetadata`, so access the `metadata` field directly
+                let originalMetadata = tokenMetadata;
+
+                // Create a new SoulMetadata with updated combatExperience
+                let newSoul = switch (originalMetadata.soul) {
+                    case (?soul) {
+                        {
+                            birth = soul.birth;
+                            gamesPlayed = soul.gamesPlayed;
+                            totalKills = soul.totalKills;
+                            totalDamageDealt = soul.totalDamageDealt;
+                            combatExperience = soul.combatExperience + xp;
+                        };
+                    };
+                    case null {
+                        {
+                            birth = Time.now();
+                            gamesPlayed = ?0;
+                            totalKills = ?0;
+                            totalDamageDealt = ?0;
+                            combatExperience = xp;
+                        };
+                    };
+                };
+
+                // Now we should proceed with updating the metadata
+                let newMetadata = {
+                    category = originalMetadata.category;
+                    general = originalMetadata.general;
+                    basic = originalMetadata.basic;
+                    skills = originalMetadata.skills;
+                    skins = originalMetadata.skins;
+                    soul = ?newSoul;
+                };
+
+                // Update the token metadata, using the caller (Principal) as the owner
+                let updateResult = await _updateTokenMetadata(unit, ?newMetadata, caller);
+
+                // Handle the result
+                switch (updateResult) {
+                    case (#Ok(_)) updatedUnits.add(unit);
+                    case (#Err(_)) {};  // Handle update errors, if necessary
+                };
+            };
+            case (#Err(_)) {};  // Handle retrieval errors, if necessary
+        };
+    };
+
+    // Convert Buffer to Array before returning
+    return Buffer.toArray(updatedUnits);
+};
+
+// Helper function to update token metadata
+private func _updateTokenMetadata(tokenId: TypesICRC7.TokenId, newMetadata: ?TypesICRC7.Metadata, caller: Principal) : async UpdateResult {
+    // Update the token metadata in the Trie
+    let tokenExists = _exists(tokenId);
+    if (tokenExists) {
+        let ownerInfo = { owner = caller; subaccount = null }; // Create the owner object with the caller and no subaccount
+        _updateToken(tokenId, ?ownerInfo, newMetadata); // Update the metadata with the correct owner structure
+        return #Ok(());
+    } else {
+        return #Err("Token does not exist");
+    }
+};
+
+
+private type UpdateResult = {
+    #Ok;
+    #Err: Text;
+};
+
+//--
+
 }

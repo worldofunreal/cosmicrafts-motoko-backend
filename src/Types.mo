@@ -1,4 +1,5 @@
 import Time "mo:base/Time";
+import TypesICRC7 "/icrc7/types"
 
 module Types {
 // General Types
@@ -320,5 +321,10 @@ module Types {
     result: MatchResult;
     timestamp: Time.Time;
     mode: MatchOpt;
+  };
+
+  public type PlayerGameData = {
+      deck: [TypesICRC7.TokenId]; // Array of token IDs
+      // Add other relevant fields here if necessary
   };
 }
