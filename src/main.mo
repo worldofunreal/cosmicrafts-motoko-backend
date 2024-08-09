@@ -121,7 +121,7 @@ shared actor class Cosmicrafts() = Self {
     let ADMIN_PRINCIPAL = Principal.fromText("vam5o-bdiga-izgux-6cjaz-53tck-eezzo-fezki-t2sh6-xefok-dkdx7-pae");
 
     //mainnet
-    let CANISTER_ID = Principal.fromText("fdaor-cqaaa-aaaao-ai7nq-cai");
+    let CANISTER_ID = Principal.fromText("opcce-byaaa-aaaak-qcgda-cai");
 
     //local
     //let CANISTER_ID = Principal.fromText("bkyz2-fmaaa-aaaaa-qaaaq-cai");
