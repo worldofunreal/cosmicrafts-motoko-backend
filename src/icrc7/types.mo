@@ -246,6 +246,7 @@ module {
 
 // Root Type for NFT Metadata
 public type Metadata = {
+    category: Category;
     general: GeneralMetadata;
     basic: ?BasicMetadata;
     skills: ?SkillMetadata;
@@ -255,7 +256,6 @@ public type Metadata = {
 
 // General Metadata
 public type GeneralMetadata = {
-    category: ?Category;
     rarity: ?Nat;
     faction: ?Faction;
     id: Nat;
@@ -336,25 +336,21 @@ public type WeaponMetadata = {
 // Avatar Metadata
 public type AvatarMetadata = {
     general: GeneralMetadata;
-    soul: ?SoulMetadata;
 };
 
 // Chest Metadata
 public type ChestMetadata = {
     general: GeneralMetadata;
-    soul: ?SoulMetadata;
 };
 
 // Trophy Metadata
 public type TrophyMetadata = {
     general: GeneralMetadata;
-    soul: ?SoulMetadata;
 };
 
 // Skin Metadata
 public type SkinMetadata = {
     general: GeneralMetadata;
-    soul: ?SoulMetadata;
 };
 
 // Soul Metadata

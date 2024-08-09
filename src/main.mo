@@ -5001,6 +5001,7 @@ shared actor class Cosmicrafts() = Self {
 
                         // Reassign the updated metadata
                         updatedMetadata := {
+                            category = updatedMetadata.category;
                             general = updatedMetadata.general;
                             basic = ?newBasic;
                             skills = updatedMetadata.skills;
@@ -5135,16 +5136,11 @@ shared actor class Cosmicrafts() = Self {
             let key = entry.0;
             let value = entry.1;
             if (value.owner.owner == caller) {
-                switch (value.metadata.general.category) {
-                    case (?cat) {
-                        switch (cat) {
-                            case (#unit(_)) {
-                                resultBuffer.add((key, value));
-                            };
-                            case (_) {};
-                        };
+                switch (value.metadata.category) {
+                    case (#unit(_)) {
+                        resultBuffer.add((key, value));
                     };
-                    case null {};
+                    case (_) {}; // No match
                 };
             };
         };
@@ -5159,16 +5155,11 @@ shared actor class Cosmicrafts() = Self {
             let key = entry.0;
             let value = entry.1;
             if (value.owner.owner == caller) {
-                switch (value.metadata.general.category) {
-                    case (?cat) {
-                        switch (cat) {
-                            case (#chest(_)) {
-                                resultBuffer.add((key, value));
-                            };
-                            case (_) {}; // No match
-                        };
+                switch (value.metadata.category) {
+                    case (#chest(_)) {
+                        resultBuffer.add((key, value));
                     };
-                    case null {};
+                    case (_) {}; // No match
                 };
             };
         };
@@ -5183,16 +5174,11 @@ shared actor class Cosmicrafts() = Self {
             let key = entry.0;
             let value = entry.1;
             if (value.owner.owner == caller) {
-                switch (value.metadata.general.category) {
-                    case (?cat) {
-                        switch (cat) {
-                            case (#avatar(_)) {
-                                resultBuffer.add((key, value));
-                            };
-                            case (_) {}; // No match
-                        };
+                switch (value.metadata.category) {
+                    case (#avatar(_)) {
+                        resultBuffer.add((key, value));
                     };
-                    case null {};
+                    case (_) {}; // No match
                 };
             };
         };
@@ -5207,16 +5193,11 @@ shared actor class Cosmicrafts() = Self {
             let key = entry.0;
             let value = entry.1;
             if (value.owner.owner == caller) {
-                switch (value.metadata.general.category) {
-                    case (?cat) {
-                        switch (cat) {
-                            case (#character(_)) {
-                                resultBuffer.add((key, value));
-                            };
-                            case (_) {}; // No match
-                        };
+                switch (value.metadata.category) {
+                    case (#character(_)) {
+                        resultBuffer.add((key, value));
                     };
-                    case null {};
+                    case (_) {}; // No match
                 };
             };
         };
@@ -5231,21 +5212,17 @@ shared actor class Cosmicrafts() = Self {
             let key = entry.0;
             let value = entry.1;
             if (value.owner.owner == caller) {
-                switch (value.metadata.general.category) {
-                    case (?cat) {
-                        switch (cat) {
-                            case (#trophy(_)) {
-                                resultBuffer.add((key, value));
-                            };
-                            case (_) {}; // No match
-                        };
+                switch (value.metadata.category) {
+                    case (#trophy(_)) {
+                        resultBuffer.add((key, value));
                     };
-                    case null {};
+                    case (_) {}; // No match
                 };
             };
         };
         return Buffer.toArray(resultBuffer);
     };
+
 
 
 //--
@@ -5258,7 +5235,7 @@ shared actor class Cosmicrafts() = Self {
 
     public shared({ caller }) func mintDeck(): async (Bool, Text, [TypesICRC7.TokenId]) {
 
-        let units = ICRC7Utils.initDeck();
+        let units = ICRC7Utils.initDeck(); // Initialize the deck with units
 
         var _deck = Buffer.Buffer<TypesICRC7.MintArgs>(8);
         var uuids = Buffer.Buffer<TypesICRC7.TokenId>(8);
@@ -5266,19 +5243,25 @@ shared actor class Cosmicrafts() = Self {
         // Initialize the initial token ID from the counter
         let initialTokenId = lastMintedId;
 
+        // Assign unique general IDs from 1 to 8
         for (i in Iter.range(0, 7)) {
-            let (name, damage, hp, rarity) = units[i];
+            let (name, damage, hp, rarity, description, image) = units[i];
+
+            // Assign the general ID sequentially from 1 to 8
+            let generalId = i + 1;
+
             // Increment the token ID for each NFT
             let tokenId = initialTokenId + i + 1; // Ensure we start from the next ID
+
             let generalMetadata: TypesICRC7.GeneralMetadata = {
-                category = ?#unit(#spaceship(null));
                 rarity = ?rarity;
                 faction = ?#Cosmicon;
-                id = tokenId;
+                id = generalId; // Assign a unique generalId from 1 to 8
                 name = name;
-                description = name # " NFT";
-                image = "url_to_image";
+                description = description;
+                image = image;
             };
+
             let spaceshipMetadata: TypesICRC7.SpaceshipMetadata = {
                 general = generalMetadata;
                 basic = ?{
@@ -5290,18 +5273,22 @@ shared actor class Cosmicrafts() = Self {
                 skins = null;  // Set to null for now, can be updated later
                 soul = null;   // Set to null for now, can be updated later
             };
+
             let metadata: TypesICRC7.Metadata = {
+                category = #unit(#spaceship(?spaceshipMetadata)); // Correctly set the category here
                 general = spaceshipMetadata.general;
                 basic = spaceshipMetadata.basic;
                 skills = spaceshipMetadata.skills;
                 skins = spaceshipMetadata.skins;
                 soul = spaceshipMetadata.soul;
             };
+
             let _mintArgs: TypesICRC7.MintArgs = {
                 to = { owner = caller; subaccount = null };
                 token_id = tokenId;
                 metadata = metadata; // Directly use the new NFTMetadata type
             };
+
             _deck.add(_mintArgs);
             uuids.add(tokenId); // Collect the token IDs
         };
@@ -5365,6 +5352,8 @@ shared actor class Cosmicrafts() = Self {
 
         return (true, "Deck minted. # NFTs: " # Nat.toText(_deckTokens.size()), _deckTokens);
     };
+
+
     
 //--
 // Chests
