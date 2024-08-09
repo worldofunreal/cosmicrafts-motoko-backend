@@ -5094,37 +5094,37 @@ shared actor class Cosmicrafts() = Self {
     };
 
     // Queries
-    public query ({ caller }) func getNFTs() : async [(TypesICRC7.TokenId, TypesICRC7.TokenMetadata)] {
+    public query func getNFTs(principal: Principal) : async [(TypesICRC7.TokenId, TypesICRC7.TokenMetadata)] {
         let entries = Iter.toArray(Trie.iter(tokens));
         var resultBuffer = Buffer.Buffer<(TypesICRC7.TokenId, TypesICRC7.TokenMetadata)>(0);
         for (entry in entries.vals()) {
             let key = entry.0;
             let value = entry.1;
-            if (value.owner.owner == caller) {
+            if (value.owner.owner == principal) {
                 resultBuffer.add((key, value));
             };
         };
         return Buffer.toArray(resultBuffer);
     };
 
-    public query ({ caller }) func getUnits() : async [(TypesICRC7.TokenId, TypesICRC7.TokenMetadata)] {
-        return _filterNFTsByUnitCategory(caller);
+    public query func getUnits(principal: Principal) : async [(TypesICRC7.TokenId, TypesICRC7.TokenMetadata)] {
+        return _filterNFTsByUnitCategory(principal);
     };
 
-    public query ({ caller }) func getChests() : async [(TypesICRC7.TokenId, TypesICRC7.TokenMetadata)] {
-        return _filterNFTsByChestCategory(caller);
+    public query func getChests(principal: Principal) : async [(TypesICRC7.TokenId, TypesICRC7.TokenMetadata)] {
+        return _filterNFTsByChestCategory(principal);
     };
 
-    public query ({ caller }) func getAvatars() : async [(TypesICRC7.TokenId, TypesICRC7.TokenMetadata)] {
-        return _filterNFTsByAvatarCategory(caller);
+    public query func getAvatars(principal: Principal) : async [(TypesICRC7.TokenId, TypesICRC7.TokenMetadata)] {
+        return _filterNFTsByAvatarCategory(principal);
     };
 
-    public query ({ caller }) func getCharacters() : async [(TypesICRC7.TokenId, TypesICRC7.TokenMetadata)] {
-        return _filterNFTsByCharacterCategory(caller);
+    public query func getCharacters(principal: Principal) : async [(TypesICRC7.TokenId, TypesICRC7.TokenMetadata)] {
+        return _filterNFTsByCharacterCategory(principal);
     };
 
-    public query ({ caller }) func getTrophies() : async [(TypesICRC7.TokenId, TypesICRC7.TokenMetadata)] {
-        return _filterNFTsByTrophyCategory(caller);
+    public query func getTrophies(principal: Principal) : async [(TypesICRC7.TokenId, TypesICRC7.TokenMetadata)] {
+        return _filterNFTsByTrophyCategory(principal);
     };
 
     // Helper function to filter NFTs by unit categories
