@@ -3,9 +3,23 @@ import TypesICRC7 "/icrc7/types";
 module MetadataUtils {
 
     public func getChestMetadata(uuid: Nat, rarity: Nat): TypesICRC7.Metadata {
-        let generalMetadata = {
+        // Manually assign a faction based on rarity
+        let faction = switch rarity {
+            case (1) { #Cosmicon };
+            case (2) { #Spirat };
+            case (3) { #Webe };
+            case (4) { #Spade };
+            case (5) { #Arch };
+            case (6) { #Celestial };
+            case (7) { #Neutral };
+            case (8) { #Cosmicon }; // Default case
+            case (_) { #Cosmicon }; // Fallback case
+        };
+
+        // Define the general metadata
+        let generalMetadata: TypesICRC7.GeneralMetadata = {
             rarity = ?rarity;
-            faction = null;
+            faction = ?faction;
             id = uuid;
             name = switch rarity {
                 case (1) { "Cosmic Cache" };
@@ -42,11 +56,9 @@ module MetadataUtils {
             };
         };
 
+        // Return the complete metadata
         return {
-            category = #chest({
-                general = generalMetadata;
-                soul = null;
-            });
+            category = #Chest; // This is the correct category type for a chest
             general = generalMetadata;
             basic = null;
             skills = null;
@@ -54,5 +66,6 @@ module MetadataUtils {
             soul = null;
         };
     };
+
 
 }

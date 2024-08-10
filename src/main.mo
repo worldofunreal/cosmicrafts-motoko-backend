@@ -80,6 +80,7 @@ shared actor class Cosmicrafts() = Self {
   public type MissionTemplate = Types.MissionTemplate;
   public type RewardPool = Types.RewardPool;
   public type MissionOption = Types.MissionOption;
+  public type TokenId = TypesICRC7.TokenId;
 
   
 
@@ -385,21 +386,21 @@ shared actor class Cosmicrafts() = Self {
 
     // Function to update progress for general missions
     func updateGeneralMissionProgress(user: Principal, missionsProgress: [MissionProgress]): async (Bool, Text) {
-        Debug.print("[updateGeneralMissionProgress] Updating general mission progress for user: " # Principal.toText(user));
-        Debug.print("[updateGeneralMissionProgress] Missions progress: " # debug_show(missionsProgress));
+        //Debug.print("[updateGeneralMissionProgress] Updating general mission progress for user: " # Principal.toText(user));
+        //Debug.print("[updateGeneralMissionProgress] Missions progress: " # debug_show(missionsProgress));
 
         var userMissions: [MissionsUser] = switch (generalUserProgress.get(user)) {
             case (null) { [] };
             case (?missions) { missions };
         };
 
-        Debug.print("[updateGeneralMissionProgress] User's current missions: " # debug_show(userMissions));
+        //Debug.print("[updateGeneralMissionProgress] User's current missions: " # debug_show(userMissions));
 
         let now: Nat64 = Nat64.fromNat(Int.abs(Time.now()));
         let updatedMissions = Buffer.Buffer<MissionsUser>(userMissions.size());
 
         for (mission in userMissions.vals()) {
-            Debug.print("[updateGeneralMissionProgress] Processing mission: " # debug_show(mission));
+            //Debug.print("[updateGeneralMissionProgress] Processing mission: " # debug_show(mission));
             if (mission.finished) {
                 updatedMissions.add(mission);
             } else {
@@ -407,7 +408,7 @@ shared actor class Cosmicrafts() = Self {
                 for (progress in missionsProgress.vals()) {
                     if (mission.missionType == progress.missionType) {
                         let updatedProgress = mission.progress + progress.progress;
-                        Debug.print("[updateGeneralMissionProgress] Updated progress for missionType " # debug_show(mission.missionType) # ": " # debug_show(updatedProgress));
+                        //Debug.print("[updateGeneralMissionProgress] Updated progress for missionType " # debug_show(mission.missionType) # ": " # debug_show(updatedProgress));
                         if (updatedProgress >= mission.total) {
                             updatedMission := {
                                 mission with
@@ -428,7 +429,7 @@ shared actor class Cosmicrafts() = Self {
         };
 
         generalUserProgress.put(user, Buffer.toArray(updatedMissions));
-        Debug.print("[updateGeneralMissionProgress] Updated user missions: " # debug_show(generalUserProgress.get(user)));
+        //Debug.print("[updateGeneralMissionProgress] Updated user missions: " # debug_show(generalUserProgress.get(user)));
         return (true, "Progress added successfully to general missions");
     };
 
@@ -679,7 +680,7 @@ shared actor class Cosmicrafts() = Self {
 
     // Function to create a new user-specific mission
     public func createUserMission(user: PlayerId): async (Bool, Text, Nat) {
-        Debug.print("[createUserMission] Start creating mission for user: " # Principal.toText(user));
+        //Debug.print("[createUserMission] Start creating mission for user: " # Principal.toText(user));
 
         var _userMissionsList: Buffer.Buffer<Mission> = switch (userMissions.get(user)) {
             case (null) { Buffer.Buffer<Mission>(0) };
@@ -696,10 +697,10 @@ shared actor class Cosmicrafts() = Self {
             let currentTime = Nat64.fromNat(Int.abs(Time.now()));
 
             if (not lastMissionProgress.finished and currentTime <= lastMissionProgress.expiration) {
-                Debug.print("[createUserMission] Current mission is still active: " # debug_show(lastMissionProgress));
+                //Debug.print("[createUserMission] Current mission is still active: " # debug_show(lastMissionProgress));
                 return (false, "Current mission is still active", lastMissionProgress.id_mission);
             } else {
-                Debug.print("[createUserMission] Current mission is not active or is finished");
+                //Debug.print("[createUserMission] Current mission is not active or is finished");
             }
         };
 
@@ -803,21 +804,21 @@ shared actor class Cosmicrafts() = Self {
             wonGame: Bool;
         }): async (Bool, Text) {
 
-        Debug.print("[updateUserMissions] Updating user-specific mission progress for user: " # Principal.toText(user));
-        Debug.print("[updateUserMissions] Player stats: " # debug_show(playerStats));
+        //Debug.print("[updateUserMissions] Updating user-specific mission progress for user: " # Principal.toText(user));
+        //Debug.print("[updateUserMissions] Player stats: " # debug_show(playerStats));
 
         var userSpecificProgressList = switch (userMissionProgress.get(user)) {
             case (null) { [] };
             case (?progress) { progress };
         };
 
-        Debug.print("[updateUserMissions] User's current missions: " # debug_show(userSpecificProgressList));
+        //Debug.print("[updateUserMissions] User's current missions: " # debug_show(userSpecificProgressList));
 
         let now: Nat64 = Nat64.fromNat(Int.abs(Time.now()));
         let updatedMissions = Buffer.Buffer<MissionsUser>(userSpecificProgressList.size());
 
         for (mission in userSpecificProgressList.vals()) {
-            Debug.print("[updateUserMissions] Processing mission: " # debug_show(mission));
+            //Debug.print("[updateUserMissions] Processing mission: " # debug_show(mission));
             if (mission.finished) {
                 updatedMissions.add(mission);
             } else {
@@ -858,7 +859,7 @@ shared actor class Cosmicrafts() = Self {
                     };
                 };
 
-                Debug.print("[updateUserMissions] Updated mission progress: " # debug_show(updatedMission.progress));
+                //Debug.print("[updateUserMissions] Updated mission progress: " # debug_show(updatedMission.progress));
 
                 if (updatedMission.progress >= updatedMission.total) {
                     updatedMission := {
@@ -874,20 +875,20 @@ shared actor class Cosmicrafts() = Self {
         };
 
         userMissionProgress.put(user, Buffer.toArray(updatedMissions));
-        Debug.print("[updateUserMissions] Updated user missions: " # debug_show(userMissionProgress.get(user)));
+        //Debug.print("[updateUserMissions] Updated user missions: " # debug_show(userMissionProgress.get(user)));
         return (true, "Progress updated successfully in user-specific missions");
     };
 
     // Function to assign new user-specific missions to a user
     func assignUserMissions(user: PlayerId): async () {
-        Debug.print("[assignUserMissions] Assigning new user-specific missions to user: " # Principal.toText(user));
+        //Debug.print("[assignUserMissions] Assigning new user-specific missions to user: " # Principal.toText(user));
 
         var userSpecificProgressList: [MissionsUser] = switch (userMissionProgress.get(user)) {
             case (null) { [] };
             case (?missions) { missions };
         };
 
-        Debug.print("[assignUserMissions] User missions before update: " # debug_show(userSpecificProgressList));
+        //Debug.print("[assignUserMissions] User missions before update: " # debug_show(userSpecificProgressList));
 
         var claimedRewardsForUser: [Nat] = switch (userClaimedRewards.get(user)) {
             case (null) { [] };
@@ -934,13 +935,13 @@ shared actor class Cosmicrafts() = Self {
         };
 
         userMissionProgress.put(user, Buffer.toArray(buffer));
-        Debug.print("[assignUserMissions] User missions after update: " # debug_show(userMissionProgress.get(user)));
+        //Debug.print("[assignUserMissions] User missions after update: " # debug_show(userMissionProgress.get(user)));
     };
 
     public shared ({ caller }) func getUserMissions(): async [MissionsUser] {
         // Step 1: Immediately create a new user-specific mission
-        let (created, message, _missionId) = await createUserMission(caller);
-        Debug.print("[getUserMissions] createUserMission result: " # debug_show(created) # ", message: " # message);
+        //let (created, message, _missionId) = await createUserMission(caller);
+        //Debug.print("[getUserMissions] createUserMission result: " # debug_show(created) # ", message: " # message);
 
         // Step 2: Search for active user-specific missions assigned to the user
         var activeMissions: [MissionsUser] = await searchActiveUserMissions(caller);
@@ -1229,14 +1230,14 @@ shared actor class Cosmicrafts() = Self {
         user: PlayerId, 
         progressList: [AchievementProgress]
         ): async (Bool, Text) {
-        Debug.print("[updateIndividualAchievementProgress] Updating achievement progress for user: " # Principal.toText(user));
+        //Debug.print("[updateIndividualAchievementProgress] Updating achievement progress for user: " # Principal.toText(user));
 
         var userProgress: [AchievementProgress] = switch (achievementProgress.get(user)) {
             case (null) { [] };
             case (?progress) { progress };
         };
 
-        Debug.print("[updateIndividualAchievementProgress] User's current achievements: " # debug_show(userProgress));
+        //Debug.print("[updateIndividualAchievementProgress] User's current achievements: " # debug_show(userProgress));
 
         let updatedProgress = Buffer.Buffer<AchievementProgress>(userProgress.size());
 
@@ -1270,7 +1271,7 @@ shared actor class Cosmicrafts() = Self {
         };
 
         achievementProgress.put(user, Buffer.toArray(updatedProgress));
-        Debug.print("[updateIndividualAchievementProgress] Updated user achievements: " # debug_show(achievementProgress.get(user)));
+        //Debug.print("[updateIndividualAchievementProgress] Updated user achievements: " # debug_show(achievementProgress.get(user)));
         return (true, "Achievement progress updated successfully");
     };
 
@@ -1824,7 +1825,7 @@ shared actor class Cosmicrafts() = Self {
         characterID: Nat;
         botDifficulty: Nat;
         kills: Nat;
-        }) : async (Bool, Text) {
+        }): async (Bool, Text) {
         var _txt: Text = "";
 
         let playerStats = {
@@ -1856,8 +1857,7 @@ shared actor class Cosmicrafts() = Self {
             case (?_) { true };
         };
 
-        // Pass xpEarned to setGameOver
-        let endingGame: (Bool, Bool, ?Principal) = await setGameOver(msg.caller, playerStats.xpEarned);
+        let endingGame: (Bool, Bool, ?Principal) = await setGameOver(msg.caller);
         let isPartOfMatch = await isCallerPartOfMatch(matchID, msg.caller);
         if (not isPartOfMatch) {
             return (false, "You are not part of this match.");
@@ -1877,6 +1877,24 @@ shared actor class Cosmicrafts() = Self {
                 };
             };
         };
+
+        // Retrieve the player's current deck from the Trie
+        let playerDeckOpt = Trie.get(playerDecks, _keyFromPrincipal(msg.caller), Principal.equal);
+        let playerDeck = switch(playerDeckOpt) {
+            case (null) {
+                return (false, "Error: No deck found for the player.");
+            };
+            case (?data) {
+                data.deck
+            };
+        };
+
+        // Update games played in the soul metadata
+        ignore await updateSoulNFTPlayed(playerDeck);
+
+        // Call handleCombatXP with the retrieved deck, total XP, and the player's Principal
+        let updatedUnits = await handleCombatXP(playerDeck, playerStats.xpEarned);
+        Debug.print("Updated units after combat XP handling: " # debug_show(updatedUnits));
 
         if (not isExistingMatch) {
             let newBasicStats: BasicStats = {
@@ -1983,7 +2001,6 @@ shared actor class Cosmicrafts() = Self {
             };
         };
     };
-
 
 //--
 // Players
@@ -2952,77 +2969,6 @@ shared actor class Cosmicrafts() = Self {
 //--
 // MatchMaking
 
-    func setGameOver(caller: Principal, xpGained: Nat) : async (Bool, Bool, ?Principal) {
-        switch (playerStatus.get(caller)) {
-            case (null) {
-                return (false, false, null);
-            };
-            case (?status) {
-                switch (inProgress.get(status.matchID)) {
-                    case (null) {
-                        switch (searching.get(status.matchID)) {
-                            case (null) {
-                                switch (finishedGames.get(status.matchID)) {
-                                    case (null) {
-                                        return (false, false, null);
-                                    };
-                                    case (?match) {
-                                        // Game is not on the searching or in-progress list, so we just remove the status from the player
-                                        playerStatus.delete(caller);
-
-                                        // Retrieve player's game data
-                                        let playerData: PlayerGameData = match.player1.playerGameData; // Assuming caller is player1
-                                        let deck = playerData.deck;
-
-                                        // Apply XP to units if the match is finished
-                                        let selectedUnits = await selectRandomUnits(deck);
-                                        let xpDistribution = await distributeXP(xpGained, selectedUnits); // Use the passed xpGained
-                                        let _updatedUnits = await applyXPToUnits(selectedUnits, xpDistribution, caller);
-
-                                        return (true, caller == match.player1.id, getOtherPlayer(match, caller));
-                                    };
-                                };
-                            };
-                            case (?match) {
-                                // Game is on Searching list, so we remove it, add it to the finished list and remove the status from the player
-                                finishedGames.put(status.matchID, match);
-                                searching.delete(status.matchID);
-                                playerStatus.delete(caller);
-
-                                // Retrieve player's game data
-                                let playerData: PlayerGameData = match.player1.playerGameData; // Assuming caller is player1
-                                let deck = playerData.deck;
-
-                                // Apply XP to units if the match is finished
-                                let selectedUnits = await selectRandomUnits(deck);
-                                let xpDistribution = await distributeXP(xpGained, selectedUnits); // Use the passed xpGained
-                                let _updatedUnits = await applyXPToUnits(selectedUnits, xpDistribution, caller);
-
-                                return (true, caller == match.player1.id, getOtherPlayer(match, caller));
-                            };
-                        };
-                    };
-                    case (?match) {
-                        // Game is on in-progress list, so we remove it, add it to the finished list and remove the status from the player
-                        finishedGames.put(status.matchID, match);
-                        inProgress.delete(status.matchID);
-                        playerStatus.delete(caller);
-
-                        // Retrieve player's game data
-                        let playerData: PlayerGameData = match.player1.playerGameData; // Assuming caller is player1
-                        let deck = playerData.deck;
-
-                        // Apply XP to units if the match is finished
-                        let selectedUnits = await selectRandomUnits(deck);
-                        let xpDistribution = await distributeXP(xpGained, selectedUnits); // Use the passed xpGained
-                        let _updatedUnits = await applyXPToUnits(selectedUnits, xpDistribution, caller);
-
-                        return (true, caller == match.player1.id, getOtherPlayer(match, caller));
-                    };
-                };
-            };
-        };
-    };
 
   stable var _matchID : Nat = 0;
   var inactiveSeconds : Nat64 = 30 * ONE_SECOND;
@@ -4964,6 +4910,92 @@ shared actor class Cosmicrafts() = Self {
             return null;
     };
 
+
+
+    // Queries
+    public query func getNFTs(principal: Principal) : async [(TypesICRC7.TokenId, TypesICRC7.TokenMetadata)] {
+        let entries = Iter.toArray(Trie.iter(tokens));
+        var resultBuffer = Buffer.Buffer<(TypesICRC7.TokenId, TypesICRC7.TokenMetadata)>(0);
+        for (entry in entries.vals()) {
+            let key = entry.0;
+            let value = entry.1;
+            if (value.owner.owner == principal) {
+                resultBuffer.add((key, value));
+            };
+        };
+        return Buffer.toArray(resultBuffer);
+    };
+
+    public query func getChests(principal: Principal) : async [(TypesICRC7.TokenId, TypesICRC7.TokenMetadata)] {
+        return _filterNFTsByCategory(principal, "Chest");
+    };
+
+    public query func getAvatars(principal: Principal) : async [(TypesICRC7.TokenId, TypesICRC7.TokenMetadata)] {
+        return _filterNFTsByCategory(principal, "Avatar");
+    };
+
+    public query func getCharacters(principal: Principal) : async [(TypesICRC7.TokenId, TypesICRC7.TokenMetadata)] {
+        return _filterNFTsByCategory(principal, "Character");
+    };
+
+    public query func getTrophies(principal: Principal) : async [(TypesICRC7.TokenId, TypesICRC7.TokenMetadata)] {
+        return _filterNFTsByCategory(principal, "Trophy");
+    };
+
+    public query func getUnits(principal: Principal) : async [(TypesICRC7.TokenId, TypesICRC7.TokenMetadata)] {
+        return _filterNFTsByCategory(principal, "Unit");
+    };
+
+
+    // Helper function to filter NFTs by a specified category
+    private func _filterNFTsByCategory(caller: Principal, category: Text) : [(TypesICRC7.TokenId, TypesICRC7.TokenMetadata)] {
+        let entries = Iter.toArray(Trie.iter(tokens));
+        var resultBuffer = Buffer.Buffer<(TypesICRC7.TokenId, TypesICRC7.TokenMetadata)>(0);
+        
+        for (entry in entries.vals()) {
+            let key = entry.0;
+            let value = entry.1;
+            
+            if (value.owner.owner == caller) {
+                let match = switch (category) {
+                    case ("Avatar") switch (value.metadata.category) {
+                        case (#Avatar) true;
+                        case (_) false;
+                    };
+                    case ("Chest") switch (value.metadata.category) {
+                        case (#Chest) true;
+                        case (_) false;
+                    };
+                    case ("Trophy") switch (value.metadata.category) {
+                        case (#Trophy) true;
+                        case (_) false;
+                    };
+                    case ("Character") switch (value.metadata.category) {
+                        case (#Unit(unitCategory)) switch (unitCategory) {
+                            case (#Character) true;
+                            case (_) false;
+                        };
+                        case (_) false;
+                    };
+                    case ("Unit") switch (value.metadata.category) {
+                        case (#Unit(_)) true;
+                        case (_) false;
+                    };
+                    case (_) false;
+                };
+                
+                if (match) {
+                    resultBuffer.add((key, value));
+                };
+            };
+        };
+        
+        return Buffer.toArray(resultBuffer);
+    };
+
+
+//--
+// GameNFTs
     public shared(msg) func upgradeNFT(nftID: TokenID): async (Bool, Text) {
         // Perform ownership check
         let ownerof: TypesICRC7.OwnerResult = await icrc7_owner_of(nftID);
@@ -5132,300 +5164,114 @@ shared actor class Cosmicrafts() = Self {
         return #Ok(mintArgs.token_id);
     };
 
-    // Queries
-    public query func getNFTs(principal: Principal) : async [(TypesICRC7.TokenId, TypesICRC7.TokenMetadata)] {
-        let entries = Iter.toArray(Trie.iter(tokens));
-        var resultBuffer = Buffer.Buffer<(TypesICRC7.TokenId, TypesICRC7.TokenMetadata)>(0);
-        for (entry in entries.vals()) {
-            let key = entry.0;
-            let value = entry.1;
-            if (value.owner.owner == principal) {
-                resultBuffer.add((key, value));
-            };
-        };
-        return Buffer.toArray(resultBuffer);
-    };
-
-    public query func getUnits(principal: Principal) : async [(TypesICRC7.TokenId, TypesICRC7.TokenMetadata)] {
-        return _filterNFTsByUnitCategory(principal);
-    };
-
-    public query func getChests(principal: Principal) : async [(TypesICRC7.TokenId, TypesICRC7.TokenMetadata)] {
-        return _filterNFTsByChestCategory(principal);
-    };
-
-    public query func getAvatars(principal: Principal) : async [(TypesICRC7.TokenId, TypesICRC7.TokenMetadata)] {
-        return _filterNFTsByAvatarCategory(principal);
-    };
-
-    public query func getCharacters(principal: Principal) : async [(TypesICRC7.TokenId, TypesICRC7.TokenMetadata)] {
-        return _filterNFTsByCharacterCategory(principal);
-    };
-
-    public query func getTrophies(principal: Principal) : async [(TypesICRC7.TokenId, TypesICRC7.TokenMetadata)] {
-        return _filterNFTsByTrophyCategory(principal);
-    };
-
-    // Helper function to filter NFTs by unit categories
-    private func _filterNFTsByUnitCategory(caller: Principal) : [(TypesICRC7.TokenId, TypesICRC7.TokenMetadata)] {
-        let entries = Iter.toArray(Trie.iter(tokens));
-        var resultBuffer = Buffer.Buffer<(TypesICRC7.TokenId, TypesICRC7.TokenMetadata)>(0);
-        for (entry in entries.vals()) {
-            let key = entry.0;
-            let value = entry.1;
-            if (value.owner.owner == caller) {
-                switch (value.metadata.category) {
-                    case (#unit(_)) {
-                        resultBuffer.add((key, value));
-                    };
-                    case (_) {}; // No match
-                };
-            };
-        };
-        return Buffer.toArray(resultBuffer);
-    };
-
-    // Helper function to filter NFTs by chest category
-    private func _filterNFTsByChestCategory(caller: Principal) : [(TypesICRC7.TokenId, TypesICRC7.TokenMetadata)] {
-        let entries = Iter.toArray(Trie.iter(tokens));
-        var resultBuffer = Buffer.Buffer<(TypesICRC7.TokenId, TypesICRC7.TokenMetadata)>(0);
-        for (entry in entries.vals()) {
-            let key = entry.0;
-            let value = entry.1;
-            if (value.owner.owner == caller) {
-                switch (value.metadata.category) {
-                    case (#chest(_)) {
-                        resultBuffer.add((key, value));
-                    };
-                    case (_) {}; // No match
-                };
-            };
-        };
-        return Buffer.toArray(resultBuffer);
-    };
-
-    // Helper function to filter NFTs by avatar category
-    private func _filterNFTsByAvatarCategory(caller: Principal) : [(TypesICRC7.TokenId, TypesICRC7.TokenMetadata)] {
-        let entries = Iter.toArray(Trie.iter(tokens));
-        var resultBuffer = Buffer.Buffer<(TypesICRC7.TokenId, TypesICRC7.TokenMetadata)>(0);
-        for (entry in entries.vals()) {
-            let key = entry.0;
-            let value = entry.1;
-            if (value.owner.owner == caller) {
-                switch (value.metadata.category) {
-                    case (#avatar(_)) {
-                        resultBuffer.add((key, value));
-                    };
-                    case (_) {}; // No match
-                };
-            };
-        };
-        return Buffer.toArray(resultBuffer);
-    };
-
-    // Helper function to filter NFTs by character category
-    private func _filterNFTsByCharacterCategory(caller: Principal) : [(TypesICRC7.TokenId, TypesICRC7.TokenMetadata)] {
-        let entries = Iter.toArray(Trie.iter(tokens));
-        var resultBuffer = Buffer.Buffer<(TypesICRC7.TokenId, TypesICRC7.TokenMetadata)>(0);
-        for (entry in entries.vals()) {
-            let key = entry.0;
-            let value = entry.1;
-            if (value.owner.owner == caller) {
-                switch (value.metadata.category) {
-                    case (#character(_)) {
-                        resultBuffer.add((key, value));
-                    };
-                    case (_) {}; // No match
-                };
-            };
-        };
-        return Buffer.toArray(resultBuffer);
-    };
-
-    // Helper function to filter NFTs by trophy category
-    private func _filterNFTsByTrophyCategory(caller: Principal) : [(TypesICRC7.TokenId, TypesICRC7.TokenMetadata)] {
-        let entries = Iter.toArray(Trie.iter(tokens));
-        var resultBuffer = Buffer.Buffer<(TypesICRC7.TokenId, TypesICRC7.TokenMetadata)>(0);
-        for (entry in entries.vals()) {
-            let key = entry.0;
-            let value = entry.1;
-            if (value.owner.owner == caller) {
-                switch (value.metadata.category) {
-                    case (#trophy(_)) {
-                        resultBuffer.add((key, value));
-                    };
-                    case (_) {}; // No match
-                };
-            };
-        };
-        return Buffer.toArray(resultBuffer);
-    };
-
-
-
-//--
-// GameNFTs
-
     // Stable map to store the principal IDs of callers who have minted a deck
     stable var _mintedCallers: [(Principal, Bool)] = [];
 
     var mintedCallersMap: HashMap.HashMap<Principal, Bool> = HashMap.fromIter(_mintedCallers.vals(), 0, Principal.equal, Principal.hash);
 
     public shared({ caller }) func mintDeck(): async (Bool, Text, [TypesICRC7.TokenId]) {
-
         let units = ICRC7Utils.initDeck(); // Initialize the deck with units
-
-        var _deck = Buffer.Buffer<TypesICRC7.MintArgs>(8);
         var uuids = Buffer.Buffer<TypesICRC7.TokenId>(8);
-
-        // Initialize the initial token ID from the counter
         let initialTokenId = lastMintedId;
 
-        // Assign unique general IDs from 1 to 8
         for (i in Iter.range(0, 7)) {
             let (name, damage, hp, rarity, description, image) = units[i];
-
-            // Assign the general ID sequentially from 1 to 8
             let generalId = i + 1;
+            let tokenId = initialTokenId + i + 1;
 
-            // Increment the token ID for each NFT
-            let tokenId = initialTokenId + i + 1; // Ensure we start from the next ID
-
-            // Initialize SoulMetadata with default values
-            let soulMetadata: TypesICRC7.SoulMetadata = {
-                birth = Time.now(); // Time of birth set to the current time
-                gamesPlayed = ?0;   // Default games played
-                totalKills = ?0;    // Default total kills
-                totalDamageDealt = ?0;  // Default total damage dealt
-                combatExperience = 0;   // Default combat experience
-            };
-
+            // Create the general metadata
             let generalMetadata: TypesICRC7.GeneralMetadata = {
                 rarity = ?rarity;
                 faction = ?#Cosmicon;
-                id = generalId; // Assign a unique generalId from 1 to 8
+                id = generalId;
                 name = name;
                 description = description;
                 image = image;
             };
 
-            let spaceshipMetadata: TypesICRC7.SpaceshipMetadata = {
+            // Create the complete metadata record
+            let spaceshipMetadata: TypesICRC7.Metadata = {
+                category = #Unit(#Spaceship);
                 general = generalMetadata;
                 basic = ?{
                     level = 1;
                     health = hp;
                     damage = damage;
                 };
-                skills = null; // Set to null for now, can be updated later
-                skins = null;  // Set to null for now, can be updated later
-                soul = ?soulMetadata;   // Assign the initialized soul metadata
+                skills = null;
+                skins = null;
+                soul = null;
             };
 
-            let metadata: TypesICRC7.Metadata = {
-                category = #unit(#spaceship(?spaceshipMetadata)); // Correctly set the category here
-                general = spaceshipMetadata.general;
-                basic = spaceshipMetadata.basic;
-                skills = spaceshipMetadata.skills;
-                skins = spaceshipMetadata.skins;
-                soul = spaceshipMetadata.soul;
-            };
-
-            let _mintArgs: TypesICRC7.MintArgs = {
+            // Create the mint arguments
+            let mintArgs: TypesICRC7.MintArgs = {
                 to = { owner = caller; subaccount = null };
                 token_id = tokenId;
-                metadata = metadata; // Directly use the new NFTMetadata type
+                metadata = spaceshipMetadata;
             };
 
-            _deck.add(_mintArgs);
-            uuids.add(tokenId); // Collect the token IDs
+            // Call the mintNFT function with the encapsulated mint arguments
+            let mintResult = await mintNFT(mintArgs);
+
+            // Handle the result of minting
+            switch (mintResult) {
+                case (#Ok(token_id)) {
+                    uuids.add(token_id);
+                    // Update minted game NFTs and log the transaction
+                    await updateMintedGameNFTs(caller, token_id);
+                };
+                case (#Err(err)) Debug.print("Minting failed: " # debug_show(err));
+            };
         };
 
-        // Update the last minted ID counter
         lastMintedId += 8;
-
-        var lastTokenMinted: Nat = 0;
 
         // Check if the caller has already minted a deck
         if (mintedCallersMap.get(caller) != null) {
             return (false, "Deck mint failed: Caller has already minted a deck", []);
         };
 
-        // Record the caller's principal ID as having minted a deck
         mintedCallersMap.put(caller, true);
 
-        let now = Nat64.fromIntWrap(Time.now());
-        let acceptedTo: TypesICRC7.Account = _acceptAccount({ owner = caller; subaccount = null });
-        var _deckTokens: [TypesICRC7.TokenId] = [];
-
-        for (mintArgs in Buffer.toArray(_deck).vals()) {
-            let tokenId: TypesICRC7.TokenId = mintArgs.token_id;
-            let acceptedTo: TypesICRC7.Account = _acceptAccount(mintArgs.to);
-            
-            // Check on supply cap overflow
-            if (supplyCap != null) {
-                let _supplyCap: Nat = Utils.nullishCoalescing<Nat>(supplyCap, 0);
-                if (totalSupply + 1 > _supplyCap) {
-                    return (false, "Deck mint failed: SupplyCapOverflow", []);
-                };
-            };
-            // Cannot mint to zero principal
-            if (Principal.equal(acceptedTo.owner, NULL_PRINCIPAL)) {
-                return (false, "Deck mint failed: InvalidRecipient", []);
-            };
-            // Cannot mint an existing token id
-            if (_exists(tokenId)) {
-                return (false, "Deck mint failed: Token ID already exists", []);
-            };
-            // Create the new token
-            let newToken: TypesICRC7.TokenMetadata = {
-                tokenId = mintArgs.token_id;
-                owner = acceptedTo;
-                metadata = mintArgs.metadata;
-            };
-            // Update the token metadata
-            tokens := Trie.put(tokens, _keyFromTokenId(tokenId), Nat.equal, newToken).0;
-            _addTokenToOwners(acceptedTo, mintArgs.token_id);
-            _incrementBalance(acceptedTo);
-            _incrementTotalSupply(1);
-            _deckTokens := Utils.pushIntoArray<TypesICRC7.TokenId>(tokenId, _deckTokens);
-            lastTokenMinted := tokenId;
-
-            // Update the minted game NFTs for the user
-            await updateMintedGameNFTs(caller, tokenId);
-        };
-
-        let _transaction: TypesICRC7.Transaction = _addTransaction(#mint, now, ?_deckTokens, ?acceptedTo, null, null, null, null, null);
-        transactionSequentialIndex += 1;
-
-        return (true, "Deck minted. # NFTs: " # Nat.toText(_deckTokens.size()), _deckTokens);
+        return (true, "Deck minted successfully", Buffer.toArray(uuids));
     };
+
 
 //--
 // Chests
 
     public func mintChest(PlayerId: Principal, rarity: Nat): async (Bool, Text) {
-            let uuid = lastMintedId + 1;
-            lastMintedId := uuid;
-            
-            let chestMetadata = MetadataUtils.getChestMetadata(uuid, rarity);
+        let uuid = lastMintedId + 1;
+        lastMintedId := uuid;
+        
+        // Assuming `getChestMetadata` returns an object of type `Metadata`
+        let chestMetadata = MetadataUtils.getChestMetadata(uuid, rarity);
 
-            let _mintArgs: TypesICRC7.MintArgs = {
-                to = { owner = PlayerId; subaccount = null };
-                token_id = uuid;
-                metadata = chestMetadata;
-            };
+        // Prepare the account to mint to
+        let to: TypesICRC7.Account = { owner = PlayerId; subaccount = null };
 
-            let mintResult = await mintNFT(_mintArgs);
-            switch (mintResult) {
-                case (#Ok(_transactionID)) {
-                    await updateMintedChests(PlayerId, uuid);
-                    return (true, "NFT minted. Transaction ID: " # Nat.toText(_transactionID));
-                };
-                case (#Err(_e)) {
-                    return (false, "NFT mint failed: " # Utils.errorToText(_e));
-                };
+        // Create the composite argument with the necessary fields
+        let mintArgs = {
+            metadata = chestMetadata;
+            to = to;
+            token_id = uuid;
+        };
+
+        // Call the `mintNFT` function with the composite argument
+        let mintResult = await mintNFT(mintArgs);
+        
+        switch (mintResult) {
+            case (#Ok(_transactionID)) {
+                await updateMintedChests(PlayerId, uuid);
+                return (true, "NFT minted. Transaction ID: " # Nat.toText(_transactionID));
             };
+            case (#Err(_e)) {
+                return (false, "NFT mint failed: " # Utils.errorToText(_e));
+            };
+        };
     };
+
+
 
     public shared({ caller }) func openChest(chestID: Nat): async (Bool, Text) {
         // Perform ownership check
@@ -6648,146 +6494,296 @@ shared actor class Cosmicrafts() = Self {
     };
 
 //--
-// Combat XP
+// Soul NFT
 
-// Function to randomly select 3 units from the player's deck
-public func selectRandomUnits(deck: [TypesICRC7.TokenId]): async [TypesICRC7.TokenId] {
-    let indices: [Nat] = Array.tabulate(deck.size(), func(i: Nat): Nat { i });
-    let shuffledIndices = await Utils.shuffleArray(indices);
-    let selectedUnitsBuffer = Buffer.Buffer<TypesICRC7.TokenId>(3);
+    stable var playerDecks: Trie<Principal, PlayerGameData> = Trie.empty();
 
-    for (i in Iter.range(0, 2)) {
-        selectedUnitsBuffer.add(deck[shuffledIndices[i]]);
+    private func _keyFromPrincipal(p: Principal): Key<Principal> {
+        { hash = Principal.hash p; key = p }
     };
 
-    return Buffer.toArray(selectedUnitsBuffer);
-};
-
-func distributeXP(totalXP: Nat, selectedUnits: [TypesICRC7.TokenId]): async [Nat] {
-    let totalCombatXP = totalXP / 100;
-    var xpDistribution = Buffer.Buffer<Nat>(3);
-
-    // Generate random bytes for the pseudo-random number generator
-    let randomBytes = await Random.blob();
-    let _prng = PseudoRandomX.fromBlob(randomBytes, #xorshift32);
-
-    // Collect weights based on rarity, adjusted to use Nat
-    var weights = Buffer.Buffer<Nat>(3);
-    var totalWeight: Nat = 0;
-
-    for (i in Iter.range(0, 2)) {
-        let unit = selectedUnits[i];
-        let metadataResult = await icrc7_metadata(unit);
-        let rarityWeight: Nat = switch (metadataResult) {
-            case (#Ok(metadata)) {
-                switch (metadata.general.rarity) {
-                    case (?1) 1;  // Common
-                    case (?2) 2;  // Rare
-                    case (?3) 3;  // Epic
-                    case (?4) 4;  // Legendary
-                    case (null) 1;  // Default to common if rarity is null
-                    case (?_) 1;  // Handle any other unspecified rarity values, defaulting to common
-                }
+    public shared(msg) func storeCurrentDeck(newDeck: [TypesICRC7.TokenId]) : async Bool {
+        // Iterate over each token ID and check ownership
+        for (tokenId in newDeck.vals()) {
+            let ownerResult = await icrc7_owner_of(tokenId);
+            let owner = switch (ownerResult) {
+                case (#Ok(account)) account.owner;
+                case (#Err(_)) return false; // If the token doesn't exist, return false
             };
-            case (#Err(_)) 1;  // In case of an error, assign default common weight
+
+            // Check if the caller is the owner of the token
+            if (Principal.notEqual(owner, msg.caller)) {
+                Debug.print("Ownership check failed for token ID: " # Nat.toText(tokenId) # " - Owner: " # Principal.toText(owner));
+                return false; // If any token is not owned by the caller, reject the request
+            }
         };
-        weights.add(rarityWeight);
-        totalWeight += rarityWeight;  // Sum the total weight
+
+        // If all ownership checks pass, store the deck
+        let playerData: PlayerGameData = {
+            deck = newDeck;
+            // Add other relevant fields if necessary
+        };
+
+        playerDecks := Trie.put(playerDecks, _keyFromPrincipal(msg.caller), Principal.equal, playerData).0;
+
+        Debug.print("Stored current deck for player: " # Principal.toText(msg.caller) # " with deck: " # debug_show(newDeck));
+        return true;
     };
 
-    // Distribute XP based on weighted randomization using pure Nat
-    for (i in Iter.range(0, 2)) {
-        let weight = weights.get(i);
-        let unitXP = (totalCombatXP * weight) / totalWeight;  // Distribute XP proportionally
-        xpDistribution.add(unitXP);
-    };
-
-    return Buffer.toArray(xpDistribution);
-};
-
-// Function to apply XP to the units' Soul metadata
-func applyXPToUnits(selectedUnits: [TypesICRC7.TokenId], xpDistribution: [Nat], caller: Principal): async [TypesICRC7.TokenId] {
-    var updatedUnits = Buffer.Buffer<TypesICRC7.TokenId>(3); // Using a Buffer for efficient memory management
-    
-    for (i in Iter.range(0, 2)) {
-        let unit = selectedUnits[i];
-        let xp = xpDistribution[i];
-        
-        // Retrieve the full TokenMetadata, including owner and metadata
-        let tokenResult = await icrc7_metadata(unit);
-        
-        switch (tokenResult) {
-            case (#Ok(tokenMetadata)) {
-                // `tokenMetadata` is of type `TokenMetadata`, so access the `metadata` field directly
-                let originalMetadata = tokenMetadata;
-
-                // Create a new SoulMetadata with updated combatExperience
-                let newSoul = switch (originalMetadata.soul) {
-                    case (?soul) {
-                        {
-                            birth = soul.birth;
-                            gamesPlayed = soul.gamesPlayed;
-                            totalKills = soul.totalKills;
-                            totalDamageDealt = soul.totalDamageDealt;
-                            combatExperience = soul.combatExperience + xp;
+    func setGameOver(caller: Principal) : async (Bool, Bool, ?Principal) {
+        switch (playerStatus.get(caller)) {
+            case (null) {
+                return (false, false, null);
+            };
+            case (?status) {
+                switch (inProgress.get(status.matchID)) {
+                    case (null) {
+                        switch (searching.get(status.matchID)) {
+                            case (null) {
+                                switch (finishedGames.get(status.matchID)) {
+                                    case (null) {
+                                        return (false, false, null);
+                                    };
+                                    case (?match) {
+                                        // Game is not on the searching or in-progress list, so we just remove the status from the player
+                                        playerStatus.delete(caller);
+                                        return (true, caller == match.player1.id, getOtherPlayer(match, caller));
+                                    };
+                                };
+                            };
+                            case (?match) {
+                                // Game is on Searching list, so we remove it, add it to the finished list and remove the status from the player
+                                finishedGames.put(status.matchID, match);
+                                searching.delete(status.matchID);
+                                playerStatus.delete(caller);
+                                return (true, caller == match.player1.id, getOtherPlayer(match, caller));
+                            };
                         };
                     };
-                    case null {
-                        {
-                            birth = Time.now();
-                            gamesPlayed = ?0;
-                            totalKills = ?0;
-                            totalDamageDealt = ?0;
-                            combatExperience = xp;
-                        };
+                    case (?match) {
+                        // Game is on in-progress list, so we remove it, add it to the finished list and remove the status from the player
+                        finishedGames.put(status.matchID, match);
+                        inProgress.delete(status.matchID);
+                        playerStatus.delete(caller);
+                        return (true, caller == match.player1.id, getOtherPlayer(match, caller));
                     };
-                };
-
-                // Now we should proceed with updating the metadata
-                let newMetadata = {
-                    category = originalMetadata.category;
-                    general = originalMetadata.general;
-                    basic = originalMetadata.basic;
-                    skills = originalMetadata.skills;
-                    skins = originalMetadata.skins;
-                    soul = ?newSoul;
-                };
-
-                // Update the token metadata, using the caller (Principal) as the owner
-                let updateResult = await _updateTokenMetadata(unit, ?newMetadata, caller);
-
-                // Handle the result
-                switch (updateResult) {
-                    case (#Ok(_)) updatedUnits.add(unit);
-                    case (#Err(_)) {};  // Handle update errors, if necessary
                 };
             };
-            case (#Err(_)) {};  // Handle retrieval errors, if necessary
         };
     };
 
-    // Convert Buffer to Array before returning
-    return Buffer.toArray(updatedUnits);
-};
+    public func handleCombatXP(deck: [TypesICRC7.TokenId], totalXP: Nat): async [TypesICRC7.TokenId] {
+        let selectedUnits = await selectRandomUnits(deck);
 
-// Helper function to update token metadata
-private func _updateTokenMetadata(tokenId: TypesICRC7.TokenId, newMetadata: ?TypesICRC7.Metadata, caller: Principal) : async UpdateResult {
-    // Update the token metadata in the Trie
-    let tokenExists = _exists(tokenId);
-    if (tokenExists) {
-        let ownerInfo = { owner = caller; subaccount = null }; // Create the owner object with the caller and no subaccount
-        _updateToken(tokenId, ?ownerInfo, newMetadata); // Update the metadata with the correct owner structure
-        return #Ok(());
-    } else {
-        return #Err("Token does not exist");
-    }
-};
+        let xpDistribution = await distributeXP(totalXP, selectedUnits);
+
+        let updatedUnits = await applyXPToUnits(selectedUnits, xpDistribution);
+
+        return updatedUnits;
+    };
+
+    // Function to randomly select 3 units from the player's deck
+    public func selectRandomUnits(deck: [TypesICRC7.TokenId]): async [TypesICRC7.TokenId] {
+        let indices: [Nat] = Array.tabulate(deck.size(), func(i: Nat): Nat { i });
+        let shuffledIndices = await Utils.shuffleArray(indices);
+        let selectedUnitsBuffer = Buffer.Buffer<TypesICRC7.TokenId>(3);
+
+        for (i in Iter.range(0, 2)) {
+            selectedUnitsBuffer.add(deck[shuffledIndices[i]]);
+        };
+
+        return Buffer.toArray(selectedUnitsBuffer);
+    };
+
+    func distributeXP(totalXP: Nat, selectedUnits: [TypesICRC7.TokenId]): async [Nat] {
+        let totalCombatXP = totalXP / 100;
+        var xpDistribution = Buffer.Buffer<Nat>(3);
+
+        // Generate random bytes for the pseudo-random number generator
+        let randomBytes = await Random.blob();
+        let _prng = PseudoRandomX.fromBlob(randomBytes, #xorshift32);
+
+        // Collect weights based on rarity, adjusted to use Nat
+        var weights = Buffer.Buffer<Nat>(3);
+        var totalWeight: Nat = 0;
+
+        for (i in Iter.range(0, 2)) {
+            let unit = selectedUnits[i];
+            let metadataResult = await icrc7_metadata(unit);
+            let rarityWeight: Nat = switch (metadataResult) {
+                case (#Ok(metadata)) {
+                    switch (metadata.general.rarity) {
+                        case (?1) 1;  // Common
+                        case (?2) 2;  // Rare
+                        case (?3) 3;  // Epic
+                        case (?4) 4;  // Legendary
+                        case (null) 1;  // Default to common if rarity is null
+                        case (?_) 1;  // Handle any other unspecified rarity values, defaulting to common
+                    }
+                };
+                case (#Err(_)) 1;  // In case of an error, assign default common weight
+            };
+            weights.add(rarityWeight);
+            totalWeight += rarityWeight;  // Sum the total weight
+        };
+
+        // Distribute XP based on weighted randomization using pure Nat
+        for (i in Iter.range(0, 2)) {
+            let weight = weights.get(i);
+            let unitXP = (totalCombatXP * weight) / totalWeight;  // Distribute XP proportionally
+            xpDistribution.add(unitXP);
+        };
+
+        return Buffer.toArray(xpDistribution);
+    };
+
+    func applyXPToUnits(selectedUnits: [TypesICRC7.TokenId], xpDistribution: [Nat]): async [TypesICRC7.TokenId] {
+        var updatedUnits = Buffer.Buffer<TypesICRC7.TokenId>(3); // Using a Buffer for efficient memory management
+        
+        for (i in Iter.range(0, 2)) {
+            let unit = selectedUnits[i];
+            let xp = xpDistribution[i];
+            
+            // Retrieve the full TokenMetadata, including owner and metadata
+            let tokenResult = await icrc7_metadata(unit);
+            
+            switch (tokenResult) {
+                case (#Ok(tokenMetadata)) {
+                    // `tokenMetadata` is of type `TokenMetadata`, so access the `metadata` field directly
+                    let originalMetadata = tokenMetadata;
+
+                    // Create a new SoulMetadata with updated combatExperience
+                    let newSoul = switch (originalMetadata.soul) {
+                        case (?soul) {
+                            {
+                                birth = soul.birth;
+                                gamesPlayed = soul.gamesPlayed;
+                                totalKills = soul.totalKills;
+                                totalDamageDealt = soul.totalDamageDealt;
+                                combatExperience = soul.combatExperience + xp;
+                            };
+                        };
+                        case null {
+                            {
+                                birth = Time.now();
+                                gamesPlayed = ?0;
+                                totalKills = ?0;
+                                totalDamageDealt = ?0;
+                                combatExperience = xp;
+                            };
+                        };
+                    };
+
+                    // Now we should proceed with updating the metadata
+                    let newMetadata = {
+                        category = originalMetadata.category;
+                        general = originalMetadata.general;
+                        basic = originalMetadata.basic;
+                        skills = originalMetadata.skills;
+                        skins = originalMetadata.skins;
+                        soul = ?newSoul;
+                    };
+
+                    // Update the token metadata
+                    let updateResult = await _updateTokenMetadata(unit, ?newMetadata);
+
+                    // Handle the result
+                    switch (updateResult) {
+                        case (#Ok(_)) updatedUnits.add(unit);
+                        case (#Err(_)) {};  // Handle update errors, if necessary
+                    };
+                };
+                case (#Err(_)) {};  // Handle retrieval errors, if necessary
+            };
+        };
+
+        // Convert Buffer to Array before returning
+        return Buffer.toArray(updatedUnits);
+    };
+
+    // Helper function to update token metadata
+    private func _updateTokenMetadata(tokenId: TypesICRC7.TokenId, newMetadata: ?TypesICRC7.Metadata) : async UpdateResult {
+        // Update the token metadata in the Trie
+        let tokenExists = _exists(tokenId);
+        if (tokenExists) {
+            _updateToken(tokenId, null, newMetadata); // Update the metadata without modifying ownership
+            return #Ok(());
+        } else {
+            return #Err("Token does not exist");
+        }
+    };
+
+    public func updateSoulNFTPlayed(playerDeck: [TypesICRC7.TokenId]): async [TypesICRC7.TokenId] {
+        var updatedUnits = Buffer.Buffer<TypesICRC7.TokenId>(playerDeck.size());
+
+        for (i in Iter.range(0, playerDeck.size() - 1)) {
+            let unit = playerDeck[i];
+
+            // Retrieve the full TokenMetadata, including owner and metadata
+            let tokenResult = await icrc7_metadata(unit);
+
+            switch (tokenResult) {
+                case (#Ok(tokenMetadata)) {
+                    // `tokenMetadata` is of type `TokenMetadata`, so access the `metadata` field directly
+                    let originalMetadata = tokenMetadata;
+
+                    // Create a new SoulMetadata with updated gamesPlayed
+                    let newSoul = switch (originalMetadata.soul) {
+                        case (?soul) {
+                            {
+                                birth = soul.birth;
+                                gamesPlayed = switch (soul.gamesPlayed) {
+                                    case (?games) ?(games + 1);
+                                    case null ?1;
+                                };
+                                totalKills = soul.totalKills;
+                                totalDamageDealt = soul.totalDamageDealt;
+                                combatExperience = soul.combatExperience;
+                            };
+                        };
+                        case null {
+                            {
+                                birth = Time.now();
+                                gamesPlayed = ?1;
+                                totalKills = ?0;
+                                totalDamageDealt = ?0;
+                                combatExperience = 0;
+                            };
+                        };
+                    };
+
+                    // Now we should proceed with updating the metadata
+                    let newMetadata = {
+                        category = originalMetadata.category;
+                        general = originalMetadata.general;
+                        basic = originalMetadata.basic;
+                        skills = originalMetadata.skills;
+                        skins = originalMetadata.skins;
+                        soul = ?newSoul;
+                    };
+
+                    // Update the token metadata
+                    let updateResult = await _updateTokenMetadata(unit, ?newMetadata);
+
+                    // Handle the result
+                    switch (updateResult) {
+                        case (#Ok(_)) updatedUnits.add(unit);
+                        case (#Err(_)) {};  // Handle update errors, if necessary
+                    };
+                };
+                case (#Err(_)) {};  // Handle retrieval errors, if necessary
+            };
+        };
+
+        // Convert Buffer to Array before returning
+        return Buffer.toArray(updatedUnits);
+    };
 
 
-private type UpdateResult = {
-    #Ok;
-    #Err: Text;
-};
+    private type UpdateResult = {
+        #Ok;
+        #Err: Text;
+    };
 
 //--
 
