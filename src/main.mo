@@ -2985,7 +2985,125 @@ shared actor class Cosmicrafts() = Self {
   stable var _finishedGames : [(MatchID, MatchData)] = [];
   var finishedGames : HashMap.HashMap<MatchID, MatchData> = HashMap.fromIter(_finishedGames.vals(), 0, Utils._natEqual, Utils._natHash);
 
-    // Function for matchmaking to get player ELO
+
+    public shared (msg) func getMatchSearching() : async (MMSearchStatus, Nat, Text) {
+        assert (Principal.notEqual(msg.caller, NULL_PRINCIPAL));
+        assert (Principal.notEqual(msg.caller, ANON_PRINCIPAL));
+        let _now: Nat64 = Nat64.fromIntWrap(Time.now());
+        let _pELO: Float = await getPlayerElo(msg.caller);
+
+        // Retrieve the player's stored deck
+        let playerDeckOpt = await getPlayerDeck(msg.caller);
+
+        // If no deck is found or the deck is empty, return an error
+        let deck = switch (playerDeckOpt) {
+            case (null) {
+                return (#NotAvailable, 0, "No stored deck found for this player.");
+            };
+            case (?deck) {
+                if (deck.size() == 0) {
+                    return (#NotAvailable, 0, "Stored deck is empty.");
+                };
+                deck
+            };
+        };
+
+        var _gamesByELO: [MatchData] = Iter.toArray(searching.vals());
+
+        for (m in _gamesByELO.vals()) {
+            if (m.player2 == null and Principal.notEqual(m.player1.id, msg.caller) and (m.player1.lastPlayerActive + inactiveSeconds) > _now) {
+                let username = switch (await getProfile(msg.caller)) {
+                    case (null) { "" };
+                    case (?player) { player.username };
+                };
+                let _p2: MMInfo = {
+                    id = msg.caller;
+                    elo = _pELO;
+                    matchAccepted = true;
+                    playerGameData = {
+                        deck = deck; // Use the retrieved deck
+                        // Add other relevant fields if necessary
+                    };
+                    lastPlayerActive = Nat64.fromIntWrap(Time.now());
+                    username = username;
+                };
+                let _p1: MMInfo = {
+                    id = m.player1.id;
+                    elo = m.player1.elo;
+                    matchAccepted = true;
+                    playerGameData = m.player1.playerGameData;
+                    lastPlayerActive = m.player1.lastPlayerActive;
+                    username = m.player1.username;
+                };
+                let _gameData: MatchData = {
+                    matchID = m.matchID;
+                    player1 = _p1;
+                    player2 = ?_p2;
+                    status = #Accepted;
+                };
+                let _p_s: MMPlayerStatus = {
+                    status = #Accepted;
+                    matchID = m.matchID;
+                };
+                inProgress.put(m.matchID, _gameData);
+                let _removedSearching = searching.remove(m.matchID);
+                removePlayersFromSearching(m.player1.id, msg.caller, m.matchID);
+                playerStatus.put(msg.caller, _p_s);
+                playerStatus.put(m.player1.id, _p_s);
+                return (#Assigned, m.matchID, "Game found");
+            };
+        };
+
+        switch (playerStatus.get(msg.caller)) {
+            case (null) {};
+            case (?_p) {
+                switch (_p.status) {
+                    case (#Searching) {
+                        let _active: Bool = activatePlayerSearching(msg.caller, _p.matchID);
+                        if (_active == true) {
+                            return (#Assigned, _p.matchID, "Searching for game");
+                        };
+                    };
+                    case (#Reserved) {};
+                    case (#Accepting) {};
+                    case (#Accepted) {};
+                    case (#InGame) {};
+                    case (#Ended) {};
+                };
+            };
+        };
+
+        _matchID := _matchID + 1;
+        let username = switch (await getProfile(msg.caller)) {
+            case (null) { "" };
+            case (?player) { player.username };
+        };
+        let _player: MMInfo = {
+            id = msg.caller;
+            elo = _pELO;
+            matchAccepted = false;
+            playerGameData = {
+                deck = deck; // Use the retrieved deck
+                // Add other relevant fields if necessary
+            };
+            lastPlayerActive = Nat64.fromIntWrap(Time.now());
+            username = username;
+        };
+        let _match: MatchData = {
+            matchID = _matchID;
+            player1 = _player;
+            player2 = null;
+            status = #Searching;
+        };
+        searching.put(_matchID, _match);
+        let _ps: MMPlayerStatus = {
+            status = #Searching;
+            matchID = _matchID;
+        };
+        playerStatus.put(msg.caller, _ps);
+        return (#Assigned, _matchID, "Lobby created");
+    };
+
     public query func getPlayerElo(player : Principal) : async Float {
         return switch (players.get(player)) {
         case (null) {
@@ -3095,102 +3213,6 @@ shared actor class Cosmicrafts() = Self {
                 };
             };
             };
-    };
-
-    // Adjusted getMatchSearching function
-    public shared (msg) func getMatchSearching(pgd: PlayerGameData) : async (MMSearchStatus, Nat, Text) {
-        assert (Principal.notEqual(msg.caller, NULL_PRINCIPAL));
-        assert (Principal.notEqual(msg.caller, ANON_PRINCIPAL));
-        let _now: Nat64 = Nat64.fromIntWrap(Time.now());
-        let _pELO: Float = await getPlayerElo(msg.caller);
-        var _gamesByELO: [MatchData] = Iter.toArray(searching.vals());
-
-        for (m in _gamesByELO.vals()) {
-            if (m.player2 == null and Principal.notEqual(m.player1.id, msg.caller) and (m.player1.lastPlayerActive + inactiveSeconds) > _now) {
-                let username = switch (await getProfile(msg.caller)) {
-                    case (null) { "" };
-                    case (?player) { player.username };
-                };
-                let _p2: MMInfo = {
-                    id = msg.caller;
-                    elo = _pELO;
-                    matchAccepted = true;
-                    playerGameData = pgd;
-                    lastPlayerActive = Nat64.fromIntWrap(Time.now());
-                    username = username;
-                };
-                let _p1: MMInfo = {
-                    id = m.player1.id;
-                    elo = m.player1.elo;
-                    matchAccepted = true;
-                    playerGameData = m.player1.playerGameData;
-                    lastPlayerActive = m.player1.lastPlayerActive;
-                    username = m.player1.username;
-                };
-                let _gameData: MatchData = {
-                    matchID = m.matchID;
-                    player1 = _p1;
-                    player2 = ?_p2;
-                    status = #Accepted;
-                };
-                let _p_s: MMPlayerStatus = {
-                    status = #Accepted;
-                    matchID = m.matchID;
-                };
-                inProgress.put(m.matchID, _gameData);
-                let _removedSearching = searching.remove(m.matchID);
-                removePlayersFromSearching(m.player1.id, msg.caller, m.matchID);
-                playerStatus.put(msg.caller, _p_s);
-                playerStatus.put(m.player1.id, _p_s);
-                return (#Assigned, m.matchID, "Game found");
-            };
-        };
-
-        switch (playerStatus.get(msg.caller)) {
-            case (null) {};
-            case (?_p) {
-                switch (_p.status) {
-                    case (#Searching) {
-                        let _active: Bool = activatePlayerSearching(msg.caller, _p.matchID);
-                        if (_active == true) {
-                            return (#Assigned, _p.matchID, "Searching for game");
-                        };
-                    };
-                    case (#Reserved) {};
-                    case (#Accepting) {};
-                    case (#Accepted) {};
-                    case (#InGame) {};
-                    case (#Ended) {};
-                };
-            };
-        };
-
-        _matchID := _matchID + 1;
-        let username = switch (await getProfile(msg.caller)) {
-            case (null) { "" };
-            case (?player) { player.username };
-        };
-        let _player: MMInfo = {
-            id = msg.caller;
-            elo = _pELO;
-            matchAccepted = false;
-            playerGameData = pgd;
-            lastPlayerActive = Nat64.fromIntWrap(Time.now());
-            username = username;
-        };
-        let _match: MatchData = {
-            matchID = _matchID;
-            player1 = _player;
-            player2 = null;
-            status = #Searching;
-        };
-        searching.put(_matchID, _match);
-        let _ps: MMPlayerStatus = {
-            status = #Searching;
-            matchID = _matchID;
-        };
-        playerStatus.put(msg.caller, _ps);
-        return (#Assigned, _matchID, "Lobby created");
     };
 
     func removePlayersFromSearching(p1 : Principal, p2 : Principal, matchID : Nat) {
