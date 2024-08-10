@@ -1,4 +1,5 @@
 //Imports
+    import PseudoRandomX "mo:xtended-random/PseudoRandomX";
     import Float "mo:base/Float";
     import HashMap "mo:base/HashMap";
     import Int "mo:base/Int";
@@ -5290,6 +5291,15 @@ shared actor class Cosmicrafts() = Self {
             // Increment the token ID for each NFT
             let tokenId = initialTokenId + i + 1; // Ensure we start from the next ID
 
+            // Initialize SoulMetadata with default values
+            let soulMetadata: TypesICRC7.SoulMetadata = {
+                birth = Time.now(); // Time of birth set to the current time
+                gamesPlayed = ?0;   // Default games played
+                totalKills = ?0;    // Default total kills
+                totalDamageDealt = ?0;  // Default total damage dealt
+                combatExperience = 0;   // Default combat experience
+            };
+
             let generalMetadata: TypesICRC7.GeneralMetadata = {
                 rarity = ?rarity;
                 faction = ?#Cosmicon;
@@ -5308,7 +5318,7 @@ shared actor class Cosmicrafts() = Self {
                 };
                 skills = null; // Set to null for now, can be updated later
                 skins = null;  // Set to null for now, can be updated later
-                soul = null;   // Set to null for now, can be updated later
+                soul = ?soulMetadata;   // Assign the initialized soul metadata
             };
 
             let metadata: TypesICRC7.Metadata = {
@@ -5390,8 +5400,6 @@ shared actor class Cosmicrafts() = Self {
         return (true, "Deck minted. # NFTs: " # Nat.toText(_deckTokens.size()), _deckTokens);
     };
 
-
-    
 //--
 // Chests
 
@@ -6655,48 +6663,46 @@ public func selectRandomUnits(deck: [TypesICRC7.TokenId]): async [TypesICRC7.Tok
     return Buffer.toArray(selectedUnitsBuffer);
 };
 
-// Function to distribute XP among selected units
 func distributeXP(totalXP: Nat, selectedUnits: [TypesICRC7.TokenId]): async [Nat] {
     let totalCombatXP = totalXP / 100;
     var xpDistribution = Buffer.Buffer<Nat>(3);
 
-    // Distribute XP based on rarity
+    // Generate random bytes for the pseudo-random number generator
+    let randomBytes = await Random.blob();
+    let _prng = PseudoRandomX.fromBlob(randomBytes, #xorshift32);
+
+    // Collect weights based on rarity, adjusted to use Nat
+    var weights = Buffer.Buffer<Nat>(3);
+    var totalWeight: Nat = 0;
+
     for (i in Iter.range(0, 2)) {
         let unit = selectedUnits[i];
         let metadataResult = await icrc7_metadata(unit);
-        let unitXP = switch (metadataResult) {
+        let rarityWeight: Nat = switch (metadataResult) {
             case (#Ok(metadata)) {
-                let rarityFactor = switch (metadata.general.rarity) {
+                switch (metadata.general.rarity) {
                     case (?1) 1;  // Common
                     case (?2) 2;  // Rare
                     case (?3) 3;  // Epic
                     case (?4) 4;  // Legendary
                     case (null) 1;  // Default to common if rarity is null
                     case (?_) 1;  // Handle any other unspecified rarity values, defaulting to common
-                };
-                totalCombatXP * rarityFactor;
+                }
             };
-            case (#Err(_)) 0; // In case of an error, assign no XP
+            case (#Err(_)) 1;  // In case of an error, assign default common weight
         };
+        weights.add(rarityWeight);
+        totalWeight += rarityWeight;  // Sum the total weight
+    };
+
+    // Distribute XP based on weighted randomization using pure Nat
+    for (i in Iter.range(0, 2)) {
+        let weight = weights.get(i);
+        let unitXP = (totalCombatXP * weight) / totalWeight;  // Distribute XP proportionally
         xpDistribution.add(unitXP);
     };
 
-    // Convert Buffer to Array
-    let xpArray = Buffer.toArray(xpDistribution);
-
-    // Sum the distributed XP using foldLeft
-    let totalDistributedXP = Array.foldLeft<Nat, Nat>(xpArray, 0, func(acc: Nat, xp: Nat): Nat {
-        acc + xp
-    });
-
-    let remainingXP = totalCombatXP - totalDistributedXP;
-
-    // Convert to mutable array, modify, then freeze it back
-    let mutableXPArray = Array.thaw<Nat>(xpArray);
-    mutableXPArray[0] += remainingXP;  // Add any remaining XP to the first unit
-    let finalXPArray = Array.freeze<Nat>(mutableXPArray);
-
-    return finalXPArray;
+    return Buffer.toArray(xpDistribution);
 };
 
 // Function to apply XP to the units' Soul metadata
