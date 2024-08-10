@@ -2,7 +2,6 @@
     import Float "mo:base/Float";
     import HashMap "mo:base/HashMap";
     import Int "mo:base/Int";
-    import Result "mo:base/Result";
     import Iter "mo:base/Iter";
     import Nat "mo:base/Nat";
     import Nat64 "mo:base/Nat64";
@@ -1824,7 +1823,7 @@ shared actor class Cosmicrafts() = Self {
         characterID: Nat;
         botDifficulty: Nat;
         kills: Nat;
-        }): async (Bool, Text) {
+        }) : async (Bool, Text) {
         var _txt: Text = "";
 
         let playerStats = {
@@ -1856,7 +1855,8 @@ shared actor class Cosmicrafts() = Self {
             case (?_) { true };
         };
 
-        let endingGame: (Bool, Bool, ?Principal) = await setGameOver(msg.caller);
+        // Pass xpEarned to setGameOver
+        let endingGame: (Bool, Bool, ?Principal) = await setGameOver(msg.caller, playerStats.xpEarned);
         let isPartOfMatch = await isCallerPartOfMatch(matchID, msg.caller);
         if (not isPartOfMatch) {
             return (false, "You are not part of this match.");
@@ -1982,6 +1982,7 @@ shared actor class Cosmicrafts() = Self {
             };
         };
     };
+
 
 //--
 // Players
@@ -2646,48 +2647,6 @@ shared actor class Cosmicrafts() = Self {
       return (true, "Player stats initialized");
   };
 
-  func setGameOver(caller: Principal) : async (Bool, Bool, ?Principal) {
-      switch (playerStatus.get(caller)) {
-          case (null) {
-              return (false, false, null);
-          };
-          case (?status) {
-              switch (inProgress.get(status.matchID)) {
-                  case (null) {
-                      switch (searching.get(status.matchID)) {
-                          case (null) {
-                              switch (finishedGames.get(status.matchID)) {
-                                  case (null) {
-                                      return (false, false, null);
-                                  };
-                                  case (?match) {
-                                      // Game is not on the searching or in-progress list, so we just remove the status from the player
-                                      playerStatus.delete(caller);
-                                      return (true, caller == match.player1.id, getOtherPlayer(match, caller));
-                                  };
-                              };
-                          };
-                          case (?match) {
-                              // Game is on Searching list, so we remove it, add it to the finished list and remove the status from the player
-                              finishedGames.put(status.matchID, match);
-                              searching.delete(status.matchID);
-                              playerStatus.delete(caller);
-                              return (true, caller == match.player1.id, getOtherPlayer(match, caller));
-                          };
-                      };
-                  };
-                  case (?match) {
-                      // Game is on in-progress list, so we remove it, add it to the finished list and remove the status from the player
-                      finishedGames.put(status.matchID, match);
-                      inProgress.delete(status.matchID);
-                      playerStatus.delete(caller);
-                      return (true, caller == match.player1.id, getOtherPlayer(match, caller));
-                  };
-              };
-          };
-      };
-  };
-
     func updatePlayerELO(PlayerId : PlayerId, won : Nat, otherPlayerId : ?PlayerId) : async Bool {
         switch (otherPlayerId) {
             case (null) {
@@ -2992,7 +2951,78 @@ shared actor class Cosmicrafts() = Self {
 //--
 // MatchMaking
 
-  
+    func setGameOver(caller: Principal, xpGained: Nat) : async (Bool, Bool, ?Principal) {
+        switch (playerStatus.get(caller)) {
+            case (null) {
+                return (false, false, null);
+            };
+            case (?status) {
+                switch (inProgress.get(status.matchID)) {
+                    case (null) {
+                        switch (searching.get(status.matchID)) {
+                            case (null) {
+                                switch (finishedGames.get(status.matchID)) {
+                                    case (null) {
+                                        return (false, false, null);
+                                    };
+                                    case (?match) {
+                                        // Game is not on the searching or in-progress list, so we just remove the status from the player
+                                        playerStatus.delete(caller);
+
+                                        // Retrieve player's game data
+                                        let playerData: PlayerGameData = match.player1.playerGameData; // Assuming caller is player1
+                                        let deck = playerData.deck;
+
+                                        // Apply XP to units if the match is finished
+                                        let selectedUnits = await selectRandomUnits(deck);
+                                        let xpDistribution = await distributeXP(xpGained, selectedUnits); // Use the passed xpGained
+                                        let _updatedUnits = await applyXPToUnits(selectedUnits, xpDistribution, caller);
+
+                                        return (true, caller == match.player1.id, getOtherPlayer(match, caller));
+                                    };
+                                };
+                            };
+                            case (?match) {
+                                // Game is on Searching list, so we remove it, add it to the finished list and remove the status from the player
+                                finishedGames.put(status.matchID, match);
+                                searching.delete(status.matchID);
+                                playerStatus.delete(caller);
+
+                                // Retrieve player's game data
+                                let playerData: PlayerGameData = match.player1.playerGameData; // Assuming caller is player1
+                                let deck = playerData.deck;
+
+                                // Apply XP to units if the match is finished
+                                let selectedUnits = await selectRandomUnits(deck);
+                                let xpDistribution = await distributeXP(xpGained, selectedUnits); // Use the passed xpGained
+                                let _updatedUnits = await applyXPToUnits(selectedUnits, xpDistribution, caller);
+
+                                return (true, caller == match.player1.id, getOtherPlayer(match, caller));
+                            };
+                        };
+                    };
+                    case (?match) {
+                        // Game is on in-progress list, so we remove it, add it to the finished list and remove the status from the player
+                        finishedGames.put(status.matchID, match);
+                        inProgress.delete(status.matchID);
+                        playerStatus.delete(caller);
+
+                        // Retrieve player's game data
+                        let playerData: PlayerGameData = match.player1.playerGameData; // Assuming caller is player1
+                        let deck = playerData.deck;
+
+                        // Apply XP to units if the match is finished
+                        let selectedUnits = await selectRandomUnits(deck);
+                        let xpDistribution = await distributeXP(xpGained, selectedUnits); // Use the passed xpGained
+                        let _updatedUnits = await applyXPToUnits(selectedUnits, xpDistribution, caller);
+
+                        return (true, caller == match.player1.id, getOtherPlayer(match, caller));
+                    };
+                };
+            };
+        };
+    };
+
   stable var _matchID : Nat = 0;
   var inactiveSeconds : Nat64 = 30 * ONE_SECOND;
 
@@ -3120,19 +3150,21 @@ shared actor class Cosmicrafts() = Self {
             };
     };
 
-    public shared (msg) func getMatchSearching(pgd : Text) : async (MMSearchStatus, Nat, Text) {
+    // Adjusted getMatchSearching function
+    public shared (msg) func getMatchSearching(pgd: PlayerGameData) : async (MMSearchStatus, Nat, Text) {
         assert (Principal.notEqual(msg.caller, NULL_PRINCIPAL));
         assert (Principal.notEqual(msg.caller, ANON_PRINCIPAL));
-        let _now : Nat64 = Nat64.fromIntWrap(Time.now());
-        let _pELO : Float = await getPlayerElo(msg.caller);
-        var _gamesByELO : [MatchData] = Iter.toArray(searching.vals());
+        let _now: Nat64 = Nat64.fromIntWrap(Time.now());
+        let _pELO: Float = await getPlayerElo(msg.caller);
+        var _gamesByELO: [MatchData] = Iter.toArray(searching.vals());
+
         for (m in _gamesByELO.vals()) {
             if (m.player2 == null and Principal.notEqual(m.player1.id, msg.caller) and (m.player1.lastPlayerActive + inactiveSeconds) > _now) {
                 let username = switch (await getProfile(msg.caller)) {
                     case (null) { "" };
                     case (?player) { player.username };
                 };
-                let _p2 : MMInfo = {
+                let _p2: MMInfo = {
                     id = msg.caller;
                     elo = _pELO;
                     matchAccepted = true;
@@ -3140,7 +3172,7 @@ shared actor class Cosmicrafts() = Self {
                     lastPlayerActive = Nat64.fromIntWrap(Time.now());
                     username = username;
                 };
-                let _p1 : MMInfo = {
+                let _p1: MMInfo = {
                     id = m.player1.id;
                     elo = m.player1.elo;
                     matchAccepted = true;
@@ -3148,13 +3180,13 @@ shared actor class Cosmicrafts() = Self {
                     lastPlayerActive = m.player1.lastPlayerActive;
                     username = m.player1.username;
                 };
-                let _gameData : MatchData = {
+                let _gameData: MatchData = {
                     matchID = m.matchID;
                     player1 = _p1;
                     player2 = ?_p2;
                     status = #Accepted;
                 };
-                let _p_s : MMPlayerStatus = {
+                let _p_s: MMPlayerStatus = {
                     status = #Accepted;
                     matchID = m.matchID;
                 };
@@ -3166,12 +3198,13 @@ shared actor class Cosmicrafts() = Self {
                 return (#Assigned, m.matchID, "Game found");
             };
         };
+
         switch (playerStatus.get(msg.caller)) {
             case (null) {};
             case (?_p) {
                 switch (_p.status) {
                     case (#Searching) {
-                        let _active : Bool = activatePlayerSearching(msg.caller, _p.matchID);
+                        let _active: Bool = activatePlayerSearching(msg.caller, _p.matchID);
                         if (_active == true) {
                             return (#Assigned, _p.matchID, "Searching for game");
                         };
@@ -3184,12 +3217,13 @@ shared actor class Cosmicrafts() = Self {
                 };
             };
         };
+
         _matchID := _matchID + 1;
         let username = switch (await getProfile(msg.caller)) {
             case (null) { "" };
             case (?player) { player.username };
         };
-        let _player : MMInfo = {
+        let _player: MMInfo = {
             id = msg.caller;
             elo = _pELO;
             matchAccepted = false;
@@ -3197,14 +3231,14 @@ shared actor class Cosmicrafts() = Self {
             lastPlayerActive = Nat64.fromIntWrap(Time.now());
             username = username;
         };
-        let _match : MatchData = {
+        let _match: MatchData = {
             matchID = _matchID;
             player1 = _player;
             player2 = null;
             status = #Searching;
         };
         searching.put(_matchID, _match);
-        let _ps : MMPlayerStatus = {
+        let _ps: MMPlayerStatus = {
             status = #Searching;
             matchID = _matchID;
         };
@@ -3582,6 +3616,7 @@ shared actor class Cosmicrafts() = Self {
     public query func getCosmicraftsStats() : async OverallStats {
         return overallStats;
     };
+
 
 //--
 // Custom Matchmaking
@@ -6636,7 +6671,8 @@ func distributeXP(totalXP: Nat, selectedUnits: [TypesICRC7.TokenId]): async [Nat
                     case (?2) 2;  // Rare
                     case (?3) 3;  // Epic
                     case (?4) 4;  // Legendary
-                    case null 1;  // Default to common
+                    case (null) 1;  // Default to common if rarity is null
+                    case (?_) 1;  // Handle any other unspecified rarity values, defaulting to common
                 };
                 totalCombatXP * rarityFactor;
             };

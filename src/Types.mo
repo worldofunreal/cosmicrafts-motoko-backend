@@ -244,7 +244,7 @@ module Types {
     id: PlayerId;
     matchAccepted: Bool;
     elo: Float;
-    playerGameData: Text;
+    playerGameData: PlayerGameData;
     lastPlayerActive: Nat64;
     username: Username;
   };
@@ -285,7 +285,7 @@ module Types {
       level: Level;
       matchAccepted: Bool;
       elo: Float;
-      playerGameData: Text;
+      playerGameData: PlayerGameData;
     };
     player2: ?{
       id: PlayerId;
@@ -294,7 +294,7 @@ module Types {
       level: Level;
       matchAccepted: Bool;
       elo: Float;
-      playerGameData: Text;
+      playerGameData: PlayerGameData;
     };
     status: MMStatus;
   };
