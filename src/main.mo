@@ -6530,6 +6530,20 @@ shared actor class Cosmicrafts() = Self {
         return true;
     };
 
+    public query func getPlayerDeck(principal: Principal) : async ?[TypesICRC7.TokenId] {
+        let playerDataOpt = Trie.find(playerDecks, _keyFromPrincipal(principal), Principal.equal);
+
+        switch (playerDataOpt) {
+            case (?playerData) {
+                return ?playerData.deck;
+            };
+            case null {
+                return null;  // No deck found for the given principal
+            };
+        };
+    };
+
+
     func setGameOver(caller: Principal) : async (Bool, Bool, ?Principal) {
         switch (playerStatus.get(caller)) {
             case (null) {
