@@ -940,7 +940,7 @@ shared actor class Cosmicrafts() = Self {
 
     public shared ({ caller }) func getUserMissions(): async [MissionsUser] {
         // Step 1: Immediately create a new user-specific mission
-        //let (created, message, _missionId) = await createUserMission(caller);
+        let (created, message, _missionId) = await createUserMission(caller);
         //Debug.print("[getUserMissions] createUserMission result: " # debug_show(created) # ", message: " # message);
 
         // Step 2: Search for active user-specific missions assigned to the user
@@ -1828,7 +1828,7 @@ shared actor class Cosmicrafts() = Self {
         }): async (Bool, Text) {
         var _txt: Text = "";
 
-        let playerStats = {
+        var playerStats = {
             secRemaining = _playerStats.secRemaining;
             energyGenerated = _playerStats.energyGenerated;
             damageDealt = _playerStats.damageDealt;
@@ -1877,6 +1877,18 @@ shared actor class Cosmicrafts() = Self {
                 };
             };
         };
+
+        // Determine the XP to be awarded based on win or loss
+        let awardedXP: Nat = if (playerStats.wonGame) {
+            // Winning grants 100-125 XP
+            await Utils.getRandomReward(100, 125)
+        } else {
+            // Losing grants 50-75 XP
+            await Utils.getRandomReward(50, 75)
+        };
+
+        // Update the xpEarned field in playerStats
+        playerStats := { playerStats with xpEarned = awardedXP };
 
         // Retrieve the player's current deck from the Trie
         let playerDeckOpt = Trie.get(playerDecks, _keyFromPrincipal(msg.caller), Principal.equal);
@@ -2004,25 +2016,26 @@ shared actor class Cosmicrafts() = Self {
 
 //--
 // Players
-    var ONE_SECOND : Nat64 = 1_000_000_000;
-    var ONE_MINUTE : Nat64 = 60 * ONE_SECOND;
+    //vars
+        var ONE_SECOND : Nat64 = 1_000_000_000;
+        var ONE_MINUTE : Nat64 = 60 * ONE_SECOND;
 
-    stable var _players: [(PlayerId, Player)] = [];
-    stable var _friendRequests: [(PlayerId, [FriendRequest])] = [];
-    stable var _privacySettings: [(PlayerId, PrivacySetting)] = [];
-    stable var _blockedUsers: [(PlayerId, [PlayerId])] = [];
-    stable var _mutualFriendships: [((PlayerId, PlayerId), MutualFriendship)] = [];
-    stable var _notifications: [(PlayerId, [Notification])] = [];
-    stable var _updateTimestamps: [(PlayerId, UpdateTimestamps)] = [];
+        stable var _players: [(PlayerId, Player)] = [];
+        stable var _friendRequests: [(PlayerId, [FriendRequest])] = [];
+        stable var _privacySettings: [(PlayerId, PrivacySetting)] = [];
+        stable var _blockedUsers: [(PlayerId, [PlayerId])] = [];
+        stable var _mutualFriendships: [((PlayerId, PlayerId), MutualFriendship)] = [];
+        stable var _notifications: [(PlayerId, [Notification])] = [];
+        stable var _updateTimestamps: [(PlayerId, UpdateTimestamps)] = [];
 
-    // Initialize HashMaps using the stable lists
-    var players: HashMap.HashMap<PlayerId, Player> = HashMap.fromIter(_players.vals(), 0, Principal.equal, Principal.hash);
-    var friendRequests: HashMap.HashMap<PlayerId, [FriendRequest]> = HashMap.fromIter(_friendRequests.vals(), 0, Principal.equal, Principal.hash);
-    var privacySettings: HashMap.HashMap<PlayerId, PrivacySetting> = HashMap.fromIter(_privacySettings.vals(), 0, Principal.equal, Principal.hash);
-    var blockedUsers: HashMap.HashMap<PlayerId, [PlayerId]> = HashMap.fromIter(_blockedUsers.vals(), 0, Principal.equal, Principal.hash);
-    var mutualFriendships: HashMap.HashMap<(PlayerId, PlayerId), MutualFriendship> = HashMap.fromIter(_mutualFriendships.vals(), 0, Utils.tupleEqual, Utils.tupleHash);
-    var notifications: HashMap.HashMap<PlayerId, [Notification]> = HashMap.fromIter(_notifications.vals(), 0, Principal.equal, Principal.hash);
-    var updateTimestamps: HashMap.HashMap<PlayerId, UpdateTimestamps> = HashMap.fromIter(_updateTimestamps.vals(), 0, Principal.equal, Principal.hash);
+        // Initialize HashMaps using the stable lists
+        var players: HashMap.HashMap<PlayerId, Player> = HashMap.fromIter(_players.vals(), 0, Principal.equal, Principal.hash);
+        var friendRequests: HashMap.HashMap<PlayerId, [FriendRequest]> = HashMap.fromIter(_friendRequests.vals(), 0, Principal.equal, Principal.hash);
+        var privacySettings: HashMap.HashMap<PlayerId, PrivacySetting> = HashMap.fromIter(_privacySettings.vals(), 0, Principal.equal, Principal.hash);
+        var blockedUsers: HashMap.HashMap<PlayerId, [PlayerId]> = HashMap.fromIter(_blockedUsers.vals(), 0, Principal.equal, Principal.hash);
+        var mutualFriendships: HashMap.HashMap<(PlayerId, PlayerId), MutualFriendship> = HashMap.fromIter(_mutualFriendships.vals(), 0, Utils.tupleEqual, Utils.tupleHash);
+        var notifications: HashMap.HashMap<PlayerId, [Notification]> = HashMap.fromIter(_notifications.vals(), 0, Principal.equal, Principal.hash);
+        var updateTimestamps: HashMap.HashMap<PlayerId, UpdateTimestamps> = HashMap.fromIter(_updateTimestamps.vals(), 0, Principal.equal, Principal.hash);
 
     private func addNotification(to: PlayerId, notification: Notification) {
         var userNotifications = Utils.nullishCoalescing<[Notification]>(notifications.get(to), []);
@@ -5196,7 +5209,7 @@ shared actor class Cosmicrafts() = Self {
         var uuids = Buffer.Buffer<TypesICRC7.TokenId>(8);
         let initialTokenId = lastMintedId;
 
-        for (i in Iter.range(0, 7)) {
+        for (i in Iter.range(0, 5)) {
             let (name, damage, hp, rarity, description, image) = units[i];
             let generalId = i + 1;
             let tokenId = initialTokenId + i + 1;
@@ -5211,6 +5224,25 @@ shared actor class Cosmicrafts() = Self {
                 image = image;
             };
 
+            // Initialize SoulMetadata with a birth date for all units and 25 XP for the "Devastator"
+            let soulMetadata: TypesICRC7.SoulMetadata = if (name == "Devastator") {
+                {
+                    birth = Time.now();
+                    combatExperience = 25;
+                    gamesPlayed = null;
+                    totalKills = null;
+                    totalDamageDealt = null;
+                }
+            } else {
+                {
+                    birth = Time.now();
+                    combatExperience = 0;
+                    gamesPlayed = null;
+                    totalKills = null;
+                    totalDamageDealt = null;
+                }
+            };
+
             // Create the complete metadata record
             let spaceshipMetadata: TypesICRC7.Metadata = {
                 category = #Unit(#Spaceship);
@@ -5222,7 +5254,7 @@ shared actor class Cosmicrafts() = Self {
                 };
                 skills = null;
                 skins = null;
-                soul = null;
+                soul = ?soulMetadata;
             };
 
             // Create the mint arguments
@@ -5246,17 +5278,24 @@ shared actor class Cosmicrafts() = Self {
             };
         };
 
-        lastMintedId += 8;
+        lastMintedId += 6;
 
         // Check if the caller has already minted a deck
         if (mintedCallersMap.get(caller) != null) {
             return (false, "Deck mint failed: Caller has already minted a deck", []);
         };
 
+        // Store the minted deck
+        let storeSuccess = await storeDeck(caller, Buffer.toArray(uuids)); // Pass the caller explicitly here
+        if (not storeSuccess) {
+            return (false, "Failed to store the minted deck", []);
+        };
+
         mintedCallersMap.put(caller, true);
 
-        return (true, "Deck minted successfully", Buffer.toArray(uuids));
+        return (true, "Deck minted and stored successfully", Buffer.toArray(uuids));
     };
+
 
 
 //--
@@ -6552,6 +6591,34 @@ shared actor class Cosmicrafts() = Self {
         return true;
     };
 
+    private func storeDeck(caller: Principal, newDeck: [TypesICRC7.TokenId]) : async Bool {
+        // Iterate over each token ID and check ownership
+        for (tokenId in newDeck.vals()) {
+            let ownerResult = await icrc7_owner_of(tokenId);
+            let owner = switch (ownerResult) {
+                case (#Ok(account)) account.owner;
+                case (#Err(_)) return false; // If the token doesn't exist, return false
+            };
+
+            // Check if the caller is the owner of the token
+            if (Principal.notEqual(owner, caller)) {
+                Debug.print("Ownership check failed for token ID: " # Nat.toText(tokenId) # " - Owner: " # Principal.toText(owner));
+                return false; // If any token is not owned by the caller, reject the request
+            }
+        };
+
+        // If all ownership checks pass, store the deck
+        let playerData: PlayerGameData = {
+            deck = newDeck;
+            // Add other relevant fields if necessary
+        };
+
+        playerDecks := Trie.put(playerDecks, _keyFromPrincipal(caller), Principal.equal, playerData).0;
+
+        Debug.print("Stored current deck for player: " # Principal.toText(caller) # " with deck: " # debug_show(newDeck));
+        return true;
+    };
+
     public query func getPlayerDeck(principal: Principal) : async ?[TypesICRC7.TokenId] {
         let playerDataOpt = Trie.find(playerDecks, _keyFromPrincipal(principal), Principal.equal);
 
@@ -6564,7 +6631,6 @@ shared actor class Cosmicrafts() = Self {
             };
         };
     };
-
 
     func setGameOver(caller: Principal) : async (Bool, Bool, ?Principal) {
         switch (playerStatus.get(caller)) {
@@ -6632,14 +6698,14 @@ shared actor class Cosmicrafts() = Self {
     };
 
     func distributeXP(totalXP: Nat, selectedUnits: [TypesICRC7.TokenId]): async [Nat] {
-        let totalCombatXP = totalXP / 100;
+        let totalCombatXP = totalXP;
         var xpDistribution = Buffer.Buffer<Nat>(3);
 
         // Generate random bytes for the pseudo-random number generator
         let randomBytes = await Random.blob();
         let _prng = PseudoRandomX.fromBlob(randomBytes, #xorshift32);
 
-        // Collect weights based on rarity, adjusted to use Nat
+        // Collect inverted weights based on rarity, adjusted to use Nat
         var weights = Buffer.Buffer<Nat>(3);
         var totalWeight: Nat = 0;
 
@@ -6649,21 +6715,21 @@ shared actor class Cosmicrafts() = Self {
             let rarityWeight: Nat = switch (metadataResult) {
                 case (#Ok(metadata)) {
                     switch (metadata.general.rarity) {
-                        case (?1) 1;  // Common
-                        case (?2) 2;  // Rare
-                        case (?3) 3;  // Epic
-                        case (?4) 4;  // Legendary
-                        case (null) 1;  // Default to common if rarity is null
-                        case (?_) 1;  // Handle any other unspecified rarity values, defaulting to common
+                        case (?1) 4;  // Common - highest weight
+                        case (?2) 3;  // Rare
+                        case (?3) 2;  // Epic
+                        case (?4) 1;  // Legendary - lowest weight
+                        case (null) 4;  // Default to common if rarity is null
+                        case (?_) 4;  // Handle any other unspecified rarity values, defaulting to common
                     }
                 };
-                case (#Err(_)) 1;  // In case of an error, assign default common weight
+                case (#Err(_)) 4;  // In case of an error, assign default common weight
             };
             weights.add(rarityWeight);
             totalWeight += rarityWeight;  // Sum the total weight
         };
 
-        // Distribute XP based on weighted randomization using pure Nat
+        // Distribute XP based on inverted weighted randomization using pure Nat
         for (i in Iter.range(0, 2)) {
             let weight = weights.get(i);
             let unitXP = (totalCombatXP * weight) / totalWeight;  // Distribute XP proportionally
@@ -6688,11 +6754,11 @@ shared actor class Cosmicrafts() = Self {
                     // `tokenMetadata` is of type `TokenMetadata`, so access the `metadata` field directly
                     let originalMetadata = tokenMetadata;
 
-                    // Create a new SoulMetadata with updated combatExperience
+                    // Create a new SoulMetadata with updated combatExperience while preserving the birth date
                     let newSoul = switch (originalMetadata.soul) {
                         case (?soul) {
                             {
-                                birth = soul.birth;
+                                birth = soul.birth;  // Preserve the original birth date
                                 gamesPlayed = soul.gamesPlayed;
                                 totalKills = soul.totalKills;
                                 totalDamageDealt = soul.totalDamageDealt;
@@ -6814,7 +6880,6 @@ shared actor class Cosmicrafts() = Self {
         // Convert Buffer to Array before returning
         return Buffer.toArray(updatedUnits);
     };
-
 
     private type UpdateResult = {
         #Ok;

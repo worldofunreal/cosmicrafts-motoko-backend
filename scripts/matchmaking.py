@@ -41,17 +41,6 @@ def get_principal(identity_name):
     logging.info(f"{identity_name} principal: {principal}")
     return principal
 
-def store_current_deck(identity_name, token_ids):
-    """Stores the current deck using the provided token IDs."""
-    switch_identity(identity_name)
-
-    # Create the deck string using the token IDs
-    deck_str = "; ".join(map(str, token_ids))
-
-    # Construct the command to store the current deck
-    command = f'dfx canister call cosmicrafts storeCurrentDeck "(vec {{ {deck_str} }})"'
-    logging.info(f"Storing current deck for {identity_name}: {deck_str}")
-    return execute_dfx_command(command)
 
 def get_match_searching(identity_name, player_game_data):
     """Starts searching for a match."""
@@ -60,9 +49,6 @@ def get_match_searching(identity_name, player_game_data):
     units = get_units(principal)  # Get units using the principal
     player_game_data["listSavedKeys"] = units  # Add units to player_game_data
 
-    # Store the current deck before searching for a match
-    store_result = store_current_deck(identity_name, units)
-    logging.info(f"Store current deck result for {identity_name}: {store_result}")
 
     # Correct the format for the JSON string in the command
     player_game_data_str = json.dumps(player_game_data)
@@ -192,7 +178,7 @@ def claim_user_specific_reward(identity_name, mission_id):
 
 def create_user_specific_hourly_mission(principal):
     """Creates a user-specific hourly mission for the given principal."""
-    command = f'dfx canister call cosmicrafts createUserMission \'(principal "{principal}")\''
+    command = f'dfx canister call cosmicrafts getUserMissions")\''
     return execute_dfx_command(command)
 
 def handle_mission_progress(identity_name):

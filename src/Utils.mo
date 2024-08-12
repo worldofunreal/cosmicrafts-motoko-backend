@@ -60,15 +60,17 @@ module Utils {
     };
 
     public func calculateLevel(xp: Nat) : Nat {
-        // Assuming each level requires twice as much XP as the previous one, starting with 100 XP for level 2.
         let baseXP: Nat = 100;
+        let increment: Nat = 10; //Increase the increment or scalingFactor to make the XP requirements more challenging.
+        let scalingFactor: Nat = 1; // Decrease the scalingFactor if you want the XP requirements to grow more slowly.
+
         var level: Nat = 1;
-        var requiredXP: Nat = baseXP;
+        var requiredXP: Nat = baseXP + increment;
 
         // Increase level as long as XP meets or exceeds the required XP for the next level.
         while (xp >= requiredXP) {
             level := level + 1;
-            requiredXP := requiredXP * 2;
+            requiredXP := baseXP + (increment * level) + (scalingFactor * level * level);
         };
 
         return level;
