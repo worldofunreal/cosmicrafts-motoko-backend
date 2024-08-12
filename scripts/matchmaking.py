@@ -178,7 +178,7 @@ def claim_user_specific_reward(identity_name, mission_id):
 
 def create_user_specific_hourly_mission(principal):
     """Creates a user-specific hourly mission for the given principal."""
-    command = f'dfx canister call cosmicrafts getUserMissions")\''
+    command = f'dfx canister call cosmicrafts getUserMissions'
     return execute_dfx_command(command)
 
 def handle_mission_progress(identity_name):

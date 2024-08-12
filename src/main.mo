@@ -940,7 +940,7 @@ shared actor class Cosmicrafts() = Self {
 
     public shared ({ caller }) func getUserMissions(): async [MissionsUser] {
         // Step 1: Immediately create a new user-specific mission
-        let (created, message, _missionId) = await createUserMission(caller);
+        let (_created, _message, _missionId) = await createUserMission(caller);
         //Debug.print("[getUserMissions] createUserMission result: " # debug_show(created) # ", message: " # message);
 
         // Step 2: Search for active user-specific missions assigned to the user
