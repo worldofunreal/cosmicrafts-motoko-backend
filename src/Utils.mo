@@ -23,9 +23,10 @@
 module Utils {
 
 
-    public func getTokensAmount(rarity: Nat): Nat {
-        // Use a fixed seed for deterministic behavior
-        let seed: Nat32 = 12345; // Example seed
+    public func getChestTokensAmount(rarity: Nat): Nat {
+        // Convert Time.now() to Nat64 and use the last 8 digits as the seed
+        let timeNow: Nat64 = Nat64.fromIntWrap(Time.now());
+        let seed: Nat32 = Nat32.fromNat(Nat64.toNat(timeNow) % 100_000_000); // Convert to Nat32 after extracting the last 8 digits
         let prng = PseudoRandomX.fromSeed(seed, #xorshift32); // Create a pseudo-random generator
 
         // Define base and initial gap
@@ -50,15 +51,40 @@ module Utils {
 
         // Generate a random amount within the calculated range
         let randomAmount = prng.nextNat(minAmount, maxAmount);
-
         return randomAmount;
     };
 
-    public func getRandomReward(minReward: Nat, maxReward: Nat): Nat {
-        // Use a fixed seed for deterministic behavior
-        let seed: Nat32 = 12345; // Example seed
-        let prng = PseudoRandomX.fromSeed(seed, #xorshift32); // Create a pseudo-random generator
+
+    public func getMaxMin(minReward: Nat, maxReward: Nat): Nat {
+        // Convert Time.now() to Nat64 and use the last 8 digits as the seed
+        let timeNow: Nat64 = Nat64.fromIntWrap(Time.now());
+        let seed: Nat32 = Nat32.fromNat(Nat64.toNat(timeNow) % 100_000_000); // Convert to Nat32 after extracting the last 8 digits
+        let kind: PseudoRandomX.PseudoRandomKind = #xorshift32;
+        let prng: PseudoRandomX.PseudoRandomGenerator = PseudoRandomX.fromSeed(seed, kind);
+
+        // Generate a random number within the given range
         return prng.nextNat(minReward, maxReward);
+    };
+
+    public func shuffleArray(arr: [Nat]): [Nat] {
+        let len = Array.size<Nat>(arr);
+        var shuffled = Array.thaw<Nat>(arr);
+
+        // Convert Time.now() to Nat64 and use the last 8 digits as the seed
+        let timeNow: Nat64 = Nat64.fromIntWrap(Time.now());
+        let seed: Nat32 = Nat32.fromNat(Nat64.toNat(timeNow) % 100_000_000); // Convert to Nat32 after extracting the last 8 digits
+        let kind: PseudoRandomX.PseudoRandomKind = #xorshift32;
+        let prng: PseudoRandomX.PseudoRandomGenerator = PseudoRandomX.fromSeed(seed, kind);
+
+        var i = len;
+        while (i > 1) {
+            i -= 1;
+            let j = prng.nextNat(0, i + 1);
+            let temp = shuffled[i];
+            shuffled[i] := shuffled[j];
+            shuffled[j] := temp;
+        };
+        return Array.freeze<Nat>(shuffled);
     };
 
     public func calculateLevel(xp: Nat) : Nat {
@@ -312,26 +338,6 @@ module Utils {
 
     public func _natEqual(a : Nat, b : Nat) : Bool {
         return a == b;
-    };
-
-    public func shuffleArray(arr: [Nat]): async [Nat] {
-        let len = Array.size<Nat>(arr);
-        var shuffled = Array.thaw<Nat>(arr);
-        
-        // Initialize a PseudoRandomGenerator (use your specific seed and kind)
-        let seed: Nat32 = 12345; // Example seed
-        let kind: PseudoRandomX.PseudoRandomKind = #xorshift32;
-        let prng: PseudoRandomX.PseudoRandomGenerator = PseudoRandomX.fromSeed(seed, kind);
-
-        var i = len;
-        while (i > 1) {
-            i -= 1;
-            let j = prng.nextNat(0, i + 1);
-            let temp = shuffled[i];
-            shuffled[i] := shuffled[j];
-            shuffled[j] := temp;
-        };
-        return Array.freeze<Nat>(shuffled);
     };
 
     public func arrayContains<T>(array: [T], value: T, eq: (T, T) -> Bool): Bool {

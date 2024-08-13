@@ -4,6 +4,7 @@
     import HashMap "mo:base/HashMap";
     import Int "mo:base/Int";
     import Iter "mo:base/Iter";
+    import Nat32 "mo:base/Nat32";
     import Nat "mo:base/Nat";
     import Nat64 "mo:base/Nat64";
     import Principal "mo:base/Principal";
@@ -198,25 +199,25 @@ shared actor class Cosmicrafts() = Self {
 
     func initializeShuffledHourlyMissions(): async () {
         let indices: [Nat] = Array.tabulate(MissionOptions.hourlyMissions.size(), func(i: Nat): Nat { i });
-        shuffledHourlyIndices := await Utils.shuffleArray(indices);
+        shuffledHourlyIndices := Utils.shuffleArray(indices);
         currentHourlyIndex := 0;
     };
 
     func initializeShuffledDailyMissions(): async () {
         let indices: [Nat] = Array.tabulate(MissionOptions.dailyMissions.size(), func(i: Nat): Nat { i });
-        shuffledDailyIndices := await Utils.shuffleArray(indices);
+        shuffledDailyIndices := Utils.shuffleArray(indices);
         currentDailyIndex := 0;
     };
 
     func initializeShuffledWeeklyMissions(): async () {
         let indices: [Nat] = Array.tabulate(MissionOptions.weeklyMissions.size(), func(i: Nat): Nat { i });
-        shuffledWeeklyIndices := await Utils.shuffleArray(indices);
+        shuffledWeeklyIndices := Utils.shuffleArray(indices);
         currentWeeklyIndex := 0;
     };
 
     func initializeShuffledDailyFreeRewardMissions(): async () {
         let indices: [Nat] = Array.tabulate(MissionOptions.dailyFreeReward.size(), func(i: Nat): Nat { i });
-        shuffledDailyFreeRewardIndices := await Utils.shuffleArray(indices);
+        shuffledDailyFreeRewardIndices := Utils.shuffleArray(indices);
         currentDailyFreeRewardIndex := 0;
     };
 
@@ -281,7 +282,7 @@ shared actor class Cosmicrafts() = Self {
     };
 
     func createSingleConcurrentMission(template: Types.MissionTemplate): async (Bool, Text, Nat) {
-        let rewardAmount = Utils.getRandomReward(template.minReward, template.maxReward);
+        let rewardAmount = Utils.getMaxMin(template.minReward, template.maxReward);
         return await createGeneralMission(
             template.name,
             template.missionType,
@@ -340,18 +341,19 @@ shared actor class Cosmicrafts() = Self {
 
 //----
 // General Missions
-    stable var generalMissionIDCounter: Nat = 1;
-    stable var _generalUserProgress: [(Principal, [MissionsUser])] = [];
-    stable var _missions: [(Nat, Mission)] = [];
-    stable var _activeMissions: [(Nat, Mission)] = [];
-    stable var _claimedRewards: [(Principal, [Nat])] = [];
-    stable var _generalMissionIDCounter: Nat = 1;
+    //Stable Vars
+        stable var generalMissionIDCounter: Nat = 1;
+        stable var _generalUserProgress: [(Principal, [MissionsUser])] = [];
+        stable var _missions: [(Nat, Mission)] = [];
+        stable var _activeMissions: [(Nat, Mission)] = [];
+        stable var _claimedRewards: [(Principal, [Nat])] = [];
+        stable var _generalMissionIDCounter: Nat = 1;
 
-    // HashMaps for General Missions
-    var missions: HashMap.HashMap<Nat, Mission> = HashMap.fromIter(_missions.vals(), 0, Utils._natEqual, Utils._natHash);
-    var activeMissions: HashMap.HashMap<Nat, Mission> = HashMap.fromIter(_activeMissions.vals(), 0, Utils._natEqual, Utils._natHash);
-    var claimedRewards: HashMap.HashMap<Principal, [Nat]> = HashMap.fromIter(_claimedRewards.vals(), 0, Principal.equal, Principal.hash);
-    var generalUserProgress: HashMap.HashMap<Principal, [MissionsUser]> = HashMap.fromIter(_generalUserProgress.vals(), 0, Principal.equal, Principal.hash);
+        // HashMaps for General Missions
+        var missions: HashMap.HashMap<Nat, Mission> = HashMap.fromIter(_missions.vals(), 0, Utils._natEqual, Utils._natHash);
+        var activeMissions: HashMap.HashMap<Nat, Mission> = HashMap.fromIter(_activeMissions.vals(), 0, Utils._natEqual, Utils._natHash);
+        var claimedRewards: HashMap.HashMap<Principal, [Nat]> = HashMap.fromIter(_claimedRewards.vals(), 0, Principal.equal, Principal.hash);
+        var generalUserProgress: HashMap.HashMap<Principal, [MissionsUser]> = HashMap.fromIter(_generalUserProgress.vals(), 0, Principal.equal, Principal.hash);
 
 
     // Function to create a new general mission
@@ -496,7 +498,6 @@ shared actor class Cosmicrafts() = Self {
         return false;
     };
 
-
     // Function to get general missions for a user
     public shared ({ caller }) func getGeneralMissions(): async [MissionsUser] {
         // Step 1: Assign new general missions to the user
@@ -508,7 +509,6 @@ shared actor class Cosmicrafts() = Self {
         // Directly return the active missions with updated progress
         return activeMissions;
     };
-
 
     // Function to search for active general missions for a user
     public query func searchActiveGeneralMissions(user: Principal): async [MissionsUser] {
@@ -582,8 +582,33 @@ shared actor class Cosmicrafts() = Self {
                 };
 
                 // If all checks pass, mint the rewards
-                let (success, message) = await mintGeneralRewards(mission, msg.caller);
+                let (success, rewardMessage) = await mintGeneralRewards(mission, msg.caller);
                 if (success) {
+                    // Generate XP reward
+                    let xpReward = Utils.getMaxMin(20, 30);
+
+                    // Ensure player stats are initialized
+                    var playerStatsOpt = playerGamesStats.get(msg.caller);
+                    if (playerStatsOpt == null) {
+                        // Initialize player stats without capturing the return value
+                        ignore await _initializeNewPlayerStats(msg.caller);
+                        playerStatsOpt := playerGamesStats.get(msg.caller);
+                    };
+
+                    // Update player's total XP
+                    switch (playerStatsOpt) {
+                        case (null) {}; // This should not happen, but included for safety
+                        case (?stats) {
+                            var updatedStats = {
+                                stats with totalXpEarned = stats.totalXpEarned + xpReward
+                            };
+                            playerGamesStats.put(msg.caller, updatedStats);
+                        };
+                    };
+
+                    // Update player's level based on new total XP
+                    await updatePlayerLevel(msg.caller);
+
                     // Remove claimed reward from userProgress and add it to claimedRewards
                     var userMissions: [MissionsUser] = switch (generalUserProgress.get(msg.caller)) {
                         case (null) { [] };
@@ -604,8 +629,11 @@ shared actor class Cosmicrafts() = Self {
                     };
                     updatedRewardsBuffer.add(idMission);
                     claimedRewards.put(msg.caller, Buffer.toArray(updatedRewardsBuffer));
+
+                    // Return success message with XP gained and reward details
+                    return (true, "Mission reward claimed successfully. " # rewardMessage # ". XP gained: " # Nat.toText(xpReward));
                 };
-                return (success, message);
+                return (success, rewardMessage);
             };
         };
     };
@@ -754,7 +782,7 @@ shared actor class Cosmicrafts() = Self {
         ): async (Bool, Text, Nat) {
         let index = shuffledIndices[currentIndex];
         let template = missionOptions[index];
-        let rewardAmount = Utils.getRandomReward(template.minReward, template.maxReward);
+        let rewardAmount = Utils.getMaxMin(template.minReward, template.maxReward);
 
         var userMissionsList: Buffer.Buffer<Mission> = switch (userMissions.get(user)) {
             case (null) { Buffer.Buffer<Mission>(0) };
@@ -1878,10 +1906,10 @@ shared actor class Cosmicrafts() = Self {
         // Determine the XP to be awarded based on win or loss
         let awardedXP: Nat = if (playerStats.wonGame) {
             // Winning grants 100-125 XP
-            Utils.getRandomReward(100, 125)
+            Utils.getMaxMin(100, 125)
         } else {
             // Losing grants 50-75 XP
-            Utils.getRandomReward(50, 75)
+            Utils.getMaxMin(50, 75)
         };
 
         // Update the xpEarned field in playerStats
@@ -5303,8 +5331,6 @@ shared actor class Cosmicrafts() = Self {
         };
     };
 
-
-
     public shared({ caller }) func openChest(chestID: Nat): async (Bool, Text) {
         // Perform ownership check
         let ownerof: TypesICRC7.OwnerResult = await icrc7_owner_of(chestID);
@@ -5336,7 +5362,7 @@ shared actor class Cosmicrafts() = Self {
         };
 
         // Await the result of getTokensAmount
-        let stardustAmount = Utils.getTokensAmount(rarity);
+        let stardustAmount = Utils.getChestTokensAmount(rarity);
 
         // Burn the token (send to NULL address)
         let now = Nat64.fromIntWrap(Time.now());
@@ -6658,7 +6684,7 @@ shared actor class Cosmicrafts() = Self {
     // Function to randomly select 3 units from the player's deck
     public func selectRandomUnits(deck: [TypesICRC7.TokenId]): async [TypesICRC7.TokenId] {
         let indices: [Nat] = Array.tabulate(deck.size(), func(i: Nat): Nat { i });
-        let shuffledIndices = await Utils.shuffleArray(indices);
+        let shuffledIndices = Utils.shuffleArray(indices);
         let selectedUnitsBuffer = Buffer.Buffer<TypesICRC7.TokenId>(3);
 
         for (i in Iter.range(0, 2)) {
@@ -6672,9 +6698,10 @@ shared actor class Cosmicrafts() = Self {
         let totalCombatXP = totalXP;
         var xpDistribution = Buffer.Buffer<Nat>(3);
 
-        // Generate random bytes for the pseudo-random number generator
-        let randomBytes = await Random.blob();
-        let _prng = PseudoRandomX.fromBlob(randomBytes, #xorshift32);
+        // Use Time.now() as the seed
+        let timeNow: Nat64 = Nat64.fromIntWrap(Time.now());
+        let seed: Nat32 = Nat32.fromNat(Nat64.toNat(timeNow) % 100_000_000); // Convert to Nat32 after extracting the last 8 digits
+        let _prng = PseudoRandomX.fromSeed(seed, #xorshift32);
 
         // Collect inverted weights based on rarity, adjusted to use Nat
         var weights = Buffer.Buffer<Nat>(3);
@@ -6682,7 +6709,7 @@ shared actor class Cosmicrafts() = Self {
 
         for (i in Iter.range(0, 2)) {
             let unit = selectedUnits[i];
-            let metadataResult = await icrc7_metadata(unit);
+            let metadataResult = await icrc7_metadata(unit);  // Await the async call
             let rarityWeight: Nat = switch (metadataResult) {
                 case (#Ok(metadata)) {
                     switch (metadata.general.rarity) {
