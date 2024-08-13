@@ -184,6 +184,8 @@ module Types {
   public type MissionRewardType = {
     #Chest;
     #Stardust;
+    #XP;
+    #NFTXP;
   };
 
   public type MissionOption = {
@@ -195,6 +197,7 @@ module Types {
 
   public type Mission = {
     id: Nat;
+    missionCategory: MissionCategory;
     missionType: MissionType;
     name: Text;
     reward_type: MissionRewardType;
@@ -204,8 +207,17 @@ module Types {
     total: Nat;
   };
 
+  public type MissionCategory = {
+    #Weekly;
+    #Daily;
+    #Hourly;
+    #Free;
+    #Achievement;
+  };
+
   public type MissionsUser = {
     id_mission: Nat;
+    missionCategory: MissionCategory;
     total: Nat;
     progress: Nat;
     finished: Bool;
@@ -223,13 +235,14 @@ module Types {
   };
 
   public type MissionTemplate = {
-    name: Text;
-    missionType: MissionType;
-    rewardType: MissionRewardType;
-    minReward: Nat;
-    maxReward: Nat;
-    total: Nat;
-    hoursActive: Nat64;
+      name: Text;
+      missionCategory: MissionCategory;
+      missionType: MissionType;
+      rewardType: MissionRewardType;
+      minReward: Nat;
+      maxReward: Nat;
+      total: Nat;
+      hoursActive: Nat64;
   };
 
   public type RewardPool = {

@@ -74,6 +74,7 @@ shared actor class Cosmicrafts() = Self {
   public type PlayerGameData = Types.PlayerGameData;
 
   public type MissionType = Types.MissionType;
+  public type MissionCategory = Types.MissionCategory;
   public type RewardType = Types.MissionRewardType;
   public type Mission = Types.Mission;
   public type MissionsUser = Types.MissionsUser;
@@ -130,7 +131,7 @@ shared actor class Cosmicrafts() = Self {
     public type InitArgs = TypesICRC1.InitArgs;
 
     public type AdminFunction = {
-        #CreateMission : (Text, MissionType, RewardType, Nat, Nat, Nat64);
+        #CreateMission : (Text, MissionCategory, MissionType, RewardType, Nat, Nat, Nat64);
         #CreateMissionsPeriodically : ();
         #MintChest : (Principal, Nat);
         #BurnToken : (?TypesICRC7.Account, TypesICRC7.Account, TypesICRC7.TokenId, Nat64);
@@ -142,8 +143,8 @@ shared actor class Cosmicrafts() = Self {
         if (caller == ADMIN_PRINCIPAL) {
             Debug.print("Admin function called by admin.");
             switch (funcToCall) {
-                case (#CreateMission(name, missionType, rewardType, rewardAmount, total, hours_active)) {
-                    let (success, message, id) = await createGeneralMission(name, missionType, rewardType, rewardAmount, total, hours_active);
+                case (#CreateMission(name, missionCategory, missionType, rewardType, rewardAmount, total, hours_active)) {
+                    let (success, message, id) = await createGeneralMission(name, missionCategory, missionType, rewardType, rewardAmount, total, hours_active);
                     return (success, message # " Mission ID: " # Nat.toText(id));
                 };
                 case (#CreateMissionsPeriodically()) {
@@ -285,6 +286,7 @@ shared actor class Cosmicrafts() = Self {
         let rewardAmount = Utils.getMaxMin(template.minReward, template.maxReward);
         return await createGeneralMission(
             template.name,
+            template.missionCategory,
             template.missionType,
             template.rewardType,
             rewardAmount,
@@ -357,7 +359,7 @@ shared actor class Cosmicrafts() = Self {
 
 
     // Function to create a new general mission
-    func createGeneralMission(name: Text, missionType: MissionType, rewardType: RewardType, rewardAmount: Nat, total: Nat, hoursActive: Nat64): async (Bool, Text, Nat) {
+    func createGeneralMission(name: Text, missionCategory: MissionCategory, missionType: MissionType, rewardType: RewardType, rewardAmount: Nat, total: Nat, hoursActive: Nat64): async (Bool, Text, Nat) {
         let id = generalMissionIDCounter;
         generalMissionIDCounter += 1;
 
@@ -368,6 +370,7 @@ shared actor class Cosmicrafts() = Self {
         let newMission: Mission = {
             id = id;
             name = name;
+            missionCategory = missionCategory;
             missionType = missionType;
             reward_type = rewardType;
             reward_amount = rewardAmount;
@@ -470,6 +473,7 @@ shared actor class Cosmicrafts() = Self {
                 let isDailyFreeReward = checkIfDailyFreeRewardMission(mission); // Check if the mission is a daily free reward mission
                 buffer.add({
                     id_mission = id;
+                    missionCategory = mission.missionCategory;
                     reward_amount = mission.reward_amount;
                     start_date = mission.start_date;
                     progress = 0; // Initialize with 0 progress
@@ -798,6 +802,7 @@ shared actor class Cosmicrafts() = Self {
         let newMission: Mission = {
             id = missionIDCounter;
             name = template.name;
+            missionCategory = template.missionCategory;
             missionType = template.missionType;
             reward_type = template.rewardType;
             reward_amount = rewardAmount;
@@ -813,6 +818,7 @@ shared actor class Cosmicrafts() = Self {
 
         return (true, "User-specific mission created.", newMission.id);
     };
+
 
     // Function to update progress for user-specific missions
     func updateUserMissionsProgress(user: Principal, playerStats: {
@@ -906,14 +912,10 @@ shared actor class Cosmicrafts() = Self {
 
     // Function to assign new user-specific missions to a user
     func assignUserMissions(user: PlayerId): async () {
-        //Debug.print("[assignUserMissions] Assigning new user-specific missions to user: " # Principal.toText(user));
-
         var userSpecificProgressList: [MissionsUser] = switch (userMissionProgress.get(user)) {
             case (null) { [] };
             case (?missions) { missions };
         };
-
-        //Debug.print("[assignUserMissions] User missions before update: " # debug_show(userSpecificProgressList));
 
         var claimedRewardsForUser: [Nat] = switch (userClaimedRewards.get(user)) {
             case (null) { [] };
@@ -944,6 +946,7 @@ shared actor class Cosmicrafts() = Self {
                     if (not Utils.arrayContains<Nat>(Buffer.toArray(currentMissionIds), mission.id, Utils._natEqual) and not Utils.arrayContains<Nat>(claimedRewardsForUser, mission.id, Utils._natEqual)) {
                         buffer.add({
                             id_mission = mission.id;
+                            missionCategory = mission.missionCategory;
                             reward_amount = mission.reward_amount;
                             start_date = mission.start_date;
                             progress = 0; // Initialize with 0 progress
@@ -960,7 +963,6 @@ shared actor class Cosmicrafts() = Self {
         };
 
         userMissionProgress.put(user, Buffer.toArray(buffer));
-        //Debug.print("[assignUserMissions] User missions after update: " # debug_show(userMissionProgress.get(user)));
     };
 
     public shared ({ caller }) func getUserMissions(): async [MissionsUser] {

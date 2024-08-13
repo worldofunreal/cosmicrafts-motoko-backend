@@ -6,6 +6,7 @@ module MissionOptions {
     public let hourlyMissions: [Types.MissionTemplate] = [
         {
             name = "Complete 1 Game";
+            missionCategory = #Hourly;
             missionType = #GamesCompleted;
             rewardType = #Stardust;
             minReward = 18;
@@ -15,6 +16,7 @@ module MissionOptions {
         },
         {
             name = "Win 1 Game";
+            missionCategory = #Hourly;
             missionType = #GamesWon;
             rewardType = #Chest;
             minReward = 2;
@@ -24,6 +26,7 @@ module MissionOptions {
         },
         {
             name = "Deal 1000 Damage";
+            missionCategory = #Hourly;
             missionType = #DamageDealt;
             rewardType = #Stardust;
             minReward = 20;
@@ -33,6 +36,7 @@ module MissionOptions {
         },
         {
             name = "Take 500 Damage";
+            missionCategory = #Hourly;
             missionType = #DamageTaken;
             rewardType = #Chest;
             minReward = 1;
@@ -42,6 +46,7 @@ module MissionOptions {
         },
         {
             name = "Use 35 Energy";
+            missionCategory = #Hourly;
             missionType = #EnergyUsed;
             rewardType = #Stardust;
             minReward = 22;
@@ -51,6 +56,7 @@ module MissionOptions {
         },
         {
             name = "Deploy 20 NFTs";
+            missionCategory = #Hourly;
             missionType = #UnitsDeployed;
             rewardType = #Stardust;
             minReward = 22;
@@ -60,6 +66,7 @@ module MissionOptions {
         },
         {
             name = "Earn 1000 XP";
+            missionCategory = #Hourly;
             missionType = #XPEarned;
             rewardType = #Chest;
             minReward = 2;
@@ -69,6 +76,7 @@ module MissionOptions {
         },
         {
             name = "Destroy 15 enemies";
+            missionCategory = #Hourly;
             missionType = #Kills;
             rewardType = #Chest;
             minReward = 2;
@@ -81,6 +89,7 @@ module MissionOptions {
     public let dailyMissions: [Types.MissionTemplate] = [
         {
             name = "Complete 5 Games";
+            missionCategory = #Daily;
             missionType = #GamesCompleted;
             rewardType = #Stardust;
             minReward = 128;
@@ -90,6 +99,7 @@ module MissionOptions {
         },
         {
             name = "Win 3 Games";
+            missionCategory = #Daily;
             missionType = #GamesWon;
             rewardType = #Chest;
             minReward = 4;
@@ -99,6 +109,7 @@ module MissionOptions {
         },
         {
             name = "Deal 10000 Damage";
+            missionCategory = #Daily;
             missionType = #DamageDealt;
             rewardType = #Stardust;
             minReward = 128;
@@ -108,6 +119,7 @@ module MissionOptions {
         },
         {
             name = "Take 9000 Damage";
+            missionCategory = #Daily;
             missionType = #DamageTaken;
             rewardType = #Chest;
             minReward = 4;
@@ -117,6 +129,7 @@ module MissionOptions {
         },
         {
             name = "Use 300 Energy";
+            missionCategory = #Daily;
             missionType = #EnergyUsed;
             rewardType = #Stardust;
             minReward = 128;
@@ -126,6 +139,7 @@ module MissionOptions {
         },
         {
             name = "Deploy 100 NFTs";
+            missionCategory = #Daily;
             missionType = #UnitsDeployed;
             rewardType = #Stardust;
             minReward = 128;
@@ -135,6 +149,7 @@ module MissionOptions {
         },
         {
             name = "Earn 50000 XP";
+            missionCategory = #Daily;
             missionType = #XPEarned;
             rewardType = #Chest;
             minReward = 3;
@@ -144,6 +159,7 @@ module MissionOptions {
         },
         {
             name = "Destroy 50 Enemies";
+            missionCategory = #Daily;
             missionType = #Kills;
             rewardType = #Chest;
             minReward = 3;
@@ -156,6 +172,7 @@ module MissionOptions {
     public let weeklyMissions: [Types.MissionTemplate] = [
         {
             name = "Complete 20 Games";
+            missionCategory = #Weekly;
             missionType = #GamesCompleted;
             rewardType = #Stardust;
             minReward = 768;  // Adjusted to fit the 20% more/less range
@@ -165,6 +182,7 @@ module MissionOptions {
         },
         {
             name = "Win 10 Games";
+            missionCategory = #Weekly;
             missionType = #GamesWon;
             rewardType = #Chest;
             minReward = 7;  // Chest rewards
@@ -174,6 +192,7 @@ module MissionOptions {
         },
         {
             name = "Deal 50000 Damage";
+            missionCategory = #Weekly;
             missionType = #DamageDealt;
             rewardType = #Stardust;
             minReward = 800;  // Adjusted to fit the 20% more/less range
@@ -183,6 +202,7 @@ module MissionOptions {
         },
         {
             name = "Take 25000 Damage";
+            missionCategory = #Weekly;
             missionType = #DamageTaken;
             rewardType = #Chest;
             minReward = 6;  // Chest rewards
@@ -192,6 +212,7 @@ module MissionOptions {
         },
         {
             name = "Use 1000 Energy";
+            missionCategory = #Weekly;
             missionType = #EnergyUsed;
             rewardType = #Stardust;
             minReward = 768;  // Adjusted to fit the 20% more/less range
@@ -201,6 +222,7 @@ module MissionOptions {
         },
         {
             name = "Deploy 250 NFTs";
+            missionCategory = #Weekly;
             missionType = #UnitsDeployed;
             rewardType = #Stardust;
             minReward = 900;  // Adjusted to fit the 20% more/less range
@@ -210,6 +232,7 @@ module MissionOptions {
         },
         {
             name = "Earn 200000 XP";
+            missionCategory = #Weekly;
             missionType = #XPEarned;
             rewardType = #Chest;
             minReward = 6;  // Chest rewards
@@ -219,6 +242,7 @@ module MissionOptions {
         },
         {
             name = "Destroy 200 Enemies";
+            missionCategory = #Weekly;
             missionType = #Kills;
             rewardType = #Chest;
             minReward = 6;  // Chest rewards
@@ -232,6 +256,7 @@ module MissionOptions {
     public let dailyFreeReward: [Types.MissionTemplate] = [
         {
         name = "Daily Free Chest";
+        missionCategory = #Free;
         missionType = #GamesCompleted; // Not tied to gameplay
         rewardType = #Chest;
         minReward = 1;
@@ -241,6 +266,7 @@ module MissionOptions {
         },
         {
         name = "Daily Free STDs";
+        missionCategory = #Free;
         missionType = #GamesCompleted; // Not tied to gameplay
         rewardType = #Stardust;
         minReward = 10;
