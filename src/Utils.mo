@@ -23,9 +23,10 @@
 module Utils {
 
 
-    public func getTokensAmount(rarity: Nat): async Nat {
-        let randomBytes = await Random.blob(); // Generate random bytes
-        let prng = PseudoRandomX.fromBlob(randomBytes, #xorshift32); // Create a pseudo-random generator
+    public func getTokensAmount(rarity: Nat): Nat {
+        // Use a fixed seed for deterministic behavior
+        let seed: Nat32 = 12345; // Example seed
+        let prng = PseudoRandomX.fromSeed(seed, #xorshift32); // Create a pseudo-random generator
 
         // Define base and initial gap
         let baseMin: Nat = 10;
@@ -53,27 +54,29 @@ module Utils {
         return randomAmount;
     };
 
-    public func getRandomReward(minReward: Nat, maxReward: Nat): async Nat {
-        let randomBytes = await Random.blob(); // Generating random bytes
-        let prng = PseudoRandomX.fromBlob(randomBytes, #xorshift32); // Create a pseudo-random generator
+    public func getRandomReward(minReward: Nat, maxReward: Nat): Nat {
+        // Use a fixed seed for deterministic behavior
+        let seed: Nat32 = 12345; // Example seed
+        let prng = PseudoRandomX.fromSeed(seed, #xorshift32); // Create a pseudo-random generator
         return prng.nextNat(minReward, maxReward);
     };
 
     public func calculateLevel(xp: Nat) : Nat {
         let baseXP: Nat = 100;
-        let increment: Nat = 10; //Increase the increment or scalingFactor to make the XP requirements more challenging.
-        let scalingFactor: Nat = 1; // Decrease the scalingFactor if you want the XP requirements to grow more slowly.
+        let increment: Nat = 10;
+        let scalingFactor: Nat = 1;
 
         var level: Nat = 1;
-        var requiredXP: Nat = baseXP + increment;
+        var requiredXP: Nat = 0;
 
-        // Increase level as long as XP meets or exceeds the required XP for the next level.
+        // Continue to increase the level while the total XP is greater than or equal to the cumulative required XP
         while (xp >= requiredXP) {
             level := level + 1;
-            requiredXP := baseXP + (increment * level) + (scalingFactor * level * level);
+            requiredXP := requiredXP + baseXP + (increment * level) + (scalingFactor * level * level);
         };
 
-        return level;
+        // Return the previous level since the loop exits when xp is less than requiredXP
+        return level - 1;
     };
 
     // Function to calculate the upgrade cost based on level
