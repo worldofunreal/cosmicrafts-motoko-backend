@@ -588,8 +588,10 @@ shared actor class Cosmicrafts() = Self {
                 // If all checks pass, mint the rewards
                 let (success, rewardMessage) = await mintGeneralRewards(mission, msg.caller);
                 if (success) {
+                    // Determine XP range based on the mission category
+                    let (minXp, maxXp) = MissionOptions.getXpRange(mission.missionCategory);
                     // Generate XP reward
-                    let xpReward = Utils.getMaxMin(20, 30);
+                    let xpReward = Utils.getMaxMin(minXp, maxXp);
 
                     // Ensure player stats are initialized
                     var playerStatsOpt = playerGamesStats.get(msg.caller);
@@ -708,73 +710,86 @@ shared actor class Cosmicrafts() = Self {
         var userClaimedRewards: HashMap.HashMap<Principal, [Nat]> = HashMap.fromIter(_userClaimedRewards.vals(), 0, Principal.equal, Principal.hash);
 
     // Function to create a new user-specific mission
-    public func createUserMission(user: PlayerId): async (Bool, Text, Nat) {
-        //Debug.print("[createUserMission] Start creating mission for user: " # Principal.toText(user));
-
-        var _userMissionsList: Buffer.Buffer<Mission> = switch (userMissions.get(user)) {
-            case (null) { Buffer.Buffer<Mission>(0) };
-            case (?missions) { Buffer.fromArray<Mission>(missions) };
-        };
-
-        var userSpecificProgressList: Buffer.Buffer<MissionsUser> = switch (userMissionProgress.get(user)) {
-            case (null) { Buffer.Buffer<MissionsUser>(0) };
-            case (?progress) { Buffer.fromArray<MissionsUser>(progress) };
-        };
-
-        if (userSpecificProgressList.size() > 0) {
-            let lastMissionProgress = userSpecificProgressList.get(userSpecificProgressList.size() - 1);
-            let currentTime = Nat64.fromNat(Int.abs(Time.now()));
-
-            if (not lastMissionProgress.finished and currentTime <= lastMissionProgress.expiration) {
-                //Debug.print("[createUserMission] Current mission is still active: " # debug_show(lastMissionProgress));
-                return (false, "Current mission is still active", lastMissionProgress.id_mission);
-            } else {
-                //Debug.print("[createUserMission] Current mission is not active or is finished");
-            }
-        };
-
-        // Initialize shuffled indices concurrently
-        let initHourlyFuture = if (shuffledHourlyIndices.size() == 0 or currentHourlyIndex >= shuffledHourlyIndices.size()) {
-            initializeShuffledHourlyMissions();
-        } else {
-            async {};
-        };
-
-        let initDailyFuture = if (shuffledDailyIndices.size() == 0 or currentDailyIndex >= shuffledDailyIndices.size()) {
-            initializeShuffledDailyMissions();
-        } else {
-            async {};
-        };
-
-        let initWeeklyFuture = if (shuffledWeeklyIndices.size() == 0 or currentWeeklyIndex >= shuffledWeeklyIndices.size()) {
-            initializeShuffledWeeklyMissions();
-        } else {
-            async {};
-        };
-
-        // Wait for all initialization futures to complete
-        await initHourlyFuture;
-        await initDailyFuture;
-        await initWeeklyFuture;
-
-        // Concurrently create missions
-        let hourlyMissionFuture = createUserSpecificMission(user, MissionOptions.hourlyMissions, shuffledHourlyIndices, currentHourlyIndex, ONE_HOUR);
-        let dailyMissionFuture = createUserSpecificMission(user, MissionOptions.dailyMissions, shuffledDailyIndices, currentDailyIndex, ONE_DAY);
-        let weeklyMissionFuture = createUserSpecificMission(user, MissionOptions.weeklyMissions, shuffledWeeklyIndices, currentWeeklyIndex, ONE_WEEK);
-
-        // Await mission creation futures
-        let hourlyResult = await hourlyMissionFuture;
-        let _dailyResult = await dailyMissionFuture;
-        let _weeklyResult = await weeklyMissionFuture;
-
-        currentHourlyIndex += 1;
-        currentDailyIndex += 1;
-        currentWeeklyIndex += 1;
-
-        await assignUserMissions(user);
-
-        return (true, "User-specific missions created.", hourlyResult.2);
+public func createUserMission(user: PlayerId): async (Bool, Text, Nat) {
+    var userSpecificProgressList: [MissionsUser] = switch (userMissionProgress.get(user)) {
+        case (null) { [] };
+        case (?missions) { missions };
     };
+
+    let now = Nat64.fromNat(Int.abs(Time.now()));
+
+    // Check if there are active missions for each category and renew them if necessary
+    var hasActiveHourly = false;
+    var hasActiveDaily = false;
+    var hasActiveWeekly = false;
+    var hasActiveFree = true;
+    var hasActiveAchievement = true;
+
+    for (mission in userSpecificProgressList.vals()) {
+        if (mission.expiration >= now and not mission.finished) {
+            switch (mission.missionCategory) {
+                case (#Hourly) { hasActiveHourly := true };
+                case (#Daily) { hasActiveDaily := true };
+                case (#Weekly) { hasActiveWeekly := true };
+                case (#Free) { hasActiveFree := true };
+                case (#Achievement) { hasActiveAchievement := true };
+            }
+        }
+    };
+
+    // Initialize shuffled indices if necessary
+    let initHourlyFuture = if (shuffledHourlyIndices.size() == 0 or currentHourlyIndex >= shuffledHourlyIndices.size()) {
+        initializeShuffledHourlyMissions();
+    } else {
+        async {};
+    };
+
+    let initDailyFuture = if (shuffledDailyIndices.size() == 0 or currentDailyIndex >= shuffledDailyIndices.size()) {
+        initializeShuffledDailyMissions();
+    } else {
+        async {};
+    };
+
+    let initWeeklyFuture = if (shuffledWeeklyIndices.size() == 0 or currentWeeklyIndex >= shuffledWeeklyIndices.size()) {
+        initializeShuffledWeeklyMissions();
+    } else {
+        async {};
+    };
+
+    await initHourlyFuture;
+    await initDailyFuture;
+    await initWeeklyFuture;
+
+    // Create new missions if there are no active ones in the respective category
+    let hourlyResult = if (not hasActiveHourly) {
+        let res = await createUserSpecificMission(user, MissionOptions.hourlyMissions, shuffledHourlyIndices, currentHourlyIndex, ONE_HOUR);
+        currentHourlyIndex += 1;
+        res;
+    } else {
+        (true, "Hourly mission is still active.", 0)
+    };
+
+    let _dailyResult = if (not hasActiveDaily) {
+        let res = await createUserSpecificMission(user, MissionOptions.dailyMissions, shuffledDailyIndices, currentDailyIndex, ONE_DAY);
+        currentDailyIndex += 1;
+        res;
+    } else {
+        (true, "Daily mission is still active.", 0)
+    };
+
+    let _weeklyResult = if (not hasActiveWeekly) {
+        let res = await createUserSpecificMission(user, MissionOptions.weeklyMissions, shuffledWeeklyIndices, currentWeeklyIndex, ONE_WEEK);
+        currentWeeklyIndex += 1;
+        res;
+    } else {
+        (true, "Weekly mission is still active.", 0)
+    };
+
+    await assignUserMissions(user);
+
+    return (true, "User-specific missions checked and renewed if necessary.", hourlyResult.2);
+};
+
 
     // Helper function to create a user-specific mission
     func createUserSpecificMission(
@@ -818,7 +833,6 @@ shared actor class Cosmicrafts() = Self {
 
         return (true, "User-specific mission created.", newMission.id);
     };
-
 
     // Function to update progress for user-specific missions
     func updateUserMissionsProgress(user: Principal, playerStats: {
@@ -1023,12 +1037,10 @@ shared actor class Cosmicrafts() = Self {
             case (?mission) {
                 let currentTime: Nat64 = Nat64.fromNat(Int.abs(Time.now()));
 
-                // Check if the mission has expired
                 if (currentTime > mission.expiration) {
                     return (false, "Mission has expired");
                 };
 
-                // Check if the mission reward has already been claimed
                 let claimedRewardsForUser = switch (userClaimedRewards.get(msg.caller)) {
                     case (null) { [] };
                     case (?rewards) { rewards };
@@ -1037,20 +1049,37 @@ shared actor class Cosmicrafts() = Self {
                     return (false, "Mission reward has already been claimed");
                 };
 
-                // Check if the mission is finished
                 if (not mission.finished) {
                     return (false, "Mission not finished");
                 };
 
-                // Check if the finish date is valid (should be before or equal to expiration date)
                 if (mission.finish_date > mission.expiration) {
                     return (false, "Mission finish date is after the expiration date");
                 };
 
-                // If all checks pass, mint the rewards
-                let (success, message) = await mintUserRewards(mission, msg.caller);
+                let (success, rewardMessage) = await mintUserRewards(mission, msg.caller);
                 if (success) {
-                    // Remove claimed reward from userProgress and add it to claimedRewards
+                    let (minXp, maxXp) = MissionOptions.getXpRange(mission.missionCategory);
+                    let xpReward = Utils.getMaxMin(minXp, maxXp);
+
+                    var playerStatsOpt = playerGamesStats.get(msg.caller);
+                    if (playerStatsOpt == null) {
+                        ignore await _initializeNewPlayerStats(msg.caller);
+                        playerStatsOpt := playerGamesStats.get(msg.caller);
+                    };
+
+                    switch (playerStatsOpt) {
+                        case (null) {};
+                        case (?stats) {
+                            var updatedStats = {
+                                stats with totalXpEarned = stats.totalXpEarned + xpReward
+                            };
+                            playerGamesStats.put(msg.caller, updatedStats);
+                        };
+                    };
+
+                    await updatePlayerLevel(msg.caller);
+
                     var userMissions = switch (userMissionProgress.get(msg.caller)) {
                         case (null) { [] };
                         case (?missions) { missions };
@@ -1063,15 +1092,19 @@ shared actor class Cosmicrafts() = Self {
                     };
                     userMissionProgress.put(msg.caller, Buffer.toArray(updatedMissions));
 
-                    // Add claimed reward to userClaimedRewards
                     let updatedClaimedRewardsBuffer = Buffer.Buffer<Nat>(claimedRewardsForUser.size() + 1);
                     for (reward in claimedRewardsForUser.vals()) {
                         updatedClaimedRewardsBuffer.add(reward);
                     };
                     updatedClaimedRewardsBuffer.add(idMission);
                     userClaimedRewards.put(msg.caller, Buffer.toArray(updatedClaimedRewardsBuffer));
+
+                    // After claiming the reward, check and renew missions
+                    ignore await createUserMission(msg.caller);
+
+                    return (true, "Mission reward claimed successfully. " # rewardMessage # ". XP gained: " # Nat.toText(xpReward));
                 };
-                return (success, message);
+                return (success, rewardMessage);
             };
         };
     };

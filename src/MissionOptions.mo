@@ -65,13 +65,13 @@ module MissionOptions {
             hoursActive = 1;
         },
         {
-            name = "Earn 1000 XP";
+            name = "Earn 150 XP";
             missionCategory = #Hourly;
             missionType = #XPEarned;
             rewardType = #Chest;
             minReward = 2;
             maxReward = 3;
-            total = 1000;
+            total = 150;
             hoursActive = 1;
         },
         {
@@ -148,13 +148,13 @@ module MissionOptions {
             hoursActive = 24;
         },
         {
-            name = "Earn 50000 XP";
+            name = "Earn 450 XP";
             missionCategory = #Daily;
             missionType = #XPEarned;
             rewardType = #Chest;
             minReward = 3;
             maxReward = 4;
-            total = 50000;
+            total = 450;
             hoursActive = 24;
         },
         {
@@ -177,17 +177,17 @@ module MissionOptions {
             rewardType = #Stardust;
             minReward = 768;  // Adjusted to fit the 20% more/less range
             maxReward = 1728;  // Adjusted to fit the 20% more/less range
-            total = 25;
+            total = 20;
             hoursActive = 168;  // 7 days
         },
         {
-            name = "Win 10 Games";
+            name = "Win 12 Games";
             missionCategory = #Weekly;
             missionType = #GamesWon;
             rewardType = #Chest;
             minReward = 7;  // Chest rewards
             maxReward = 8;  // Chest rewards
-            total = 10;
+            total = 12;
             hoursActive = 168;  // 7 days
         },
         {
@@ -231,13 +231,13 @@ module MissionOptions {
             hoursActive = 168;  // 7 days
         },
         {
-            name = "Earn 200000 XP";
+            name = "Earn 2000 XP";
             missionCategory = #Weekly;
             missionType = #XPEarned;
             rewardType = #Chest;
             minReward = 6;  // Chest rewards
             maxReward = 8;  // Chest rewards
-            total = 200000;
+            total = 2000;
             hoursActive = 168;  // 7 days
         },
         {
@@ -275,4 +275,25 @@ module MissionOptions {
         hoursActive = 4;
         }
     ];
+
+    public func getXpRange(missionCategory: Types.MissionCategory): (Nat, Nat) {
+    switch (missionCategory) {
+        case (#Free) {
+            return (10, 20);
+        };
+        case (#Hourly) {
+            return (20, 30);
+        };
+        case (#Daily) {
+            return (50, 100);
+        };
+        case (#Weekly) {
+            return (200, 300);
+        };
+        case (#Achievement) {
+            return (100, 200);
+        };
+    }
+}
+
 }

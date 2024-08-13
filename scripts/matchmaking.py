@@ -167,14 +167,14 @@ def generate_random_stats(shared_energy_generated, shared_sec_remaining, won):
 def get_current_mission_progress(identity_name):
     """Gets the current mission progress for the current identity."""
     switch_identity(identity_name)
-    command = 'dfx canister call cosmicrafts getUserMissions'
+    command = 'dfx canister call cosmicrafts getUserMissions && dfx canister call cosmicrafts getGeneralMissions '
     return execute_dfx_command(command)
 
 def claim_user_specific_reward(identity_name, mission_id):
     """Claims the user-specific reward for the given mission ID."""
     switch_identity(identity_name)
-    command = f'dfx canister call cosmicrafts claimUserReward \'({mission_id})\''
-    return execute_dfx_command(command)
+    #command = f'dfx canister call cosmicrafts claimUserReward \'({mission_id})\''
+    #return execute_dfx_command(command)
 
 def create_user_specific_hourly_mission(principal):
     """Creates a user-specific hourly mission for the given principal."""

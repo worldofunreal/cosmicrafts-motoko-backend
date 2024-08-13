@@ -184,8 +184,7 @@ module Types {
   public type MissionRewardType = {
     #Chest;
     #Stardust;
-    #XP;
-    #NFTXP;
+   // #NFTXP;
   };
 
   public type MissionOption = {

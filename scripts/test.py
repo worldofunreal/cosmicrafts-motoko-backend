@@ -39,7 +39,7 @@ def main():
 
     # Run matchmaking
     print("Running matchmaking...")
-    run_command("python scripts/matchmaking.py", "1\ny\n")
+    run_command("python scripts/matchmaking.py", "1\nn\n")
 
     # Retrieve full user profiles for both principals
     principals = [
