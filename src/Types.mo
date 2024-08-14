@@ -323,10 +323,8 @@ module Types {
 
     // Achievement Reward Types
     public type AchievementRewardsType = {
-        #Shards;
+        #Stardust;
         #Chest;
-        #Flux;
-        #CosmicPower;
     };
 
     // Achievement Reward

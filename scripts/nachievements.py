@@ -29,7 +29,8 @@ commands = [
     f'dfx canister call cosmicrafts registerPlayer \'("{username}", {avatar_id})\'',
     "dfx canister call cosmicrafts getAchievements",
     f'dfx canister call cosmicrafts updateAvatar \'({new_avatar_id})\'',
-    "dfx canister call cosmicrafts getAchievements"
+    "dfx canister call cosmicrafts getAchievements",
+    f'dfx canister call cosmicrafts claimIndividualAchievementReward \'(3)\''
 ]
 
 # Execute each command

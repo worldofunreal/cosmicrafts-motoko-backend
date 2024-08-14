@@ -57,7 +57,12 @@ module MilestoneAchievements {
         requiredProgress = 1;  // Only need to change the avatar once
         progress = 0;  // Initial progress
         completed = false;
-        reward = [];  // Placeholder for rewards
+        reward = [
+        {
+            rewardType = #Stardust;
+            amount = 10;
+        }
+    ];
         achievementId = firstStepsAchievementLine.id;  // Link to the achievement line
     };
 
