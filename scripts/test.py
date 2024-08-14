@@ -20,15 +20,6 @@ def run_command(command, input_text=None):
 def main():
 
     run_command("dfx identity use bizkit")
-
-    # Uninstall the canister code
-    print("Uninstalling the canister code...")
-    run_command("dfx canister uninstall-code cosmicrafts")
-
-    # Deploy the canister
-    print("Deploying the canister...")
-    run_command("dfx deploy")
-
     # Register players
     print("Registering players...")
     run_command("python scripts/registerPlayer.py", "2\n")

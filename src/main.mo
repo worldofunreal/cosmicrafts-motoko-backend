@@ -1183,7 +1183,6 @@ shared actor class Cosmicrafts() = Self {
         var categoryProgress: HashMap.HashMap<PlayerId, [AchievementProgress]> = HashMap.fromIter(_categoryProgress.vals(), 0, Principal.equal, Principal.hash);
         var claimedAchievementRewards: HashMap.HashMap<PlayerId, [Nat]> = HashMap.fromIter(_claimedAchievementRewards.vals(), 0, Principal.equal, Principal.hash); // Added this line
 
-    // Function to initialize Milestones and store them in stable variables
     public shared func initializeMilestones(): async () {
         let categoryID = categoryIDCounter;
         categoryIDCounter += 1;
@@ -1192,11 +1191,11 @@ shared actor class Cosmicrafts() = Self {
             id = categoryID;
             name = "Milestones";
             achievements = [];
-            requiredProgress = 5;
+            requiredProgress = 5; // Set based on the number of individual achievements
             tier = #Bronze;
             progress = 0;
             completed = false;
-            reward = []; // Category level rewards (if any)
+            reward = [];
         };
 
         let achievementID = achievementIDCounter;
@@ -1206,11 +1205,11 @@ shared actor class Cosmicrafts() = Self {
             id = achievementID;
             name = "First Steps in the Cosmos";
             individualAchievements = [];
-            requiredProgress = 5;
+            requiredProgress = 5; // Number of individual achievements
             tier = #Bronze;
             progress = 0;
             completed = false;
-            reward = []; // Achievement level rewards (if any)
+            reward = [];
             categoryId = milestoneCategory.id;
         };
 
@@ -1224,12 +1223,12 @@ shared actor class Cosmicrafts() = Self {
             requiredProgress = 1;
             progress = 0;
             completed = false;
-            reward = [ // Add rewards here
+            reward = [
                 {
                     rewardType = #Stardust;
                     amount = 10;
                 }
-            ];
+            ]; // Directly add rewards here
             achievementId = firstStepsAchievementLine.id;
         };
         idCounter += 1;
@@ -1248,7 +1247,7 @@ shared actor class Cosmicrafts() = Self {
                     rewardType = #Chest;
                     amount = 1;
                 }
-            ]; // Add rewards here
+            ]; // Directly add rewards here
             achievementId = firstStepsAchievementLine.id;
         };
         idCounter += 1;
@@ -1267,7 +1266,7 @@ shared actor class Cosmicrafts() = Self {
                     rewardType = #Stardust;
                     amount = 10;
                 }
-            ]; // Add rewards here
+            ]; // Directly add rewards here
             achievementId = firstStepsAchievementLine.id;
         };
         idCounter += 1;
@@ -1286,7 +1285,7 @@ shared actor class Cosmicrafts() = Self {
                     rewardType = #Chest;
                     amount = 1;
                 }
-            ]; // Add rewards here
+            ]; // Directly add rewards here
             achievementId = firstStepsAchievementLine.id;
         };
         idCounter += 1;
@@ -1305,7 +1304,7 @@ shared actor class Cosmicrafts() = Self {
                     rewardType = #Stardust;
                     amount = 15;
                 }
-            ]; // Add rewards here
+            ]; // Directly add rewards here
             achievementId = firstStepsAchievementLine.id;
         };
         idCounter += 1;
@@ -1322,6 +1321,7 @@ shared actor class Cosmicrafts() = Self {
             milestoneCategory with
             achievements = [updatedFirstStepsAchievementLine.id]
         };
+
         categories.put(updatedMilestoneCategory.id, updatedMilestoneCategory);
 
         individualAchievementIDCounter := idCounter;
@@ -1791,55 +1791,55 @@ shared actor class Cosmicrafts() = Self {
         return Buffer.toArray(achievementsWithDetails);
     };
 
-public shared(msg) func claimIndividualAchievementReward(achievementId: Nat): async (Bool, Text) {
-    let individualAchievementOpt = individualAchievements.get(achievementId);
-    switch (individualAchievementOpt) {
-        case (null) {
-            return (false, "Individual Achievement not found");
+    public shared(msg) func claimIndividualAchievementReward(achievementId: Nat): async (Bool, Text) {
+        let individualAchievementOpt = individualAchievements.get(achievementId);
+        switch (individualAchievementOpt) {
+            case (null) {
+                return (false, "Individual Achievement not found");
+            };
+            case (?individualAchievement) {
+                if (not individualAchievement.completed) {
+                    return (false, "Individual Achievement not completed");
+                };
+
+                let claimedRewards = switch (claimedAchievementRewards.get(msg.caller)) {
+                    case (null) { [] };
+                    case (?rewards) { rewards };
+                };
+
+                if (Array.find<Nat>(claimedRewards, func(r) { r == achievementId }) != null) {
+                    return (false, "Individual Achievement reward already claimed");
+                };
+
+                // Mint the rewards and collect messages
+                var rewardMessage: Text = "";
+                for (reward in individualAchievement.reward.vals()) {
+                    let (success, message) = await mintAchievementRewards(reward, msg.caller);
+                    if (not success) {
+                        return (false, message);
+                    };
+                    if (rewardMessage != "") {
+                        rewardMessage := rewardMessage # "; ";
+                    };
+                    rewardMessage := rewardMessage # message;
+                };
+
+                // Update claimed rewards
+                let updatedClaimedRewardsBuffer = Buffer.Buffer<Nat>(claimedRewards.size() + 1);
+                for (reward in claimedRewards.vals()) {
+                    updatedClaimedRewardsBuffer.add(reward);
+                };
+                updatedClaimedRewardsBuffer.add(achievementId);
+                claimedAchievementRewards.put(msg.caller, Buffer.toArray(updatedClaimedRewardsBuffer));
+
+                if (rewardMessage == "") {
+                    rewardMessage := "No rewards available to claim.";
+                };
+
+                return (true, "Individual Achievement rewards claimed successfully. " # rewardMessage);
+            }
         };
-        case (?individualAchievement) {
-            if (not individualAchievement.completed) {
-                return (false, "Individual Achievement not completed");
-            };
-
-            let claimedRewards = switch (claimedAchievementRewards.get(msg.caller)) {
-                case (null) { [] };
-                case (?rewards) { rewards };
-            };
-
-            if (Array.find<Nat>(claimedRewards, func(r) { r == achievementId }) != null) {
-                return (false, "Individual Achievement reward already claimed");
-            };
-
-            // Mint the rewards and collect messages
-            var rewardMessage: Text = "";
-            for (reward in individualAchievement.reward.vals()) {
-                let (success, message) = await mintAchievementRewards(reward, msg.caller);
-                if (not success) {
-                    return (false, message);
-                };
-                if (rewardMessage != "") {
-                    rewardMessage := rewardMessage # "; ";
-                };
-                rewardMessage := rewardMessage # message;
-            };
-
-            // Update claimed rewards
-            let updatedClaimedRewardsBuffer = Buffer.Buffer<Nat>(claimedRewards.size() + 1);
-            for (reward in claimedRewards.vals()) {
-                updatedClaimedRewardsBuffer.add(reward);
-            };
-            updatedClaimedRewardsBuffer.add(achievementId);
-            claimedAchievementRewards.put(msg.caller, Buffer.toArray(updatedClaimedRewardsBuffer));
-
-            if (rewardMessage == "") {
-                rewardMessage := "No rewards available to claim.";
-            };
-
-            return (true, "Individual Achievement rewards claimed successfully. " # rewardMessage);
-        }
     };
-};
     public shared(msg) func claimGeneralAchievementReward(achievementId: Nat): async (Bool, Text) {
         let generalAchievementOpt = achievements.get(achievementId);
         switch (generalAchievementOpt) {
