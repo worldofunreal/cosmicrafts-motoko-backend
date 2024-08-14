@@ -248,9 +248,9 @@ module Types {
 
   public type RewardPool = {
     chestRarity: (Nat, Nat);
-    flux: (Nat, Nat);
-    shards: (Nat, Nat);
+    stardust: (Nat, Nat);
   };
+  
 // Achievements
     // Individual Achievement relates to a single mission, e.g., "Play 3 games."
     public type IndividualAchievement = {
