@@ -25,8 +25,6 @@
     import ICRC7Utils "/icrc7/utils";
     import TypesICRC7 "/icrc7/types";
     import TypesICRC1 "/icrc1/Types";
-
-    import TypesAchievements "TypesAchievements";
     import Int64 "mo:base/Int64";
     import ExperimentalCycles "mo:base/ExperimentalCycles";
     import ICRC1 "/icrc1/Canisters/..";
@@ -86,15 +84,15 @@ shared actor class Cosmicrafts() = Self {
 
   
 
-    public type IndividualAchievement = TypesAchievements.IndividualAchievement;
-    public type Achievement = TypesAchievements.Achievement;
-    public type AchievementCategory = TypesAchievements.AchievementCategory;
-    public type AchievementType = TypesAchievements.AchievementType;
-    public type AchievementRewardsType = TypesAchievements.AchievementRewardsType;
-    public type AchievementReward = TypesAchievements.AchievementReward;
-    public type AchievementTier = TypesAchievements.AchievementTier;
-    public type AchievementProgress = TypesAchievements.AchievementProgress;
-    public type IndividualAchievementProgress = TypesAchievements.IndividualAchievementProgress;
+    public type IndividualAchievement = Types.IndividualAchievement;
+    public type Achievement = Types.Achievement;
+    public type AchievementCategory = Types.AchievementCategory;
+    public type AchievementType = Types.AchievementType;
+    public type AchievementRewardsType = Types.AchievementRewardsType;
+    public type AchievementReward = Types.AchievementReward;
+    public type AchievementTier = Types.AchievementTier;
+    public type AchievementProgress = Types.AchievementProgress;
+    public type IndividualAchievementProgress = Types.IndividualAchievementProgress;
 
     
 
@@ -1186,7 +1184,134 @@ shared actor class Cosmicrafts() = Self {
         var categoryProgress: HashMap.HashMap<PlayerId, [AchievementProgress]> = HashMap.fromIter(_categoryProgress.vals(), 0, Principal.equal, Principal.hash);
         var claimedAchievementRewards: HashMap.HashMap<PlayerId, [Nat]> = HashMap.fromIter(_claimedAchievementRewards.vals(), 0, Principal.equal, Principal.hash); // Added this line
 
-    func determineTier(progress: Nat, requiredProgress: Nat): TypesAchievements.AchievementTier {
+    // Function to initialize Milestones and store them in stable variables
+    public shared func initializeMilestones(): async () {
+        // Create Milestones Category
+        let categoryID = categoryIDCounter;
+        categoryIDCounter += 1;
+
+        let milestoneCategory: Types.AchievementCategory = {
+            id = categoryID;
+            name = "Milestones";
+            achievements = [];
+            requiredProgress = 100;
+            tier = #Bronze;
+            progress = 0;
+            completed = false;
+            reward = [];
+        };
+
+        // Create First Steps in the Cosmos Achievement Line
+        let achievementID = achievementIDCounter;
+        achievementIDCounter += 1;
+
+        let firstStepsAchievementLine: Types.Achievement = {
+            id = achievementID;
+            name = "First Steps in the Cosmos";
+            individualAchievements = [];
+            requiredProgress = 100;
+            tier = #Bronze;
+            progress = 0;
+            completed = false;
+            reward = [];
+            categoryId = milestoneCategory.id;
+        };
+
+        // Create Individual Achievements using Buffer
+        let individualAchievementsBuffer = Buffer.Buffer<Nat>(0);
+        var idCounter = individualAchievementIDCounter;
+
+        let completeTutorialAchievement: Types.IndividualAchievement = {
+            id = idCounter;
+            name = "Complete the Tutorial";
+            achievementType = #GamesCompleted;
+            requiredProgress = 1;
+            progress = 0;
+            completed = false;
+            reward = [];
+            achievementId = firstStepsAchievementLine.id;
+        };
+        idCounter += 1;
+        individualAchievements.put(completeTutorialAchievement.id, completeTutorialAchievement);
+        individualAchievementsBuffer.add(completeTutorialAchievement.id);
+
+        let play5AIGamesAchievement: Types.IndividualAchievement = {
+            id = idCounter;
+            name = "Defeat AI 5 Times";
+            achievementType = #GamesCompleted;
+            requiredProgress = 5;
+            progress = 0;
+            completed = false;
+            reward = [];
+            achievementId = firstStepsAchievementLine.id;
+        };
+        idCounter += 1;
+        individualAchievements.put(play5AIGamesAchievement.id, play5AIGamesAchievement);
+        individualAchievementsBuffer.add(play5AIGamesAchievement.id);
+
+        let changeAvatarAchievement: Types.IndividualAchievement = {
+            id = idCounter;
+            name = "Change Your Avatar";
+            achievementType = #Customization;
+            requiredProgress = 1;
+            progress = 0;
+            completed = false;
+            reward = [];
+            achievementId = firstStepsAchievementLine.id;
+        };
+        idCounter += 1;
+        individualAchievements.put(changeAvatarAchievement.id, changeAvatarAchievement);
+        individualAchievementsBuffer.add(changeAvatarAchievement.id);
+
+        let addFriendAchievement: Types.IndividualAchievement = {
+            id = idCounter;
+            name = "Have 1 Accepted Friend";
+            achievementType = #Social;
+            requiredProgress = 1;
+            progress = 0;
+            completed = false;
+            reward = [];
+            achievementId = firstStepsAchievementLine.id;
+        };
+        idCounter += 1;
+        individualAchievements.put(addFriendAchievement.id, addFriendAchievement);
+        individualAchievementsBuffer.add(addFriendAchievement.id);
+
+        let upgradeNFTAchievement: Types.IndividualAchievement = {
+            id = idCounter;
+            name = "Upgrade Any NFT to Level 3";
+            achievementType = #UpgradeNFT;
+            requiredProgress = 1;
+            progress = 0;
+            completed = false;
+            reward = [];
+            achievementId = firstStepsAchievementLine.id;
+        };
+        idCounter += 1;
+        individualAchievements.put(upgradeNFTAchievement.id, upgradeNFTAchievement);
+        individualAchievementsBuffer.add(upgradeNFTAchievement.id);
+
+        // Create a new Achievement record with the updated individualAchievements list
+        let updatedFirstStepsAchievementLine = {
+            firstStepsAchievementLine with
+            individualAchievements = Buffer.toArray(individualAchievementsBuffer)
+        };
+        achievements.put(updatedFirstStepsAchievementLine.id, updatedFirstStepsAchievementLine);
+
+        // Create a new AchievementCategory record with the updated achievements list
+        let updatedMilestoneCategory = {
+            milestoneCategory with
+            achievements = [updatedFirstStepsAchievementLine.id]
+        };
+        categories.put(updatedMilestoneCategory.id, updatedMilestoneCategory);
+
+        // Update Counters
+        individualAchievementIDCounter := idCounter;
+
+        Debug.print("[initializeMilestones] Milestones initialized and stored in stable variables.");
+    };
+
+    func determineTier(progress: Nat, requiredProgress: Nat): Types.AchievementTier {
         let progressPercentage = (progress * 100) / requiredProgress;
         if (progressPercentage >= 100) {
             return #Legend;
@@ -1207,15 +1332,15 @@ shared actor class Cosmicrafts() = Self {
 
     public func createIndividualAchievement(
         name: Text, 
-        achievementType: TypesAchievements.AchievementType, 
+        achievementType: Types.AchievementType, 
         requiredProgress: Nat, 
-        rewards: [TypesAchievements.AchievementReward], 
+        rewards: [Types.AchievementReward], 
         achievementId: Nat
         ): async (Bool, Text, Nat) {
         let id = individualAchievementIDCounter;
         individualAchievementIDCounter += 1;
 
-        let newIndividualAchievement: TypesAchievements.IndividualAchievement = {
+        let newIndividualAchievement: Types.IndividualAchievement = {
             id = id;
             name = name;
             achievementType = achievementType;
@@ -1237,12 +1362,12 @@ shared actor class Cosmicrafts() = Self {
         individualAchievements: [Nat], 
         requiredProgress: Nat,
         categoryId: Nat,
-        rewards: [TypesAchievements.AchievementReward]
+        rewards: [Types.AchievementReward]
         ): async (Bool, Text, Nat) {
         let id = achievementIDCounter;
         achievementIDCounter += 1;
 
-        let newAchievement: TypesAchievements.Achievement = {
+        let newAchievement: Types.Achievement = {
             id = id;
             name = name;
             individualAchievements = individualAchievements;
@@ -1264,12 +1389,12 @@ shared actor class Cosmicrafts() = Self {
         name: Text, 
         achievements: [Nat], 
         requiredProgress: Nat,
-        rewards: [TypesAchievements.AchievementReward]
+        rewards: [Types.AchievementReward]
         ): async (Bool, Text, Nat) {
         let id = categoryIDCounter;
         categoryIDCounter += 1;
 
-        let newCategory: TypesAchievements.AchievementCategory = {
+        let newCategory: Types.AchievementCategory = {
             id = id;
             name = name;
             achievements = achievements;
@@ -1519,7 +1644,7 @@ shared actor class Cosmicrafts() = Self {
                                     case (null) {};
                                     case (?indAch) {
                                         let progressOpt = Array.find<AchievementProgress>(userProgress, func(p) { p.achievementId == indAchId });
-                                        let indAchProgress: TypesAchievements.IndividualAchievementProgress = switch (progressOpt) {
+                                        let indAchProgress: Types.IndividualAchievementProgress = switch (progressOpt) {
                                             case (null) {
                                                 {
                                                     individualAchievement = indAch;
@@ -1618,7 +1743,7 @@ shared actor class Cosmicrafts() = Self {
         };
     };
 
-    func mintAchievementRewards(reward: TypesAchievements.AchievementReward, caller: TypesAchievements.PlayerId): async (Bool, Text) {
+    func mintAchievementRewards(reward: Types.AchievementReward, caller: Types.PlayerId): async (Bool, Text) {
         switch (reward.rewardType) {
             case (#Shards) {
                 let result = await mintShards(caller, reward.amount);
@@ -1747,7 +1872,7 @@ shared actor class Cosmicrafts() = Self {
                                     case (null) {};
                                     case (?indAch) {
                                         let progressOpt = Array.find<AchievementProgress>(userProgress, func(p) { p.achievementId == indAchId });
-                                        let indAchProgress: TypesAchievements.IndividualAchievementProgress = switch (progressOpt) {
+                                        let indAchProgress: Types.IndividualAchievementProgress = switch (progressOpt) {
                                             case (null) {
                                                 {
                                                     individualAchievement = indAch;
