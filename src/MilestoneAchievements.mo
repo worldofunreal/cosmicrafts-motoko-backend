@@ -7,7 +7,7 @@ module MilestoneAchievements {
         id = 1;  // Unique ID for the Milestones category
         name = "Milestones";
         achievements = [];  // To be filled with achievement IDs
-        requiredProgress = 100;  // Placeholder for required progress to complete the category
+        requiredProgress = 1;  // Placeholder for required progress to complete the category
         tier = #Bronze;  // Initial tier
         progress = 0;  // Initial progress
         completed = false;
@@ -19,7 +19,7 @@ module MilestoneAchievements {
         id = 1;  // Unique ID for the First Steps in the Cosmos achievement line
         name = "First Steps in the Cosmos";
         individualAchievements = [];  // To be filled with individual achievement IDs
-        requiredProgress = 100;  // Placeholder for required progress
+        requiredProgress = 5;  // Placeholder for required progress
         tier = #Bronze;  // Initial tier
         progress = 0;  // Initial progress
         completed = false;
