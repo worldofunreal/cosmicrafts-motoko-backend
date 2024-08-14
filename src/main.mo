@@ -710,85 +710,85 @@ shared actor class Cosmicrafts() = Self {
         var userClaimedRewards: HashMap.HashMap<Principal, [Nat]> = HashMap.fromIter(_userClaimedRewards.vals(), 0, Principal.equal, Principal.hash);
 
     // Function to create a new user-specific mission
-public func createUserMission(user: PlayerId): async (Bool, Text, Nat) {
-    var userSpecificProgressList: [MissionsUser] = switch (userMissionProgress.get(user)) {
-        case (null) { [] };
-        case (?missions) { missions };
-    };
+    public func createUserMission(user: PlayerId): async (Bool, Text, Nat) {
+        var userSpecificProgressList: [MissionsUser] = switch (userMissionProgress.get(user)) {
+            case (null) { [] };
+            case (?missions) { missions };
+        };
 
-    let now = Nat64.fromNat(Int.abs(Time.now()));
+        let now = Nat64.fromNat(Int.abs(Time.now()));
 
-    // Check if there are active missions for each category and renew them if necessary
-    var hasActiveHourly = false;
-    var hasActiveDaily = false;
-    var hasActiveWeekly = false;
-    var hasActiveFree = true;
-    var hasActiveAchievement = true;
+        // Check if there are active missions for each category and renew them if necessary
+        var hasActiveHourly = false;
+        var hasActiveDaily = false;
+        var hasActiveWeekly = false;
+        var hasActiveFree = true;
+        var hasActiveAchievement = true;
 
-    for (mission in userSpecificProgressList.vals()) {
-        if (mission.expiration >= now and not mission.finished) {
-            switch (mission.missionCategory) {
-                case (#Hourly) { hasActiveHourly := true };
-                case (#Daily) { hasActiveDaily := true };
-                case (#Weekly) { hasActiveWeekly := true };
-                case (#Free) { hasActiveFree := true };
-                case (#Achievement) { hasActiveAchievement := true };
+        for (mission in userSpecificProgressList.vals()) {
+            if (mission.expiration >= now and not mission.finished) {
+                switch (mission.missionCategory) {
+                    case (#Hourly) { hasActiveHourly := true };
+                    case (#Daily) { hasActiveDaily := true };
+                    case (#Weekly) { hasActiveWeekly := true };
+                    case (#Free) { hasActiveFree := true };
+                    case (#Achievement) { hasActiveAchievement := true };
+                }
             }
-        }
+        };
+
+        // Initialize shuffled indices if necessary
+        let initHourlyFuture = if (shuffledHourlyIndices.size() == 0 or currentHourlyIndex >= shuffledHourlyIndices.size()) {
+            initializeShuffledHourlyMissions();
+        } else {
+            async {};
+        };
+
+        let initDailyFuture = if (shuffledDailyIndices.size() == 0 or currentDailyIndex >= shuffledDailyIndices.size()) {
+            initializeShuffledDailyMissions();
+        } else {
+            async {};
+        };
+
+        let initWeeklyFuture = if (shuffledWeeklyIndices.size() == 0 or currentWeeklyIndex >= shuffledWeeklyIndices.size()) {
+            initializeShuffledWeeklyMissions();
+        } else {
+            async {};
+        };
+
+        await initHourlyFuture;
+        await initDailyFuture;
+        await initWeeklyFuture;
+
+        // Create new missions if there are no active ones in the respective category
+        let hourlyResult = if (not hasActiveHourly) {
+            let res = await createUserSpecificMission(user, MissionOptions.hourlyMissions, shuffledHourlyIndices, currentHourlyIndex, ONE_HOUR);
+            currentHourlyIndex += 1;
+            res;
+        } else {
+            (true, "Hourly mission is still active.", 0)
+        };
+
+        let _dailyResult = if (not hasActiveDaily) {
+            let res = await createUserSpecificMission(user, MissionOptions.dailyMissions, shuffledDailyIndices, currentDailyIndex, ONE_DAY);
+            currentDailyIndex += 1;
+            res;
+        } else {
+            (true, "Daily mission is still active.", 0)
+        };
+
+        let _weeklyResult = if (not hasActiveWeekly) {
+            let res = await createUserSpecificMission(user, MissionOptions.weeklyMissions, shuffledWeeklyIndices, currentWeeklyIndex, ONE_WEEK);
+            currentWeeklyIndex += 1;
+            res;
+        } else {
+            (true, "Weekly mission is still active.", 0)
+        };
+
+        await assignUserMissions(user);
+
+        return (true, "User-specific missions checked and renewed if necessary.", hourlyResult.2);
     };
-
-    // Initialize shuffled indices if necessary
-    let initHourlyFuture = if (shuffledHourlyIndices.size() == 0 or currentHourlyIndex >= shuffledHourlyIndices.size()) {
-        initializeShuffledHourlyMissions();
-    } else {
-        async {};
-    };
-
-    let initDailyFuture = if (shuffledDailyIndices.size() == 0 or currentDailyIndex >= shuffledDailyIndices.size()) {
-        initializeShuffledDailyMissions();
-    } else {
-        async {};
-    };
-
-    let initWeeklyFuture = if (shuffledWeeklyIndices.size() == 0 or currentWeeklyIndex >= shuffledWeeklyIndices.size()) {
-        initializeShuffledWeeklyMissions();
-    } else {
-        async {};
-    };
-
-    await initHourlyFuture;
-    await initDailyFuture;
-    await initWeeklyFuture;
-
-    // Create new missions if there are no active ones in the respective category
-    let hourlyResult = if (not hasActiveHourly) {
-        let res = await createUserSpecificMission(user, MissionOptions.hourlyMissions, shuffledHourlyIndices, currentHourlyIndex, ONE_HOUR);
-        currentHourlyIndex += 1;
-        res;
-    } else {
-        (true, "Hourly mission is still active.", 0)
-    };
-
-    let _dailyResult = if (not hasActiveDaily) {
-        let res = await createUserSpecificMission(user, MissionOptions.dailyMissions, shuffledDailyIndices, currentDailyIndex, ONE_DAY);
-        currentDailyIndex += 1;
-        res;
-    } else {
-        (true, "Daily mission is still active.", 0)
-    };
-
-    let _weeklyResult = if (not hasActiveWeekly) {
-        let res = await createUserSpecificMission(user, MissionOptions.weeklyMissions, shuffledWeeklyIndices, currentWeeklyIndex, ONE_WEEK);
-        currentWeeklyIndex += 1;
-        res;
-    } else {
-        (true, "Weekly mission is still active.", 0)
-    };
-
-    await assignUserMissions(user);
-
-    return (true, "User-specific missions checked and renewed if necessary.", hourlyResult.2);
-};
 
 
     // Helper function to create a user-specific mission
@@ -2220,6 +2220,7 @@ public func createUserMission(user: PlayerId): async (Bool, Text, Nat) {
                     id = player.id;
                     username = player.username;
                     avatar = player.avatar;
+                    title = player.title;
                     description = player.description;
                     registrationDate = player.registrationDate;
                     level = Utils.calculateLevel(totalXp);
@@ -2319,6 +2320,7 @@ public func createUserMission(user: PlayerId): async (Bool, Text, Nat) {
                     id = playerId;
                     username = username;
                     avatar = avatar;
+                    title = "Starbound Initiate";
                     description = "";
                     registrationDate = registrationDate;
                     level = 1;
@@ -2359,6 +2361,7 @@ public func createUserMission(user: PlayerId): async (Bool, Text, Nat) {
                     id = player.id;
                     username = username;
                     avatar = player.avatar;
+                    title = player.title;
                     description = player.description;
                     registrationDate = player.registrationDate;
                     level = player.level;
@@ -2399,6 +2402,7 @@ public func createUserMission(user: PlayerId): async (Bool, Text, Nat) {
                     id = player.id;
                     username = player.username;
                     avatar = avatar;
+                    title = player.title;
                     description = player.description;
                     registrationDate = player.registrationDate;
                     level = player.level;
@@ -2443,6 +2447,7 @@ public func createUserMission(user: PlayerId): async (Bool, Text, Nat) {
                     id = player.id;
                     username = player.username;
                     avatar = player.avatar;
+                    title = player.title;
                     description = description;
                     registrationDate = player.registrationDate;
                     level = player.level;
@@ -2951,6 +2956,7 @@ public func createUserMission(user: PlayerId): async (Bool, Text, Nat) {
                     id = existingPlayer.id;
                     username = existingPlayer.username;
                     avatar = existingPlayer.avatar;
+                    title = existingPlayer.title;
                     description = existingPlayer.description;
                     registrationDate = existingPlayer.registrationDate;
                     level = existingPlayer.level;

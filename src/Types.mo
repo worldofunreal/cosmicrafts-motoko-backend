@@ -10,6 +10,7 @@ module Types {
   public type Level = Nat;
   public type MatchID = Nat;
   public type TokenID = Nat;
+  public type Title = Text;
 
   public type MatchResult = Text;
   public type MatchMap = Text;
@@ -20,6 +21,7 @@ module Types {
     id: PlayerId;
     username: Username;
     avatar: AvatarID;
+    title: Title;
     description: Description;
     registrationDate: RegistrationDate;
     level: Level;
