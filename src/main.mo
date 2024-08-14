@@ -1415,14 +1415,11 @@ shared actor class Cosmicrafts() = Self {
         user: PlayerId, 
         progressList: [AchievementProgress]
         ): async (Bool, Text) {
-        //Debug.print("[updateIndividualAchievementProgress] Updating achievement progress for user: " # Principal.toText(user));
 
         var userProgress: [AchievementProgress] = switch (achievementProgress.get(user)) {
             case (null) { [] };
             case (?progress) { progress };
         };
-
-        //Debug.print("[updateIndividualAchievementProgress] User's current achievements: " # debug_show(userProgress));
 
         let updatedProgress = Buffer.Buffer<AchievementProgress>(userProgress.size());
 
@@ -1435,12 +1432,22 @@ shared actor class Cosmicrafts() = Self {
                     switch (individualAchievement) {
                         case (?indAch) {
                             let isCompleted = combinedProgress >= indAch.requiredProgress;
+                            
+                            // Update both the outer and inner fields
                             updatedProgress.add({
                                 achievementId = progress.achievementId;
                                 playerId = progress.playerId;
                                 progress = if (isCompleted) indAch.requiredProgress else combinedProgress;
                                 completed = isCompleted;
                             });
+                            
+                            // Ensure the individual achievement itself is also marked as completed if necessary
+                            individualAchievements.put(newProgress.achievementId, {
+                                indAch with
+                                progress = if (isCompleted) indAch.requiredProgress else combinedProgress;
+                                completed = isCompleted;
+                            });
+
                             if (isCompleted) {
                                 let _ = await updateGeneralAchievementProgress(user, indAch.achievementId);
                             };
@@ -1456,7 +1463,6 @@ shared actor class Cosmicrafts() = Self {
         };
 
         achievementProgress.put(user, Buffer.toArray(updatedProgress));
-        //Debug.print("[updateIndividualAchievementProgress] Updated user achievements: " # debug_show(achievementProgress.get(user)));
         return (true, "Achievement progress updated successfully");
     };
 
@@ -1910,6 +1916,16 @@ shared actor class Cosmicrafts() = Self {
 //--
 // Progress Manager
 
+public func updateAvatarChangeAchievement(user: PlayerId): async (Bool, Text) {
+    let progressList: [AchievementProgress] = [{
+        achievementId = 3; // Assuming this is the ID for "Change Your Avatar" achievement
+        playerId = user;
+        progress = 1;
+        completed = false;
+    }];
+
+    return await updateIndividualAchievementProgress(user, progressList);
+};
     // Function to update achievement progress manager
     func updateAchievementProgressManager(user: Principal, playerStats: {
         secRemaining: Nat;
@@ -1963,8 +1979,8 @@ shared actor class Cosmicrafts() = Self {
         kills: Nat;
         wonGame: Bool;
         }): async (Bool, Text) {
-        let generalProgressBuffer = Buffer.Buffer<MissionProgress>(9);
 
+        let generalProgressBuffer = Buffer.Buffer<MissionProgress>(9);
         generalProgressBuffer.add({ missionType = #GamesCompleted; progress = 1 });
         generalProgressBuffer.add({ missionType = #DamageDealt; progress = playerStats.damageDealt });
         generalProgressBuffer.add({ missionType = #DamageTaken; progress = playerStats.damageTaken });
@@ -2539,7 +2555,14 @@ shared actor class Cosmicrafts() = Self {
                 let updatedTimestamps = { timestamps with avatar = currentTime };
                 updateTimestamps.put(playerId, updatedTimestamps);
 
-                return (true, playerId, "Avatar updated successfully");
+                // Call the function to update the achievement for changing the avatar
+                let (achievementResult, achievementMessage) = await updateAvatarChangeAchievement(playerId);
+
+                if (achievementResult) {
+                    return (true, playerId, "Avatar updated successfully. " # achievementMessage);
+                } else {
+                    return (false, playerId, "Avatar updated, but failed to update achievement: " # achievementMessage);
+                };
             };
         };
     };
