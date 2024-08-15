@@ -93,10 +93,7 @@ shared actor class Cosmicrafts() = Self {
     public type AchievementReward = Types.AchievementReward;
     public type AchievementTier = Types.AchievementTier;
     public type AchievementProgress = Types.AchievementProgress;
-    public type IndividualAchievementProgress = Types.IndividualAchievementProgress;
-
     
-
     type AchievementName = Text;
     type IndividualAchievementList = [Nat];
     type RequiredProgress = Nat;
@@ -436,14 +433,12 @@ shared actor class Cosmicrafts() = Self {
 
     // Function to assign new general missions to a user
     func assignGeneralMissions(user: Principal): async () {
-        Debug.print("[assignGeneralMissions] Assigning new general missions to user: " # Principal.toText(user));
 
         var userMissions: [MissionsUser] = switch (generalUserProgress.get(user)) {
             case (null) { [] };
             case (?missions) { missions };
         };
 
-        Debug.print("[assignGeneralMissions] User missions before update: " # debug_show(userMissions));
 
         var claimedRewardsForUser: [Nat] = switch (claimedRewards.get(user)) {
             case (null) { [] };
@@ -488,7 +483,6 @@ shared actor class Cosmicrafts() = Self {
 
         // Update user missions
         generalUserProgress.put(user, Buffer.toArray(buffer));
-        Debug.print("[assignGeneralMissions] User missions after update: " # debug_show(Buffer.toArray(buffer)));
     };
 
     // Helper function to check if a mission is a daily free reward mission
@@ -1192,7 +1186,7 @@ shared actor class Cosmicrafts() = Self {
             id = categoryID;
             name = "Milestones";
             achievements = [];
-            requiredProgress = 5; // Set based on the number of individual achievements
+            requiredProgress = 5;
             tier = #Bronze;
             progress = 0;
             completed = false;
@@ -1205,6 +1199,7 @@ shared actor class Cosmicrafts() = Self {
         var individualAchievementsList = Buffer.Buffer<Nat>(0);
         var idCounter = individualAchievementIDCounter;
 
+        // Define and store each individual achievement
         let completeTutorialAchievement: Types.IndividualAchievement = {
             id = idCounter;
             name = "Complete the Tutorial";
@@ -1300,7 +1295,7 @@ shared actor class Cosmicrafts() = Self {
         individualAchievements.put(upgradeNFTAchievement.id, upgradeNFTAchievement);
         individualAchievementsList.add(upgradeNFTAchievement.id);
 
-        let firstStepsAchievementLine = {
+        let firstStepsAchievementLine: Types.Achievement = {
             id = achievementID;
             name = "First Steps in the Cosmos";
             individualAchievements = Buffer.toArray(individualAchievementsList);
@@ -1430,14 +1425,10 @@ shared actor class Cosmicrafts() = Self {
         user: PlayerId, 
         progressList: [AchievementProgress]
         ): async (Bool, Text) {
-        //Debug.print("[updateIndividualAchievementProgress] Updating achievement progress for user: " # Principal.toText(user));
-
         var userProgress: [AchievementProgress] = switch (achievementProgress.get(user)) {
             case (null) { [] };
             case (?progress) { progress };
         };
-
-        //Debug.print("[updateIndividualAchievementProgress] User's current achievements: " # debug_show(userProgress));
 
         let updatedProgress = Buffer.Buffer<AchievementProgress>(userProgress.size());
 
@@ -1446,18 +1437,23 @@ shared actor class Cosmicrafts() = Self {
             for (progress in userProgress.vals()) {
                 if (progress.achievementId == newProgress.achievementId) {
                     let combinedProgress = progress.progress + newProgress.progress;
-                    let individualAchievement = individualAchievements.get(newProgress.achievementId);
-                    switch (individualAchievement) {
+                    let individualAchievementOpt = individualAchievements.get(newProgress.achievementId);
+                    switch (individualAchievementOpt) {
                         case (?indAch) {
                             let isCompleted = combinedProgress >= indAch.requiredProgress;
-                            updatedProgress.add({
-                                achievementId = progress.achievementId;
-                                playerId = progress.playerId;
+                            
+                            // Update the progress and completion status
+                            let updatedAchievement = {
+                                indAch with
                                 progress = if (isCompleted) indAch.requiredProgress else combinedProgress;
                                 completed = isCompleted;
-                            });
+                            };
+
+                            // Save the updated achievement back to the map
+                            individualAchievements.put(updatedAchievement.id, updatedAchievement);
+
                             if (isCompleted) {
-                                let _ = await updateGeneralAchievementProgress(user, indAch.achievementId);
+                                let _ = await updateGeneralAchievementProgress(user, updatedAchievement.achievementId);
                             };
                             updated := true;
                         };
@@ -1471,7 +1467,6 @@ shared actor class Cosmicrafts() = Self {
         };
 
         achievementProgress.put(user, Buffer.toArray(updatedProgress));
-        //Debug.print("[updateIndividualAchievementProgress] Updated user achievements: " # debug_show(achievementProgress.get(user)));
         return (true, "Achievement progress updated successfully");
     };
 
@@ -1586,7 +1581,6 @@ shared actor class Cosmicrafts() = Self {
     };
 
     public func assignAchievementsToUser(user: PlayerId): async () {
-        Debug.print("[assignAchievementsToUser] Assigning achievements to user: " # Principal.toText(user));
 
         var userAchievementsList: [Nat] = switch (playerAchievements.get(user)) {
             case (null) { [] };
@@ -1615,36 +1609,22 @@ shared actor class Cosmicrafts() = Self {
         };
 
         playerAchievements.put(user, Buffer.toArray(userAchievementsBuffer));
-        Debug.print("[assignAchievementsToUser] User achievements after update: " # debug_show(playerAchievements.get(user)));
     };
 
-    public shared ({ caller }) func getAchievements(): async ([(AchievementCategory, [Achievement], [IndividualAchievementProgress])]) {
-        // Step 1: Assign new achievements to the user if not already assigned
+    public shared ({ caller }) func getAchievements(): async ([(AchievementCategory, [Achievement], [IndividualAchievement])]) {
         await assignAchievementsToUser(caller);
 
-        // Step 2: Get the achievements and progress assigned to the user
         let userAchievementsList: [Nat] = switch (playerAchievements.get(caller)) {
             case (null) { [] };
             case (?achievements) { achievements };
         };
 
-        Debug.print("[getAchievements] User's assigned achievements: " # debug_show(userAchievementsList));
+        let achievementsWithDetails = Buffer.Buffer<(AchievementCategory, [Achievement], [IndividualAchievement])>(userAchievementsList.size());
 
-        let achievementsWithDetails = Buffer.Buffer<(AchievementCategory, [Achievement], [IndividualAchievementProgress])>(userAchievementsList.size());
-        
-        // Get individual achievement progress
-        var userProgress: [AchievementProgress] = switch (achievementProgress.get(caller)) {
-            case (null) { [] };
-            case (?progress) { progress };
-        };
-
-        Debug.print("[getAchievements] User's progress: " # debug_show(userProgress));
-
-        // Collect achievements in each category
         for (category in categories.vals()) {
             let achievementsList = Buffer.Buffer<Achievement>(category.achievements.size());
-            let individualAchievementProgressList = Buffer.Buffer<IndividualAchievementProgress>(category.achievements.size());
-            
+            let individualAchievementsList = Buffer.Buffer<IndividualAchievement>(category.achievements.size());
+
             for (achId in category.achievements.vals()) {
                 if (Utils.arrayContains<Nat>(userAchievementsList, achId, Utils._natEqual)) {
                     let achievementOpt = achievements.get(achId);
@@ -1658,24 +1638,7 @@ shared actor class Cosmicrafts() = Self {
                                 switch (indAchOpt) {
                                     case (null) {};
                                     case (?indAch) {
-                                        let progressOpt = Array.find<AchievementProgress>(userProgress, func(p) { p.achievementId == indAchId });
-                                        let indAchProgress: Types.IndividualAchievementProgress = switch (progressOpt) {
-                                            case (null) {
-                                                {
-                                                    individualAchievement = indAch;
-                                                    progress = 0;
-                                                    completed = false;
-                                                };
-                                            };
-                                            case (?progress) {
-                                                {
-                                                    individualAchievement = indAch;
-                                                    progress = progress.progress;
-                                                    completed = progress.completed;
-                                                };
-                                            };
-                                        };
-                                        individualAchievementProgressList.add(indAchProgress);
+                                        individualAchievementsList.add(indAch);
                                     };
                                 };
                             }
@@ -1685,18 +1648,18 @@ shared actor class Cosmicrafts() = Self {
             };
 
             if (achievementsList.size() > 0) {
-                achievementsWithDetails.add((category, Buffer.toArray(achievementsList), Buffer.toArray(individualAchievementProgressList)));
+                achievementsWithDetails.add((category, Buffer.toArray(achievementsList), Buffer.toArray(individualAchievementsList)));
             }
         };
-
-        Debug.print("[getAchievements] Achievements with details: " # debug_show(Buffer.toArray(achievementsWithDetails)));
 
         return Buffer.toArray(achievementsWithDetails);
     };
 
-    // Public function to update and get achievements
-    public shared ({ caller }) func updateAndGetAchievements(): async ([(AchievementCategory, [Achievement], [IndividualAchievementProgress])]) {
+    public shared ({ caller }) func updateAndGetAchievements(): async ([(AchievementCategory, [Achievement], [IndividualAchievement])]) {
+        // Step 1: Assign new achievements to the user if not already assigned
         await assignAchievementsToUser(caller);
+        
+        // Step 2: Return the updated achievements with details
         return await getAchievements();
     };
 
@@ -1732,32 +1695,24 @@ shared actor class Cosmicrafts() = Self {
         return Buffer.toArray(achievementProgressBuffer);
     };
 
-    public query func searchActiveAchievements(user: PlayerId): async ([(AchievementCategory, [Achievement], [IndividualAchievementProgress])]) {
-        Debug.print("[searchActiveAchievements] Searching achievements for user: " # Principal.toText(user));
+    public query func searchActiveAchievements(user: PlayerId): async ([(AchievementCategory, [Achievement], [IndividualAchievement])]) {
+        //Debug.print("[searchActiveAchievements] Searching achievements for user: " # Principal.toText(user));
 
-        // Get the achievements and progress assigned to the user
+        // Get the achievements assigned to the user
         let userAchievementsList: [Nat] = switch (playerAchievements.get(user)) {
             case (null) { [] };
             case (?achievements) { achievements };
         };
 
-        Debug.print("[searchActiveAchievements] User's assigned achievements: " # debug_show(userAchievementsList));
+        //Debug.print("[searchActiveAchievements] User's assigned achievements: " # debug_show(userAchievementsList));
 
-        let achievementsWithDetails = Buffer.Buffer<(AchievementCategory, [Achievement], [IndividualAchievementProgress])>(userAchievementsList.size());
-        
-        // Get individual achievement progress
-        var userProgress: [AchievementProgress] = switch (achievementProgress.get(user)) {
-            case (null) { [] };
-            case (?progress) { progress };
-        };
-
-        Debug.print("[searchActiveAchievements] User's progress: " # debug_show(userProgress));
+        let achievementsWithDetails = Buffer.Buffer<(AchievementCategory, [Achievement], [IndividualAchievement])>(userAchievementsList.size());
 
         // Collect achievements in each category
         for (category in categories.vals()) {
             let achievementsList = Buffer.Buffer<Achievement>(category.achievements.size());
-            let individualAchievementProgressList = Buffer.Buffer<IndividualAchievementProgress>(category.achievements.size());
-            
+            let individualAchievementsList = Buffer.Buffer<IndividualAchievement>(category.achievements.size());
+
             for (achId in category.achievements.vals()) {
                 if (Utils.arrayContains<Nat>(userAchievementsList, achId, Utils._natEqual)) {
                     let achievementOpt = achievements.get(achId);
@@ -1771,24 +1726,8 @@ shared actor class Cosmicrafts() = Self {
                                 switch (indAchOpt) {
                                     case (null) {};
                                     case (?indAch) {
-                                        let progressOpt = Array.find<AchievementProgress>(userProgress, func(p) { p.achievementId == indAchId });
-                                        let indAchProgress: Types.IndividualAchievementProgress = switch (progressOpt) {
-                                            case (null) {
-                                                {
-                                                    individualAchievement = indAch;
-                                                    progress = 0;
-                                                    completed = false;
-                                                };
-                                            };
-                                            case (?progress) {
-                                                {
-                                                    individualAchievement = indAch;
-                                                    progress = progress.progress;
-                                                    completed = progress.completed;
-                                                };
-                                            };
-                                        };
-                                        individualAchievementProgressList.add(indAchProgress);
+                                        // Directly add the individual achievement to the list
+                                        individualAchievementsList.add(indAch);
                                     };
                                 };
                             }
@@ -1798,11 +1737,11 @@ shared actor class Cosmicrafts() = Self {
             };
 
             if (achievementsList.size() > 0) {
-                achievementsWithDetails.add((category, Buffer.toArray(achievementsList), Buffer.toArray(individualAchievementProgressList)));
+                achievementsWithDetails.add((category, Buffer.toArray(achievementsList), Buffer.toArray(individualAchievementsList)));
             }
         };
 
-        Debug.print("[searchActiveAchievements] Achievements with details: " # debug_show(Buffer.toArray(achievementsWithDetails)));
+        //Debug.print("[searchActiveAchievements] Achievements with details: " # debug_show(Buffer.toArray(achievementsWithDetails)));
 
         return Buffer.toArray(achievementsWithDetails);
     };
@@ -1827,7 +1766,6 @@ shared actor class Cosmicrafts() = Self {
                     return (false, "Individual Achievement reward already claimed");
                 };
 
-                // Mint the rewards and collect messages
                 var rewardMessage: Text = "";
                 for (reward in individualAchievement.reward.vals()) {
                     let (success, message) = await mintAchievementRewards(reward, msg.caller);
@@ -1840,7 +1778,6 @@ shared actor class Cosmicrafts() = Self {
                     rewardMessage := rewardMessage # message;
                 };
 
-                // Update claimed rewards
                 let updatedClaimedRewardsBuffer = Buffer.Buffer<Nat>(claimedRewards.size() + 1);
                 for (reward in claimedRewards.vals()) {
                     updatedClaimedRewardsBuffer.add(reward);
@@ -1975,14 +1912,21 @@ shared actor class Cosmicrafts() = Self {
 
     public func updateAvatarChangeAchievement(user: PlayerId): async (Bool, Text) {
         let progressList: [AchievementProgress] = [{
-            achievementId = 3; // Assuming this is the ID for "Change Your Avatar" achievement
+            achievementId = 3; // Ensure this ID matches the one for "Change Your Avatar"
             playerId = user;
             progress = 1;
             completed = false;
         }];
 
-        return await updateIndividualAchievementProgress(user, progressList);
-    };  
+        let (success, message) = await updateIndividualAchievementProgress(user, progressList);
+        if (success) {
+            Debug.print("[updateAvatarChangeAchievement] Avatar change achievement progress updated successfully.");
+        } else {
+            Debug.print("[updateAvatarChangeAchievement] Failed to update avatar change achievement progress: " # message);
+        };
+
+        return (success, message);
+    };
 
 //--
 // Progress Manager

@@ -442,11 +442,4 @@ module Types {
         progress: Nat;
         completed: Bool;
     };
-
-    // Individual Achievement Progress for User
-    public type IndividualAchievementProgress = {
-        individualAchievement: IndividualAchievement;
-        progress: Nat;
-        completed: Bool;
-    };
 }
