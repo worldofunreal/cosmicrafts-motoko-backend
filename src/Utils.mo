@@ -54,7 +54,6 @@ module Utils {
         return randomAmount;
     };
 
-
     public func getMaxMin(minReward: Nat, maxReward: Nat): Nat {
         // Convert Time.now() to Nat64 and use the last 8 digits as the seed
         let timeNow: Nat64 = Nat64.fromIntWrap(Time.now());
