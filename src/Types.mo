@@ -382,35 +382,52 @@ module Types {
 
     // Achievement Type
     public type AchievementType = {
-        #GamesWon;
-        #GamesPlayed;
-        #TimePlayed;
-        #FriendsAdded;
-        #LevelReached;
-        #NFTsMinted;
-        #FluxMinted;
-        #ShardsMinted;
-        #ChestsMinted;
-        #DamageDealt;
-        #DamageTaken;
-        #EnergyUsed;
-        #UnitsDeployed;
-        #GamesWithFaction;
-        #GamesWithCharacter;
-        #GameModePlayed;
-        #XPEarned;
-        #Kills;
-        #GamesCompleted;
-        #AchievementsUnlocked;
-        #RewardsClaimed;
-        #ChestsOpened;
-        #DailyMissionsCompleted;
-        #WeeklyMissionsCompleted;
-        #UserMissionsCompleted;
-        #Customization;
-        #Social;
-        #UpgradeNFT;
+        #Combat : CombatAchievementType;
+        #Social : SocialAchievementType;
+        #Resource : ResourceAchievementType;
+        #Misc : MiscAchievementType;
     };
+
+      public type CombatAchievementType = {
+      #DamageDealt;
+      #DamageTaken;
+      #EnergyUsed;
+      #FactionPlayed;
+      #GameModePlayed;
+      #GamesCompleted;
+      #GamesWon;
+      #Kills;
+      #UnitsDeployed;
+      #XPEarned;
+      #GamesWithCharacter;
+      #GamesWithFaction;
+      #GamesPlayed;
+  };
+
+  public type SocialAchievementType = {
+      #AchievementsUnlocked;
+      #FriendsAdded;
+      #Social;
+  };
+
+  public type ResourceAchievementType = {
+      #ChestsMinted;
+      #ChestsOpened;
+      #FluxMinted;
+      #NFTsMinted;
+      #ShardsMinted;
+      #RewardsClaimed;
+      #UpgradeNFT;
+  };
+
+  public type MiscAchievementType = {
+      #Customization;
+      #LevelReached;
+      #TimePlayed;
+      #UserMissionsCompleted;
+      #DailyMissionsCompleted;
+      #WeeklyMissionsCompleted;
+  };
 
     // Achievement Reward Types
     public type AchievementRewardsType = {
@@ -434,4 +451,7 @@ module Types {
         #Master;
         #Legend;
     };
+
+
+
 }

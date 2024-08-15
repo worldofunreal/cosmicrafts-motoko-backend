@@ -83,8 +83,6 @@ shared actor class Cosmicrafts() = Self {
   public type MissionOption = Types.MissionOption;
   public type TokenId = TypesICRC7.TokenId;
 
-  
-
     public type IndividualAchievement = Types.IndividualAchievement;
     public type Achievement = Types.Achievement;
     public type AchievementCategory = Types.AchievementCategory;
@@ -92,6 +90,10 @@ shared actor class Cosmicrafts() = Self {
     public type AchievementRewardsType = Types.AchievementRewardsType;
     public type AchievementReward = Types.AchievementReward;
     public type AchievementTier = Types.AchievementTier;
+    public type CombatAchievementType = Types.CombatAchievementType;
+    public type SocialAchievementType = Types.SocialAchievementType;
+    public type ResourceAchievementType = Types.ResourceAchievementType;
+    public type MiscAchievementType = Types.MiscAchievementType;
     
     type AchievementName = Text;
     type IndividualAchievementList = [Nat];
@@ -1174,84 +1176,86 @@ shared actor class Cosmicrafts() = Self {
         var claimedAchievementRewards: HashMap.HashMap<PlayerId, [Nat]> = HashMap.fromIter(_claimedAchievementRewards.vals(), 0, Principal.equal, Principal.hash); // Added this line
 
     // Init
-    public shared func initializeMilestones(): async () {
-        let categoryID = categoryIDCounter;
-        categoryIDCounter += 1;
+public shared func initializeMilestones(): async () {
+    let categoryID = categoryIDCounter;
+    categoryIDCounter += 1;
 
-        let milestoneCategory: Types.AchievementCategory = {
-            id = categoryID;
-            name = "Milestones";
-            achievements = [];
-            requiredProgress = 5;
-            tier = #Bronze;
-            progress = 0;
-            completed = false;
-            reward = [];
-        };
-
-        let achievementID = achievementIDCounter;
-        achievementIDCounter += 1;
-
-        var individualAchievementsList = Buffer.Buffer<Nat>(0);
-        var idCounter = individualAchievementIDCounter;
-
-        // Define and store each individual achievement
-        let achievementsToCreate = [
-            ("Complete the Tutorial", #GamesCompleted, 1, (#Stardust, 10)),
-            ("Defeat AI 5 Times", #GamesCompleted, 5, (#Chest, 1)),
-            ("Change Your Avatar", #Customization, 1, (#Stardust, 10)),
-            ("Have 1 Accepted Friend", #Social, 1, (#Chest, 1)),
-            ("Upgrade Any NFT to Level 3", #UpgradeNFT, 1, (#Stardust, 15))
-        ];
-
-        for (entry in achievementsToCreate.vals()) {
-            let (name, achievementType, requiredProgress, reward) = entry;
-            
-            let newAchievement: Types.IndividualAchievement = {
-                id = idCounter;
-                name = name;
-                achievementType = achievementType;
-                requiredProgress = requiredProgress;
-                progress = 0;
-                completed = false;
-                reward = [
-                    {
-                        rewardType = reward.0;
-                        amount = reward.1;
-                    }
-                ];
-                achievementId = achievementID;
-            };
-            idCounter += 1;
-            individualAchievements.put(newAchievement.id, newAchievement);
-            individualAchievementsList.add(newAchievement.id);
-        };
-
-        let firstStepsAchievementLine: Types.Achievement = {
-            id = achievementID;
-            name = "First Steps in the Cosmos";
-            individualAchievements = Buffer.toArray(individualAchievementsList);
-            requiredProgress = 5;
-            tier = #Bronze;
-            progress = 0;
-            completed = false;
-            reward = [];
-            categoryId = milestoneCategory.id;
-        };
-
-        achievements.put(firstStepsAchievementLine.id, firstStepsAchievementLine);
-
-        let updatedMilestoneCategory = {
-            milestoneCategory with
-            achievements = [firstStepsAchievementLine.id]
-        };
-
-        categories.put(updatedMilestoneCategory.id, updatedMilestoneCategory);
-
-        individualAchievementIDCounter := idCounter;
-
-        Debug.print("[initializeMilestones] Milestones initialized and stored in stable variables.");
+    let milestoneCategory: Types.AchievementCategory = {
+        id = categoryID;
+        name = "Milestones";
+        achievements = [];
+        requiredProgress = 5;
+        tier = #Bronze;
+        progress = 0;
+        completed = false;
+        reward = [];
     };
+
+    let achievementID = achievementIDCounter;
+    achievementIDCounter += 1;
+
+    var individualAchievementsList = Buffer.Buffer<Nat>(0);
+    var idCounter = individualAchievementIDCounter;
+
+    // Define and store each individual achievement
+    let achievementsToCreate = [
+        ("Complete the Tutorial", #Combat(#GamesCompleted), 1, (#Stardust, 10)),
+        ("Defeat AI 5 Times", #Combat(#GamesCompleted), 5, (#Chest, 1)),
+        ("Change Your Avatar", #Misc(#Customization), 1, (#Stardust, 10)),
+        ("Have 1 Accepted Friend", #Social(#Social), 1, (#Chest, 1)),
+        ("Upgrade Any NFT to Level 3", #Resource(#UpgradeNFT), 1, (#Stardust, 15))
+    ];
+
+    for (entry in achievementsToCreate.vals()) {
+        let (name, achievementType, requiredProgress, reward) = entry;
+        
+        let newAchievement: Types.IndividualAchievement = {
+            id = idCounter;
+            name = name;
+            achievementType = achievementType;
+            requiredProgress = requiredProgress;
+            progress = 0;
+            completed = false;
+            reward = [
+                {
+                    rewardType = reward.0;
+                    amount = reward.1;
+                }
+            ];
+            achievementId = achievementID;
+        };
+        idCounter += 1;
+        individualAchievements.put(newAchievement.id, newAchievement);
+        individualAchievementsList.add(newAchievement.id);
+    };
+
+    let firstStepsAchievementLine: Types.Achievement = {
+        id = achievementID;
+        name = "First Steps in the Cosmos";
+        individualAchievements = Buffer.toArray(individualAchievementsList);
+        requiredProgress = 5;
+        tier = #Bronze;
+        progress = 0;
+        completed = false;
+        reward = [];
+        categoryId = milestoneCategory.id;
+    };
+
+    achievements.put(firstStepsAchievementLine.id, firstStepsAchievementLine);
+
+    let updatedMilestoneCategory = {
+        milestoneCategory with
+        achievements = [firstStepsAchievementLine.id]
+    };
+
+    categories.put(updatedMilestoneCategory.id, updatedMilestoneCategory);
+
+    individualAchievementIDCounter := idCounter;
+
+    Debug.print("[initializeMilestones] Milestones initialized and stored in stable variables.");
+};
+
+
 
     func determineTier(progress: Nat, requiredProgress: Nat): Types.AchievementTier {
         let progressPercentage = (progress * 100) / requiredProgress;
@@ -1354,15 +1358,23 @@ shared actor class Cosmicrafts() = Self {
     };
 
     public func updateIndividualAchievementProgress(
-        user: PlayerId, 
+        user: Types.PlayerId, 
         achievementId: Nat, 
         progressIncrement: Nat
-        ): async (Bool, Text) {
+    ): async (Bool, Text) {
         let individualAchievementOpt = individualAchievements.get(achievementId);
         switch (individualAchievementOpt) {
             case (null) return (false, "Individual Achievement not found");
             case (?indAch) {
                 let newProgress = indAch.progress + progressIncrement;
+
+                // Ensure the progress increment is applied correctly
+                Debug.print("Updating Individual Achievement ID: " # Nat.toText(achievementId));
+                Debug.print("Current Progress: " # Nat.toText(indAch.progress));
+                Debug.print("Progress Increment: " # Nat.toText(progressIncrement));
+                Debug.print("New Progress: " # Nat.toText(newProgress));
+                Debug.print("Required Progress: " # Nat.toText(indAch.requiredProgress));
+
                 let isCompleted = newProgress >= indAch.requiredProgress;
 
                 let updatedAchievement = {
@@ -1767,83 +1779,59 @@ shared actor class Cosmicrafts() = Self {
 // Progress Manager
 
     // Function to update achievement progress manager
-    func updateAchievementProgressManager(user: Principal, playerStats: {
-        secRemaining: Nat;
-        energyGenerated: Nat;
-        damageDealt: Nat;
-        damageTaken: Nat;
-        energyUsed: Nat;
-        deploys: Nat;
-        faction: Nat;
-        gameMode: Nat;
-        xpEarned: Nat;
-        kills: Nat;
-        wonGame: Bool;
-        // Add other criteria like tokens minted, friends added, etc. here
-        }): async (Bool, Text) {
+    func updateAchievementProgressManager(user: Principal, playerStats: Types.PlayerStats): async (Bool, Text) {
+        await mapPlayerStatsToCombatAchievements(user, playerStats);
 
-        // Step 1: Update achievements based on player stats
-        await mapPlayerStatsToAchievements(user, playerStats);
-
-        // Step 2: Update progress for other criteria (e.g., tokens minted, friends added)
-        // Example:
-        // let _ = await updateIndividualAchievementProgress(user, 10, tokensMinted);
-
-        // Since the individual achievements are updated directly, we return a success message
         return (true, "Achievement progress updated successfully");
     };
 
-    // Function to update individual achievements based on player stats
-    func mapPlayerStatsToAchievements(user: Principal, playerStats: {
-        secRemaining: Nat;
-        energyGenerated: Nat;
-        damageDealt: Nat;
-        damageTaken: Nat;
-        energyUsed: Nat;
-        deploys: Nat;
-        faction: Nat;
-        gameMode: Nat;
-        xpEarned: Nat;
-        kills: Nat;
-        wonGame: Bool;
-        }): async () {
-        let achievementUpdates = [
-            (0, 1),  // GamesCompleted
-            (1, playerStats.damageDealt),  // DamageDealt
-            (2, playerStats.damageTaken),  // DamageTaken
-            (3, playerStats.energyUsed),  // EnergyUsed
-            (4, playerStats.deploys),  // UnitsDeployed
-            (5, playerStats.faction),  // FactionPlayed
-            (6, playerStats.gameMode),  // GameModePlayed
-            (7, playerStats.xpEarned),  // XPEarned
-            (8, playerStats.kills)  // Kills
+    func mapPlayerStatsToCombatAchievements(user: Principal, playerStats: Types.PlayerStats): async () {
+        let achievementUpdates: [(CombatAchievementType, Nat, Bool)] = [
+            (#GamesCompleted, 1, playerStats.secRemaining > 0),
+            (#DamageDealt, playerStats.damageDealt, playerStats.damageDealt > 0),
+            (#DamageTaken, playerStats.damageTaken, playerStats.damageTaken > 0),
+            (#EnergyUsed, playerStats.energyUsed, playerStats.energyUsed > 0),
+            (#UnitsDeployed, playerStats.deploys, playerStats.deploys > 0),
+            (#FactionPlayed, playerStats.faction, playerStats.faction > 0),
+            (#GameModePlayed, playerStats.gameMode, playerStats.gameMode > 0),
+            (#XPEarned, playerStats.xpEarned, playerStats.xpEarned > 0),
+            (#Kills, playerStats.kills, playerStats.kills > 0),
+            (#GamesWon, 1, playerStats.wonGame)
         ];
 
-        // Iterate over each achievement update
-        for ((achievementId, progressIncrement) in achievementUpdates.vals()) {
-            let _ = await updateIndividualAchievementProgress(user, achievementId, progressIncrement);
-        };
+        for ((achType, progressIncrement, condition) in achievementUpdates.vals()) {
+            if (condition) {
+                await updateCombatAchievementsByType(user, achType, progressIncrement);
+            }
+        }
+    };
 
-        // Handle GamesWon separately because it's conditional
-        if (playerStats.wonGame) {
-            let _ = await updateIndividualAchievementProgress(user, 9, 1); // GamesWon
-        };
+    func updateCombatAchievementsByType(user: Principal, achType: CombatAchievementType, progressIncrement: Nat): async () {
+        let iter = individualAchievements.vals();
+        var optIndAch = iter.next();
+
+        while (optIndAch != null) {
+            switch (optIndAch) {
+                case (?indAch) {
+                    // Use pattern matching to extract the CombatAchievementType
+                    switch (indAch.achievementType) {
+                        case (#Combat(ach)) {
+                            if (ach == achType) {
+                                let _ = await updateIndividualAchievementProgress(user, indAch.id, progressIncrement);
+                            };
+                        };
+                        // Handle other types if necessary
+                        case (_) {};
+                    };
+                };
+                case (null) {};
+            };
+            optIndAch := iter.next();
+        }
     };
 
 
-    func updateProgressManager(user: Principal, playerStats: {
-        secRemaining: Nat;
-        energyGenerated: Nat;
-        damageDealt: Nat;
-        damageTaken: Nat;
-        energyUsed: Nat;
-        deploys: Nat;
-        faction: Nat;
-        gameMode: Nat;
-        xpEarned: Nat;
-        kills: Nat;
-        wonGame: Bool;
-        }): async (Bool, Text) {
+    public func updateProgressManager(user: Principal, playerStats: PlayerStats): async (Bool, Text) {
         let generalProgressBuffer = Buffer.Buffer<MissionProgress>(9);
 
         generalProgressBuffer.add({ missionType = #GamesCompleted; progress = 1 });
@@ -1851,7 +1839,10 @@ shared actor class Cosmicrafts() = Self {
         generalProgressBuffer.add({ missionType = #DamageTaken; progress = playerStats.damageTaken });
         generalProgressBuffer.add({ missionType = #EnergyUsed; progress = playerStats.energyUsed });
         generalProgressBuffer.add({ missionType = #UnitsDeployed; progress = playerStats.deploys });
-        generalProgressBuffer.add({ missionType = #FactionPlayed; progress = playerStats.faction });
+
+        // Increment progress for the specific faction played
+        generalProgressBuffer.add({ missionType = #FactionPlayed; progress = 1 });
+
         generalProgressBuffer.add({ missionType = #GameModePlayed; progress = playerStats.gameMode });
         generalProgressBuffer.add({ missionType = #XPEarned; progress = playerStats.xpEarned });
         generalProgressBuffer.add({ missionType = #Kills; progress = playerStats.kills });
@@ -1870,6 +1861,199 @@ shared actor class Cosmicrafts() = Self {
         let message = message1 # " | " # message2 # " | " # message3;
 
         return (success, message);
+    };
+
+
+    public func updatePlayerGameStats(playerId: PlayerId, _playerStats: PlayerStats, _winner: Nat, _looser: Nat) {
+        switch (playerGamesStats.get(playerId)) {
+            case (null) {
+                let _gs: PlayerGamesStats = {
+                    gamesPlayed = 1;
+                    gamesWon = _winner;
+                    gamesLost = _looser;
+                    energyGenerated = _playerStats.energyGenerated;
+                    energyUsed = _playerStats.energyUsed;
+                    energyWasted = _playerStats.energyWasted;
+                    totalKills = _playerStats.kills;
+                    totalDamageDealt = _playerStats.damageDealt;
+                    totalDamageTaken = _playerStats.damageTaken;
+                    totalDamageCrit = _playerStats.damageCritic;
+                    totalDamageEvaded = _playerStats.damageEvaded;
+                    totalXpEarned = _playerStats.xpEarned;
+                    totalGamesWithFaction = [{ factionID = _playerStats.faction; gamesPlayed = 1; gamesWon = _winner; }];
+                    totalGamesGameMode = [{ gameModeID = _playerStats.gameMode; gamesPlayed = 1; gamesWon = _winner; }];
+                    totalGamesWithCharacter = [{ characterID = _playerStats.characterID; gamesPlayed = 1; gamesWon = _winner; }];
+                };
+                playerGamesStats.put(playerId, _gs);
+            };
+            case (?_bs) {
+                let _gamesWithFactionBuffer = Buffer.Buffer<GamesWithFaction>(_bs.totalGamesWithFaction.size());
+                for (gf in _bs.totalGamesWithFaction.vals()) {
+                    if (gf.factionID == _playerStats.faction) {
+                        _gamesWithFactionBuffer.add({ gamesPlayed = gf.gamesPlayed + 1; factionID = gf.factionID; gamesWon = gf.gamesWon + _winner; });
+                    } else {
+                        _gamesWithFactionBuffer.add(gf);
+                    };
+                };
+                let _gamesWithFaction = Buffer.toArray(_gamesWithFactionBuffer);
+
+                let _gamesWithGameModeBuffer = Buffer.Buffer<GamesWithGameMode>(_bs.totalGamesGameMode.size());
+                for (gm in _bs.totalGamesGameMode.vals()) {
+                    if (gm.gameModeID == _playerStats.gameMode) {
+                        _gamesWithGameModeBuffer.add({ gamesPlayed = gm.gamesPlayed + 1; gameModeID = gm.gameModeID; gamesWon = gm.gamesWon + _winner; });
+                    } else {
+                        _gamesWithGameModeBuffer.add(gm);
+                    };
+                };
+                let _gamesWithGameMode = Buffer.toArray(_gamesWithGameModeBuffer);
+
+                let _totalGamesWithCharacterBuffer = Buffer.Buffer<GamesWithCharacter>(_bs.totalGamesWithCharacter.size());
+                for (gc in _bs.totalGamesWithCharacter.vals()) {
+                    if (gc.characterID == _playerStats.characterID) {
+                        _totalGamesWithCharacterBuffer.add({ gamesPlayed = gc.gamesPlayed + 1; characterID = gc.characterID; gamesWon = gc.gamesWon + _winner; });
+                    } else {
+                        _totalGamesWithCharacterBuffer.add(gc);
+                    };
+                };
+                let _totalGamesWithCharacter = Buffer.toArray(_totalGamesWithCharacterBuffer);
+
+                var _thisGameXP = _playerStats.xpEarned;
+
+                let _gs: PlayerGamesStats = {
+                    gamesPlayed = _bs.gamesPlayed + 1;
+                    gamesWon = _bs.gamesWon + _winner;
+                    gamesLost = _bs.gamesLost + _looser;
+                    energyGenerated = _bs.energyGenerated + _playerStats.energyGenerated;
+                    energyUsed = _bs.energyUsed + _playerStats.energyUsed;
+                    energyWasted = _bs.energyWasted + _playerStats.energyWasted;
+                    totalKills = _bs.totalKills + _playerStats.kills;
+                    totalDamageDealt = _bs.totalDamageDealt + _playerStats.damageDealt;
+                    totalDamageTaken = _bs.totalDamageTaken + _playerStats.damageTaken;
+                    totalDamageCrit = _bs.totalDamageCrit + _playerStats.damageCritic;
+                    totalDamageEvaded = _bs.totalDamageEvaded + _playerStats.damageEvaded;
+                    totalXpEarned = _bs.totalXpEarned + _thisGameXP;
+                    totalGamesWithFaction = _gamesWithFaction;
+                    totalGamesGameMode = _gamesWithGameMode;
+                    totalGamesWithCharacter = _totalGamesWithCharacter;
+                };
+                playerGamesStats.put(playerId, _gs);
+
+                // Trigger level update without waiting
+                ignore updatePlayerLevel(playerId);
+            };
+        };
+    };
+
+    public func updatePlayerLevel(playerId: Principal) : async () {
+        let playerOpt = players.get(playerId);
+        switch (playerOpt) {
+            case (?player) {
+                let totalXp = switch (playerGamesStats.get(playerId)) {
+                    case (null) 0;
+                    case (?stats) stats.totalXpEarned;
+                };
+                let updatedPlayer: Player = {
+                    id = player.id;
+                    username = player.username;
+                    avatar = player.avatar;
+                    description = player.description;
+                    registrationDate = player.registrationDate;
+                    level = Utils.calculateLevel(totalXp);
+                    elo = player.elo;
+                    friends = player.friends;
+                    title = player.title;
+                };
+                players.put(playerId, updatedPlayer);
+            };
+            case (null) {};
+        };
+    };
+
+    func updateOverallStats(_matchID: MatchID, _playerStats: PlayerStats) {
+
+        // Update specific game modes, factions, and characters
+        var factionFound = false;
+        let _totalGamesWithFactionBuffer = Buffer.Buffer<OverallGamesWithFaction>(overallStats.totalGamesWithFaction.size());
+        for (gf in overallStats.totalGamesWithFaction.vals()) {
+            if (gf.factionID == _playerStats.faction) {
+                _totalGamesWithFactionBuffer.add({
+                    gamesPlayed = gf.gamesPlayed + 1;
+                    factionID = gf.factionID;
+                });
+                factionFound := true;
+            } else {
+                _totalGamesWithFactionBuffer.add(gf);
+            };
+        };
+        if (not factionFound) {
+            _totalGamesWithFactionBuffer.add({
+                gamesPlayed = 1;
+                factionID = _playerStats.faction;
+            });
+        };
+        let _totalGamesWithFaction = Buffer.toArray(_totalGamesWithFactionBuffer);
+
+        var gameModeFound = false;
+        let _totalGamesWithGameModeBuffer = Buffer.Buffer<OverallGamesWithGameMode>(overallStats.totalGamesGameMode.size());
+        for (gm in overallStats.totalGamesGameMode.vals()) {
+            if (gm.gameModeID == _playerStats.gameMode) {
+                _totalGamesWithGameModeBuffer.add({
+                    gamesPlayed = gm.gamesPlayed + 1;
+                    gameModeID = gm.gameModeID;
+                });
+                gameModeFound := true;
+            } else {
+                _totalGamesWithGameModeBuffer.add(gm);
+            };
+        };
+        if (not gameModeFound) {
+            _totalGamesWithGameModeBuffer.add({
+                gamesPlayed = 1;
+                gameModeID = _playerStats.gameMode;
+            });
+        };
+        let _totalGamesWithGameMode = Buffer.toArray(_totalGamesWithGameModeBuffer);
+
+        var characterFound = false;
+        let _totalGamesWithCharacterBuffer = Buffer.Buffer<OverallGamesWithCharacter>(overallStats.totalGamesWithCharacter.size());
+        for (gc in overallStats.totalGamesWithCharacter.vals()) {
+            if (gc.characterID == _playerStats.characterID) {
+                _totalGamesWithCharacterBuffer.add({
+                    gamesPlayed = gc.gamesPlayed + 1;
+                    characterID = gc.characterID;
+                });
+                characterFound := true;
+            } else {
+                _totalGamesWithCharacterBuffer.add(gc);
+            };
+        };
+        if (not characterFound) {
+            _totalGamesWithCharacterBuffer.add({
+                gamesPlayed = 1;
+                characterID = _playerStats.characterID;
+            });
+        };
+        let _totalGamesWithCharacter = Buffer.toArray(_totalGamesWithCharacterBuffer);
+
+        let maxGameTime: Nat = 300; // 5 minutes in seconds
+        let timePlayed: Nat = maxGameTime - _playerStats.secRemaining;
+
+        // Construct a new overallStats record with updated values
+        overallStats := {
+            totalGamesPlayed = overallStats.totalGamesPlayed + 1;
+            totalGamesSP = if (_playerStats.gameMode == 2) overallStats.totalGamesSP + 1 else overallStats.totalGamesSP;
+            totalGamesMP = if (_playerStats.gameMode == 1) overallStats.totalGamesMP + 1 else overallStats.totalGamesMP;
+            totalDamageDealt = overallStats.totalDamageDealt + _playerStats.damageDealt;
+            totalTimePlayed = overallStats.totalTimePlayed + timePlayed;
+            totalKills = overallStats.totalKills + _playerStats.kills;
+            totalEnergyUsed = overallStats.totalEnergyUsed + _playerStats.energyUsed;
+            totalEnergyGenerated = overallStats.totalEnergyGenerated + _playerStats.energyGenerated;
+            totalEnergyWasted = overallStats.totalEnergyWasted + _playerStats.energyWasted;
+            totalGamesWithFaction = _totalGamesWithFaction;
+            totalGamesGameMode = _totalGamesWithGameMode;
+            totalGamesWithCharacter = _totalGamesWithCharacter;
+            totalXpEarned = overallStats.totalXpEarned + _playerStats.xpEarned;
+        };
     };
 
     public shared (msg) func saveFinishedGame(matchID: MatchID, _playerStats: {
@@ -2043,199 +2227,6 @@ shared actor class Cosmicrafts() = Self {
                     return (true, _txt # " - Game saved: " # message);
                 };
             };
-        };
-    };
-
-    public func updatePlayerGameStats(playerId: PlayerId, _playerStats: PlayerStats, _winner: Nat, _looser: Nat) {
-        switch (playerGamesStats.get(playerId)) {
-            case (null) {
-                let _gs: PlayerGamesStats = {
-                    gamesPlayed = 1;
-                    gamesWon = _winner;
-                    gamesLost = _looser;
-                    energyGenerated = _playerStats.energyGenerated;
-                    energyUsed = _playerStats.energyUsed;
-                    energyWasted = _playerStats.energyWasted;
-                    totalKills = _playerStats.kills;
-                    totalDamageDealt = _playerStats.damageDealt;
-                    totalDamageTaken = _playerStats.damageTaken;
-                    totalDamageCrit = _playerStats.damageCritic;
-                    totalDamageEvaded = _playerStats.damageEvaded;
-                    totalXpEarned = _playerStats.xpEarned;
-                    totalGamesWithFaction = [{ factionID = _playerStats.faction; gamesPlayed = 1; gamesWon = _winner; }];
-                    totalGamesGameMode = [{ gameModeID = _playerStats.gameMode; gamesPlayed = 1; gamesWon = _winner; }];
-                    totalGamesWithCharacter = [{ characterID = _playerStats.characterID; gamesPlayed = 1; gamesWon = _winner; }];
-                };
-                playerGamesStats.put(playerId, _gs);
-            };
-            case (?_bs) {
-                let _gamesWithFactionBuffer = Buffer.Buffer<GamesWithFaction>(_bs.totalGamesWithFaction.size());
-                for (gf in _bs.totalGamesWithFaction.vals()) {
-                    if (gf.factionID == _playerStats.faction) {
-                        _gamesWithFactionBuffer.add({ gamesPlayed = gf.gamesPlayed + 1; factionID = gf.factionID; gamesWon = gf.gamesWon + _winner; });
-                    } else {
-                        _gamesWithFactionBuffer.add(gf);
-                    };
-                };
-                let _gamesWithFaction = Buffer.toArray(_gamesWithFactionBuffer);
-
-                let _gamesWithGameModeBuffer = Buffer.Buffer<GamesWithGameMode>(_bs.totalGamesGameMode.size());
-                for (gm in _bs.totalGamesGameMode.vals()) {
-                    if (gm.gameModeID == _playerStats.gameMode) {
-                        _gamesWithGameModeBuffer.add({ gamesPlayed = gm.gamesPlayed + 1; gameModeID = gm.gameModeID; gamesWon = gm.gamesWon + _winner; });
-                    } else {
-                        _gamesWithGameModeBuffer.add(gm);
-                    };
-                };
-                let _gamesWithGameMode = Buffer.toArray(_gamesWithGameModeBuffer);
-
-                let _totalGamesWithCharacterBuffer = Buffer.Buffer<GamesWithCharacter>(_bs.totalGamesWithCharacter.size());
-                for (gc in _bs.totalGamesWithCharacter.vals()) {
-                    if (gc.characterID == _playerStats.characterID) {
-                        _totalGamesWithCharacterBuffer.add({ gamesPlayed = gc.gamesPlayed + 1; characterID = gc.characterID; gamesWon = gc.gamesWon + _winner; });
-                    } else {
-                        _totalGamesWithCharacterBuffer.add(gc);
-                    };
-                };
-                let _totalGamesWithCharacter = Buffer.toArray(_totalGamesWithCharacterBuffer);
-
-                var _thisGameXP = _playerStats.xpEarned;
-
-                let _gs: PlayerGamesStats = {
-                    gamesPlayed = _bs.gamesPlayed + 1;
-                    gamesWon = _bs.gamesWon + _winner;
-                    gamesLost = _bs.gamesLost + _looser;
-                    energyGenerated = _bs.energyGenerated + _playerStats.energyGenerated;
-                    energyUsed = _bs.energyUsed + _playerStats.energyUsed;
-                    energyWasted = _bs.energyWasted + _playerStats.energyWasted;
-                    totalKills = _bs.totalKills + _playerStats.kills;
-                    totalDamageDealt = _bs.totalDamageDealt + _playerStats.damageDealt;
-                    totalDamageTaken = _bs.totalDamageTaken + _playerStats.damageTaken;
-                    totalDamageCrit = _bs.totalDamageCrit + _playerStats.damageCritic;
-                    totalDamageEvaded = _bs.totalDamageEvaded + _playerStats.damageEvaded;
-                    totalXpEarned = _bs.totalXpEarned + _thisGameXP;
-                    totalGamesWithFaction = _gamesWithFaction;
-                    totalGamesGameMode = _gamesWithGameMode;
-                    totalGamesWithCharacter = _totalGamesWithCharacter;
-                };
-                playerGamesStats.put(playerId, _gs);
-
-                // Trigger level update without waiting
-                ignore updatePlayerLevel(playerId);
-            };
-        };
-    };
-
-    // Updates cumulative overall stats.
-    func updateOverallStats(_matchID: MatchID, _playerStats: PlayerStats) {
-
-        // Update specific game modes, factions, and characters
-        var factionFound = false;
-        let _totalGamesWithFactionBuffer = Buffer.Buffer<OverallGamesWithFaction>(overallStats.totalGamesWithFaction.size());
-        for (gf in overallStats.totalGamesWithFaction.vals()) {
-            if (gf.factionID == _playerStats.faction) {
-                _totalGamesWithFactionBuffer.add({
-                    gamesPlayed = gf.gamesPlayed + 1;
-                    factionID = gf.factionID;
-                });
-                factionFound := true;
-            } else {
-                _totalGamesWithFactionBuffer.add(gf);
-            };
-        };
-        if (not factionFound) {
-            _totalGamesWithFactionBuffer.add({
-                gamesPlayed = 1;
-                factionID = _playerStats.faction;
-            });
-        };
-        let _totalGamesWithFaction = Buffer.toArray(_totalGamesWithFactionBuffer);
-
-        var gameModeFound = false;
-        let _totalGamesWithGameModeBuffer = Buffer.Buffer<OverallGamesWithGameMode>(overallStats.totalGamesGameMode.size());
-        for (gm in overallStats.totalGamesGameMode.vals()) {
-            if (gm.gameModeID == _playerStats.gameMode) {
-                _totalGamesWithGameModeBuffer.add({
-                    gamesPlayed = gm.gamesPlayed + 1;
-                    gameModeID = gm.gameModeID;
-                });
-                gameModeFound := true;
-            } else {
-                _totalGamesWithGameModeBuffer.add(gm);
-            };
-        };
-        if (not gameModeFound) {
-            _totalGamesWithGameModeBuffer.add({
-                gamesPlayed = 1;
-                gameModeID = _playerStats.gameMode;
-            });
-        };
-        let _totalGamesWithGameMode = Buffer.toArray(_totalGamesWithGameModeBuffer);
-
-        var characterFound = false;
-        let _totalGamesWithCharacterBuffer = Buffer.Buffer<OverallGamesWithCharacter>(overallStats.totalGamesWithCharacter.size());
-        for (gc in overallStats.totalGamesWithCharacter.vals()) {
-            if (gc.characterID == _playerStats.characterID) {
-                _totalGamesWithCharacterBuffer.add({
-                    gamesPlayed = gc.gamesPlayed + 1;
-                    characterID = gc.characterID;
-                });
-                characterFound := true;
-            } else {
-                _totalGamesWithCharacterBuffer.add(gc);
-            };
-        };
-        if (not characterFound) {
-            _totalGamesWithCharacterBuffer.add({
-                gamesPlayed = 1;
-                characterID = _playerStats.characterID;
-            });
-        };
-        let _totalGamesWithCharacter = Buffer.toArray(_totalGamesWithCharacterBuffer);
-
-        let maxGameTime: Nat = 300; // 5 minutes in seconds
-        let timePlayed: Nat = maxGameTime - _playerStats.secRemaining;
-
-        // Construct a new overallStats record with updated values
-        overallStats := {
-            totalGamesPlayed = overallStats.totalGamesPlayed + 1;
-            totalGamesSP = if (_playerStats.gameMode == 2) overallStats.totalGamesSP + 1 else overallStats.totalGamesSP;
-            totalGamesMP = if (_playerStats.gameMode == 1) overallStats.totalGamesMP + 1 else overallStats.totalGamesMP;
-            totalDamageDealt = overallStats.totalDamageDealt + _playerStats.damageDealt;
-            totalTimePlayed = overallStats.totalTimePlayed + timePlayed;
-            totalKills = overallStats.totalKills + _playerStats.kills;
-            totalEnergyUsed = overallStats.totalEnergyUsed + _playerStats.energyUsed;
-            totalEnergyGenerated = overallStats.totalEnergyGenerated + _playerStats.energyGenerated;
-            totalEnergyWasted = overallStats.totalEnergyWasted + _playerStats.energyWasted;
-            totalGamesWithFaction = _totalGamesWithFaction;
-            totalGamesGameMode = _totalGamesWithGameMode;
-            totalGamesWithCharacter = _totalGamesWithCharacter;
-            totalXpEarned = overallStats.totalXpEarned + _playerStats.xpEarned;
-        };
-    };
-
-    public shared func updatePlayerLevel(playerId: Principal) : async () {
-        let playerOpt = players.get(playerId);
-        switch (playerOpt) {
-            case (?player) {
-                let totalXp = switch (playerGamesStats.get(playerId)) {
-                    case (null) 0;
-                    case (?stats) stats.totalXpEarned;
-                };
-                let updatedPlayer: Player = {
-                    id = player.id;
-                    username = player.username;
-                    avatar = player.avatar;
-                    description = player.description;
-                    registrationDate = player.registrationDate;
-                    level = Utils.calculateLevel(totalXp);
-                    elo = player.elo;
-                    friends = player.friends;
-                    title = player.title;
-                };
-                players.put(playerId, updatedPlayer);
-            };
-            case (null) {};
         };
     };
 
