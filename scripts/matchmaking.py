@@ -167,7 +167,7 @@ def generate_random_stats(shared_energy_generated, shared_sec_remaining, won):
 def get_current_mission_progress(identity_name):
     """Gets the current mission progress for the current identity."""
     switch_identity(identity_name)
-    command = 'dfx canister call cosmicrafts getUserMissions && dfx canister call cosmicrafts getGeneralMissions && dfx canister call cosmicrafts getAchievements'
+    command = 'dfx canister call cosmicrafts getUserMissions'
     return execute_dfx_command(command)
 
 def claim_user_specific_reward(identity_name, mission_id):

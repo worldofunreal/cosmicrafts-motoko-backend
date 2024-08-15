@@ -434,12 +434,4 @@ module Types {
         #Master;
         #Legend;
     };
-
-    // Achievement Progress
-    public type AchievementProgress = {
-        achievementId: Nat;
-        playerId: PlayerId;
-        progress: Nat;
-        completed: Bool;
-    };
 }
