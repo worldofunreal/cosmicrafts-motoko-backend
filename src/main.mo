@@ -1202,19 +1202,7 @@ shared actor class Cosmicrafts() = Self {
         let achievementID = achievementIDCounter;
         achievementIDCounter += 1;
 
-        let firstStepsAchievementLine: Types.Achievement = {
-            id = achievementID;
-            name = "First Steps in the Cosmos";
-            individualAchievements = [];
-            requiredProgress = 5; // Number of individual achievements
-            tier = #Bronze;
-            progress = 0;
-            completed = false;
-            reward = [];
-            categoryId = milestoneCategory.id;
-        };
-
-        let individualAchievementsBuffer = Buffer.Buffer<Nat>(0);
+        var individualAchievementsList = Buffer.Buffer<Nat>(0);
         var idCounter = individualAchievementIDCounter;
 
         let completeTutorialAchievement: Types.IndividualAchievement = {
@@ -1229,12 +1217,12 @@ shared actor class Cosmicrafts() = Self {
                     rewardType = #Stardust;
                     amount = 10;
                 }
-            ]; // Directly add rewards here
-            achievementId = firstStepsAchievementLine.id;
+            ];
+            achievementId = achievementID;
         };
         idCounter += 1;
         individualAchievements.put(completeTutorialAchievement.id, completeTutorialAchievement);
-        individualAchievementsBuffer.add(completeTutorialAchievement.id);
+        individualAchievementsList.add(completeTutorialAchievement.id);
 
         let play5AIGamesAchievement: Types.IndividualAchievement = {
             id = idCounter;
@@ -1248,12 +1236,12 @@ shared actor class Cosmicrafts() = Self {
                     rewardType = #Chest;
                     amount = 1;
                 }
-            ]; // Directly add rewards here
-            achievementId = firstStepsAchievementLine.id;
+            ];
+            achievementId = achievementID;
         };
         idCounter += 1;
         individualAchievements.put(play5AIGamesAchievement.id, play5AIGamesAchievement);
-        individualAchievementsBuffer.add(play5AIGamesAchievement.id);
+        individualAchievementsList.add(play5AIGamesAchievement.id);
 
         let changeAvatarAchievement: Types.IndividualAchievement = {
             id = idCounter;
@@ -1267,12 +1255,12 @@ shared actor class Cosmicrafts() = Self {
                     rewardType = #Stardust;
                     amount = 10;
                 }
-            ]; // Directly add rewards here
-            achievementId = firstStepsAchievementLine.id;
+            ];
+            achievementId = achievementID;
         };
         idCounter += 1;
         individualAchievements.put(changeAvatarAchievement.id, changeAvatarAchievement);
-        individualAchievementsBuffer.add(changeAvatarAchievement.id);
+        individualAchievementsList.add(changeAvatarAchievement.id);
 
         let addFriendAchievement: Types.IndividualAchievement = {
             id = idCounter;
@@ -1286,12 +1274,12 @@ shared actor class Cosmicrafts() = Self {
                     rewardType = #Chest;
                     amount = 1;
                 }
-            ]; // Directly add rewards here
-            achievementId = firstStepsAchievementLine.id;
+            ];
+            achievementId = achievementID;
         };
         idCounter += 1;
         individualAchievements.put(addFriendAchievement.id, addFriendAchievement);
-        individualAchievementsBuffer.add(addFriendAchievement.id);
+        individualAchievementsList.add(addFriendAchievement.id);
 
         let upgradeNFTAchievement: Types.IndividualAchievement = {
             id = idCounter;
@@ -1305,22 +1293,30 @@ shared actor class Cosmicrafts() = Self {
                     rewardType = #Stardust;
                     amount = 15;
                 }
-            ]; // Directly add rewards here
-            achievementId = firstStepsAchievementLine.id;
+            ];
+            achievementId = achievementID;
         };
         idCounter += 1;
         individualAchievements.put(upgradeNFTAchievement.id, upgradeNFTAchievement);
-        individualAchievementsBuffer.add(upgradeNFTAchievement.id);
+        individualAchievementsList.add(upgradeNFTAchievement.id);
 
-        let updatedFirstStepsAchievementLine = {
-            firstStepsAchievementLine with
-            individualAchievements = Buffer.toArray(individualAchievementsBuffer)
+        let firstStepsAchievementLine = {
+            id = achievementID;
+            name = "First Steps in the Cosmos";
+            individualAchievements = Buffer.toArray(individualAchievementsList);
+            requiredProgress = 5;
+            tier = #Bronze;
+            progress = 0;
+            completed = false;
+            reward = [];
+            categoryId = milestoneCategory.id;
         };
-        achievements.put(updatedFirstStepsAchievementLine.id, updatedFirstStepsAchievementLine);
+
+        achievements.put(firstStepsAchievementLine.id, firstStepsAchievementLine);
 
         let updatedMilestoneCategory = {
             milestoneCategory with
-            achievements = [updatedFirstStepsAchievementLine.id]
+            achievements = [firstStepsAchievementLine.id]
         };
 
         categories.put(updatedMilestoneCategory.id, updatedMilestoneCategory);
@@ -1329,7 +1325,7 @@ shared actor class Cosmicrafts() = Self {
 
         Debug.print("[initializeMilestones] Milestones initialized and stored in stable variables.");
     };
-    
+
     func determineTier(progress: Nat, requiredProgress: Nat): Types.AchievementTier {
         let progressPercentage = (progress * 100) / requiredProgress;
         if (progressPercentage >= 100) {
