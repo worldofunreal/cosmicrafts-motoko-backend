@@ -168,7 +168,96 @@ module Types {
     characterID: Nat;
     gamesPlayed: Nat;
   };
+//--
+// Matchmaking
+  public type MMInfo = {
+    id: PlayerId;
+    matchAccepted: Bool;
+    elo: Float;
+    playerGameData: PlayerGameData;
+    lastPlayerActive: Nat64;
+    username: Username;
+  };
 
+  public type MMStatus = {
+    #Searching;
+    #Reserved;
+    #Accepting;
+    #Accepted;
+    #InGame;
+    #Ended;
+  };
+
+  public type MMSearchStatus = {
+    #Assigned;
+    #Available;
+    #NotAvailable;
+  };
+
+  public type MMPlayerStatus = {
+    status: MMStatus;
+    matchID: MatchID;
+  };
+
+  public type MatchData = {
+    matchID: MatchID;
+    player1: MMInfo;
+    player2: ?MMInfo;
+    status: MMStatus;
+  };
+
+  public type FullMatchData = {
+    matchID: MatchID;
+    player1: {
+      id: PlayerId;
+      username: Username;
+      avatar: AvatarID;
+      level: Level;
+      matchAccepted: Bool;
+      elo: Float;
+      playerGameData: PlayerGameData;
+    };
+    player2: ?{
+      id: PlayerId;
+      username: Username;
+      avatar: AvatarID;
+      level: Level;
+      matchAccepted: Bool;
+      elo: Float;
+      playerGameData: PlayerGameData;
+    };
+    status: MMStatus;
+  };
+//--
+// Match History
+  public type MatchOpt = {
+    #Ranked;
+    #Normal;
+    #Tournament;
+  };
+
+  public type PlayerRecord = {
+    playerId: Principal;
+    faction: PlayerFaction;
+  };
+
+  public type MatchRecord = {
+    matchID: MatchID;
+    map: MatchMap;
+    team1: [PlayerRecord];
+    team2: [PlayerRecord];
+    faction1: [PlayerFaction];
+    faction2: [PlayerFaction];
+    result: MatchResult;
+    timestamp: Time.Time;
+    mode: MatchOpt;
+  };
+
+  public type PlayerGameData = {
+      deck: [Nat]; // Array of token IDs
+      // Add other relevant fields here if necessary
+  };
+//--
 // Missions
   public type MissionType = {
     #GamesCompleted;
@@ -251,7 +340,9 @@ module Types {
     stardust: (Nat, Nat);
   };
   
-// Achievements
+//--
+//Achievements
+ 
     // Individual Achievement relates to a single mission, e.g., "Play 3 games."
     public type IndividualAchievement = {
         id: Nat;
@@ -358,92 +449,4 @@ module Types {
         progress: Nat;
         completed: Bool;
     };
-// Matchmaking
-  public type MMInfo = {
-    id: PlayerId;
-    matchAccepted: Bool;
-    elo: Float;
-    playerGameData: PlayerGameData;
-    lastPlayerActive: Nat64;
-    username: Username;
-  };
-
-  public type MMStatus = {
-    #Searching;
-    #Reserved;
-    #Accepting;
-    #Accepted;
-    #InGame;
-    #Ended;
-  };
-
-  public type MMSearchStatus = {
-    #Assigned;
-    #Available;
-    #NotAvailable;
-  };
-
-  public type MMPlayerStatus = {
-    status: MMStatus;
-    matchID: MatchID;
-  };
-
-  public type MatchData = {
-    matchID: MatchID;
-    player1: MMInfo;
-    player2: ?MMInfo;
-    status: MMStatus;
-  };
-
-  public type FullMatchData = {
-    matchID: MatchID;
-    player1: {
-      id: PlayerId;
-      username: Username;
-      avatar: AvatarID;
-      level: Level;
-      matchAccepted: Bool;
-      elo: Float;
-      playerGameData: PlayerGameData;
-    };
-    player2: ?{
-      id: PlayerId;
-      username: Username;
-      avatar: AvatarID;
-      level: Level;
-      matchAccepted: Bool;
-      elo: Float;
-      playerGameData: PlayerGameData;
-    };
-    status: MMStatus;
-  };
-
-// Match History
-  public type MatchOpt = {
-    #Ranked;
-    #Normal;
-    #Tournament;
-  };
-
-  public type PlayerRecord = {
-    playerId: Principal;
-    faction: PlayerFaction;
-  };
-
-  public type MatchRecord = {
-    matchID: MatchID;
-    map: MatchMap;
-    team1: [PlayerRecord];
-    team2: [PlayerRecord];
-    faction1: [PlayerFaction];
-    faction2: [PlayerFaction];
-    result: MatchResult;
-    timestamp: Time.Time;
-    mode: MatchOpt;
-  };
-
-  public type PlayerGameData = {
-      deck: [Nat]; // Array of token IDs
-      // Add other relevant fields here if necessary
-  };
 }

@@ -40,7 +40,7 @@ def main():
 
     for principal in principals:
         print(f"Getting full user profile for {principal}...")
-        run_command(f"dfx canister call cosmicrafts getFullUserProfile '(principal \"{principal}\")'")
+        run_command(f"dfx canister call cosmicrafts getFullProfile '(principal \"{principal}\")'")
         time.sleep(2)
 
     # Retrieve Cosmicrafts stats
