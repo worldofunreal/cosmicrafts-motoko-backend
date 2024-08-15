@@ -1176,188 +1176,188 @@ shared actor class Cosmicrafts() = Self {
         var claimedAchievementRewards: HashMap.HashMap<PlayerId, [Nat]> = HashMap.fromIter(_claimedAchievementRewards.vals(), 0, Principal.equal, Principal.hash); // Added this line
 
     // Init
-public shared func initializeMilestones(): async () {
-    let categoryID = categoryIDCounter;
-    categoryIDCounter += 1;
+    public shared func initializeMilestones(): async () {
+        let categoryID = categoryIDCounter;
+        categoryIDCounter += 1;
 
-    let milestoneCategory: Types.AchievementCategory = {
-        id = categoryID;
-        name = "Milestones";
-        achievements = [];
-        requiredProgress = 5;
-        tier = #Bronze;
-        progress = 0;
-        completed = false;
-        reward = [];
-    };
-
-    let achievementID = achievementIDCounter;
-    achievementIDCounter += 1;
-
-    var individualAchievementsList = Buffer.Buffer<Nat>(0);
-    var idCounter = individualAchievementIDCounter;
-
-    // Define and store each individual achievement for Milestones
-    let achievementsToCreate = [
-        ("Complete the Tutorial", #Combat(#GamesCompleted), 1, (#Stardust, 10)),
-        ("Defeat AI 5 Times", #Combat(#GamesCompleted), 5, (#Chest, 1)),
-        ("Change Your Avatar", #Misc(#Customization), 1, (#Stardust, 10)),
-        ("Have 1 Accepted Friend", #Social(#Social), 1, (#Chest, 1)),
-        ("Upgrade Any NFT to Level 3", #Resource(#UpgradeNFT), 1, (#Stardust, 15))
-    ];
-
-    for (entry in achievementsToCreate.vals()) {
-        let (name, achievementType, requiredProgress, reward) = entry;
-        
-        let newAchievement: Types.IndividualAchievement = {
-            id = idCounter;
-            name = name;
-            achievementType = achievementType;
-            requiredProgress = requiredProgress;
+        let milestoneCategory: Types.AchievementCategory = {
+            id = categoryID;
+            name = "Milestones";
+            achievements = [];
+            requiredProgress = 5;
+            tier = #Bronze;
             progress = 0;
             completed = false;
-            reward = [
-                {
-                    rewardType = reward.0;
-                    amount = reward.1;
-                }
-            ];
-            achievementId = achievementID;
+            reward = [];
         };
-        idCounter += 1;
-        individualAchievements.put(newAchievement.id, newAchievement);
-        individualAchievementsList.add(newAchievement.id);
-    };
 
-    let firstStepsAchievementLine: Types.Achievement = {
-        id = achievementID;
-        name = "First Steps in the Cosmos";
-        individualAchievements = Buffer.toArray(individualAchievementsList);
-        requiredProgress = 5;
-        tier = #Bronze;
-        progress = 0;
-        completed = false;
-        reward = [];
-        categoryId = milestoneCategory.id;
-    };
+        let achievementID = achievementIDCounter;
+        achievementIDCounter += 1;
 
-    achievements.put(firstStepsAchievementLine.id, firstStepsAchievementLine);
+        var individualAchievementsList = Buffer.Buffer<Nat>(0);
+        var idCounter = individualAchievementIDCounter;
 
-    let updatedMilestoneCategory = {
-        milestoneCategory with
-        achievements = [firstStepsAchievementLine.id]
-    };
+        // Define and store each individual achievement for Milestones
+        let achievementsToCreate = [
+            ("Complete the Tutorial", #Combat(#GamesCompleted), 1, (#Stardust, 10)),
+            ("Defeat AI 5 Times", #Combat(#GamesCompleted), 5, (#Chest, 1)),
+            ("Change Your Avatar", #Misc(#Customization), 1, (#Stardust, 10)),
+            ("Have 1 Accepted Friend", #Social(#Social), 1, (#Chest, 1)),
+            ("Upgrade Any NFT to Level 3", #Resource(#UpgradeNFT), 1, (#Stardust, 15))
+        ];
 
-    categories.put(updatedMilestoneCategory.id, updatedMilestoneCategory);
+        for (entry in achievementsToCreate.vals()) {
+            let (name, achievementType, requiredProgress, reward) = entry;
+            
+            let newAchievement: Types.IndividualAchievement = {
+                id = idCounter;
+                name = name;
+                achievementType = achievementType;
+                requiredProgress = requiredProgress;
+                progress = 0;
+                completed = false;
+                reward = [
+                    {
+                        rewardType = reward.0;
+                        amount = reward.1;
+                    }
+                ];
+                achievementId = achievementID;
+            };
+            idCounter += 1;
+            individualAchievements.put(newAchievement.id, newAchievement);
+            individualAchievementsList.add(newAchievement.id);
+        };
 
-    individualAchievementIDCounter := idCounter;
-
-    Debug.print("[initializeMilestones] Milestones initialized and stored in stable variables.");
-
-    // Initialize Combat Category
-    let combatCategoryID = categoryIDCounter;
-    categoryIDCounter += 1;
-
-    let combatCategory: Types.AchievementCategory = {
-        id = combatCategoryID;
-        name = "Combat";
-        achievements = [];
-        requiredProgress = 20;
-        tier = #Bronze;
-        progress = 0;
-        completed = false;
-        reward = [];
-    };
-
-    let combatAchievementsToCreate = [
-        // Games Played
-        ("Play 10 Games", #Combat(#GamesCompleted), 10),
-        ("Play 25 Games", #Combat(#GamesCompleted), 25),
-        ("Play 50 Games", #Combat(#GamesCompleted), 50),
-        ("Play 100 Games", #Combat(#GamesCompleted), 100),
-        ("Play 250 Games", #Combat(#GamesCompleted), 250),
-        ("Play 500 Games", #Combat(#GamesCompleted), 500),
-        ("Play 1000 Games", #Combat(#GamesCompleted), 1000),
-
-        // Games Won
-        ("Win 10 Games", #Combat(#GamesWon), 10),
-        ("Win 25 Games", #Combat(#GamesWon), 25),
-        ("Win 50 Games", #Combat(#GamesWon), 50),
-        ("Win 100 Games", #Combat(#GamesWon), 100),
-        ("Win 250 Games", #Combat(#GamesWon), 250),
-        ("Win 500 Games", #Combat(#GamesWon), 500),
-        ("Win 1000 Games", #Combat(#GamesWon), 1000),
-
-        // Damage Dealt
-        ("Deal 1000 Damage", #Combat(#DamageDealt), 1000),
-        ("Deal 2500 Damage", #Combat(#DamageDealt), 2500),
-        ("Deal 5000 Damage", #Combat(#DamageDealt), 5000),
-        ("Deal 10000 Damage", #Combat(#DamageDealt), 10000),
-        ("Deal 25000 Damage", #Combat(#DamageDealt), 25000),
-        ("Deal 50000 Damage", #Combat(#DamageDealt), 50000),
-        ("Deal 100000 Damage", #Combat(#DamageDealt), 100000),
-
-        // Energy Used
-        ("Use 100 Energy", #Combat(#EnergyUsed), 100),
-        ("Use 250 Energy", #Combat(#EnergyUsed), 250),
-        ("Use 500 Energy", #Combat(#EnergyUsed), 500),
-        ("Use 1000 Energy", #Combat(#EnergyUsed), 1000),
-        ("Use 2500 Energy", #Combat(#EnergyUsed), 2500),
-        ("Use 5000 Energy", #Combat(#EnergyUsed), 5000),
-        ("Use 10000 Energy", #Combat(#EnergyUsed), 10000)
-    ];
-
-    var combatAchievementsList = Buffer.Buffer<Nat>(0);
-    let combatAchievementID = achievementIDCounter;
-
-    for (entry in combatAchievementsToCreate.vals()) {
-        let (name, achievementType, requiredProgress) = entry;
-
-        let newCombatAchievement: Types.IndividualAchievement = {
-            id = idCounter;
-            name = name;
-            achievementType = achievementType;
-            requiredProgress = requiredProgress;
+        let firstStepsAchievementLine: Types.Achievement = {
+            id = achievementID;
+            name = "First Steps in the Cosmos";
+            individualAchievements = Buffer.toArray(individualAchievementsList);
+            requiredProgress = 5;
+            tier = #Bronze;
             progress = 0;
             completed = false;
-            reward = [
-                {
-                    rewardType = #Stardust;
-                    amount = 10;
-                }
-            ];
-            achievementId = combatAchievementID;
+            reward = [];
+            categoryId = milestoneCategory.id;
         };
-        idCounter += 1;
-        individualAchievements.put(newCombatAchievement.id, newCombatAchievement);
-        combatAchievementsList.add(newCombatAchievement.id);
+
+        achievements.put(firstStepsAchievementLine.id, firstStepsAchievementLine);
+
+        let updatedMilestoneCategory = {
+            milestoneCategory with
+            achievements = [firstStepsAchievementLine.id]
+        };
+
+        categories.put(updatedMilestoneCategory.id, updatedMilestoneCategory);
+
+        individualAchievementIDCounter := idCounter;
+
+        Debug.print("[initializeMilestones] Milestones initialized and stored in stable variables.");
+
+        // Initialize Combat Category
+        let combatCategoryID = categoryIDCounter;
+        categoryIDCounter += 1;
+
+        let combatCategory: Types.AchievementCategory = {
+            id = combatCategoryID;
+            name = "Combat";
+            achievements = [];
+            requiredProgress = 20;
+            tier = #Bronze;
+            progress = 0;
+            completed = false;
+            reward = [];
+        };
+
+        let combatAchievementsToCreate = [
+            // Games Played
+            ("Play 10 Games", #Combat(#GamesCompleted), 10),
+            ("Play 25 Games", #Combat(#GamesCompleted), 25),
+            ("Play 50 Games", #Combat(#GamesCompleted), 50),
+            ("Play 100 Games", #Combat(#GamesCompleted), 100),
+            ("Play 250 Games", #Combat(#GamesCompleted), 250),
+            ("Play 500 Games", #Combat(#GamesCompleted), 500),
+            ("Play 1000 Games", #Combat(#GamesCompleted), 1000),
+
+            // Games Won
+            ("Win 10 Games", #Combat(#GamesWon), 10),
+            ("Win 25 Games", #Combat(#GamesWon), 25),
+            ("Win 50 Games", #Combat(#GamesWon), 50),
+            ("Win 100 Games", #Combat(#GamesWon), 100),
+            ("Win 250 Games", #Combat(#GamesWon), 250),
+            ("Win 500 Games", #Combat(#GamesWon), 500),
+            ("Win 1000 Games", #Combat(#GamesWon), 1000),
+
+            // Damage Dealt
+            ("Deal 1000 Damage", #Combat(#DamageDealt), 1000),
+            ("Deal 2500 Damage", #Combat(#DamageDealt), 2500),
+            ("Deal 5000 Damage", #Combat(#DamageDealt), 5000),
+            ("Deal 10000 Damage", #Combat(#DamageDealt), 10000),
+            ("Deal 25000 Damage", #Combat(#DamageDealt), 25000),
+            ("Deal 50000 Damage", #Combat(#DamageDealt), 50000),
+            ("Deal 100000 Damage", #Combat(#DamageDealt), 100000),
+
+            // Energy Used
+            ("Use 100 Energy", #Combat(#EnergyUsed), 100),
+            ("Use 250 Energy", #Combat(#EnergyUsed), 250),
+            ("Use 500 Energy", #Combat(#EnergyUsed), 500),
+            ("Use 1000 Energy", #Combat(#EnergyUsed), 1000),
+            ("Use 2500 Energy", #Combat(#EnergyUsed), 2500),
+            ("Use 5000 Energy", #Combat(#EnergyUsed), 5000),
+            ("Use 10000 Energy", #Combat(#EnergyUsed), 10000)
+        ];
+
+        var combatAchievementsList = Buffer.Buffer<Nat>(0);
+        let combatAchievementID = achievementIDCounter;
+
+        for (entry in combatAchievementsToCreate.vals()) {
+            let (name, achievementType, requiredProgress) = entry;
+
+            let newCombatAchievement: Types.IndividualAchievement = {
+                id = idCounter;
+                name = name;
+                achievementType = achievementType;
+                requiredProgress = requiredProgress;
+                progress = 0;
+                completed = false;
+                reward = [
+                    {
+                        rewardType = #Stardust;
+                        amount = 10;
+                    }
+                ];
+                achievementId = combatAchievementID;
+            };
+            idCounter += 1;
+            individualAchievements.put(newCombatAchievement.id, newCombatAchievement);
+            combatAchievementsList.add(newCombatAchievement.id);
+        };
+
+        let combatAchievementLine: Types.Achievement = {
+            id = combatAchievementID;
+            name = "Combat Achievements";
+            individualAchievements = Buffer.toArray(combatAchievementsList);
+            requiredProgress = 20;
+            tier = #Bronze;
+            progress = 0;
+            completed = false;
+            reward = [];
+            categoryId = combatCategory.id;
+        };
+
+        achievements.put(combatAchievementLine.id, combatAchievementLine);
+
+        let updatedCombatCategory = {
+            combatCategory with
+            achievements = [combatAchievementLine.id]
+        };
+
+        categories.put(updatedCombatCategory.id, updatedCombatCategory);
+
+        individualAchievementIDCounter := idCounter;
+
+        Debug.print("[initializeMilestones] Combat category and achievements initialized and stored in stable variables.");
     };
-
-    let combatAchievementLine: Types.Achievement = {
-        id = combatAchievementID;
-        name = "Combat Achievements";
-        individualAchievements = Buffer.toArray(combatAchievementsList);
-        requiredProgress = 20;
-        tier = #Bronze;
-        progress = 0;
-        completed = false;
-        reward = [];
-        categoryId = combatCategory.id;
-    };
-
-    achievements.put(combatAchievementLine.id, combatAchievementLine);
-
-    let updatedCombatCategory = {
-        combatCategory with
-        achievements = [combatAchievementLine.id]
-    };
-
-    categories.put(updatedCombatCategory.id, updatedCombatCategory);
-
-    individualAchievementIDCounter := idCounter;
-
-    Debug.print("[initializeMilestones] Combat category and achievements initialized and stored in stable variables.");
-};
 
     func determineTier(progress: Nat, requiredProgress: Nat): Types.AchievementTier {
         let progressPercentage = (progress * 100) / requiredProgress;
@@ -1471,11 +1471,11 @@ public shared func initializeMilestones(): async () {
                 let newProgress = indAch.progress + progressIncrement;
 
                 // Ensure the progress increment is applied correctly
-                Debug.print("Updating Individual Achievement ID: " # Nat.toText(achievementId));
-                Debug.print("Current Progress: " # Nat.toText(indAch.progress));
-                Debug.print("Progress Increment: " # Nat.toText(progressIncrement));
-                Debug.print("New Progress: " # Nat.toText(newProgress));
-                Debug.print("Required Progress: " # Nat.toText(indAch.requiredProgress));
+                Debug.print("[updateIndividualAchievementProgress]Updating Individual Achievement ID: " # Nat.toText(achievementId));
+                Debug.print("[updateIndividualAchievementProgress]Current Progress: " # Nat.toText(indAch.progress));
+                Debug.print("[updateIndividualAchievementProgress]Progress Increment: " # Nat.toText(progressIncrement));
+                Debug.print("[updateIndividualAchievementProgress]New Progress: " # Nat.toText(newProgress));
+                Debug.print("[updateIndividualAchievementProgress]Required Progress: " # Nat.toText(indAch.requiredProgress));
 
                 let isCompleted = newProgress >= indAch.requiredProgress;
 
@@ -1879,60 +1879,80 @@ public shared func initializeMilestones(): async () {
 
 //--
 // Progress Manager
+func collectProgressUpdates(playerStats: Types.PlayerStats): [(CombatAchievementType, Nat)] {
+    // Use a Buffer to collect progress updates
+    let progressUpdates = Buffer.Buffer<(CombatAchievementType, Nat)>(0);
 
-    // Function to update achievement progress manager
-    func updateAchievementProgressManager(user: Principal, playerStats: Types.PlayerStats): async (Bool, Text) {
-        await mapPlayerStatsToCombatAchievements(user, playerStats);
-
-        return (true, "Achievement progress updated successfully");
+    // Collect all progress increments
+    if (playerStats.secRemaining > 0) {
+        progressUpdates.add((#GamesCompleted, 1));
+    };
+    if (playerStats.damageDealt > 0) {
+        progressUpdates.add((#DamageDealt, playerStats.damageDealt));
+    };
+    if (playerStats.damageTaken > 0) {
+        progressUpdates.add((#DamageTaken, playerStats.damageTaken));
+    };
+    if (playerStats.energyUsed > 0) {
+        progressUpdates.add((#EnergyUsed, playerStats.energyUsed));
+    };
+    if (playerStats.deploys > 0) {
+        progressUpdates.add((#UnitsDeployed, playerStats.deploys));
+    };
+    if (playerStats.faction > 0) {
+        progressUpdates.add((#FactionPlayed, playerStats.faction));
+    };
+    if (playerStats.gameMode > 0) {
+        progressUpdates.add((#GameModePlayed, playerStats.gameMode));
+    };
+    if (playerStats.xpEarned > 0) {
+        progressUpdates.add((#XPEarned, playerStats.xpEarned));
+    };
+    if (playerStats.kills > 0) {
+        progressUpdates.add((#Kills, playerStats.kills));
+    };
+    if (playerStats.wonGame) {
+        progressUpdates.add((#GamesWon, 1));
     };
 
-    func mapPlayerStatsToCombatAchievements(user: Principal, playerStats: Types.PlayerStats): async () {
-        let achievementUpdates: [(CombatAchievementType, Nat, Bool)] = [
-            (#GamesCompleted, 1, playerStats.secRemaining > 0),
-            (#DamageDealt, playerStats.damageDealt, playerStats.damageDealt > 0),
-            (#DamageTaken, playerStats.damageTaken, playerStats.damageTaken > 0),
-            (#EnergyUsed, playerStats.energyUsed, playerStats.energyUsed > 0),
-            (#UnitsDeployed, playerStats.deploys, playerStats.deploys > 0),
-            (#FactionPlayed, playerStats.faction, playerStats.faction > 0),
-            (#GameModePlayed, playerStats.gameMode, playerStats.gameMode > 0),
-            (#XPEarned, playerStats.xpEarned, playerStats.xpEarned > 0),
-            (#Kills, playerStats.kills, playerStats.kills > 0),
-            (#GamesWon, 1, playerStats.wonGame)
-        ];
+    // Convert the Buffer to an array before returning
+    return Buffer.toArray(progressUpdates);
+};
 
-        for ((achType, progressIncrement, condition) in achievementUpdates.vals()) {
-            if (condition) {
-                await updateCombatAchievementsByType(user, achType, progressIncrement);
-            }
-        }
-    };
 
-    func updateCombatAchievementsByType(user: Principal, achType: CombatAchievementType, progressIncrement: Nat): async () {
-        let iter = individualAchievements.vals();
-        var optIndAch = iter.next();
-        var achievementsUpdated = Buffer.Buffer<Nat>(0);
+func applyCollectedProgressUpdates(user: Principal, progressUpdates: [(CombatAchievementType, Nat)]): async () {
+    let iter = individualAchievements.vals();
+    var optIndAch = iter.next();
+    var achievementsUpdated = Buffer.Buffer<Nat>(0);
 
-        while (optIndAch != null) {
-            switch (optIndAch) {
-                case (?indAch) {
-                    // Use pattern matching to extract the CombatAchievementType
-                    switch (indAch.achievementType) {
-                        case (#Combat(ach)) {
-                            if (ach == achType and not (Utils.arrayContains(Buffer.toArray(achievementsUpdated), indAch.id, Utils._natEqual))) {
-                                let _ = await updateIndividualAchievementProgress(user, indAch.id, progressIncrement);
-                                achievementsUpdated.add(indAch.id);
-                            };
-                        };
-                        // Handle other types if necessary
-                        case (_) {};
-                    };
-                };
-                case (null) {};
+    while (optIndAch != null) {
+        switch (optIndAch) {
+            case (?indAch) {
+                for ((achType, progressIncrement) in progressUpdates.vals()) {
+                    if (indAch.achievementType == #Combat(achType) and not (Utils.arrayContains(Buffer.toArray(achievementsUpdated), indAch.id, Utils._natEqual))) {
+                        // Discard the result of the async call
+                        let _ = await updateIndividualAchievementProgress(user, indAch.id, progressIncrement);
+                        achievementsUpdated.add(indAch.id);
+                    }
+                }
             };
-            optIndAch := iter.next();
-        }
-    };
+            case (null) {};
+        };
+        optIndAch := iter.next();
+    }
+};
+
+
+func updateAchievementProgressManager(user: Principal, playerStats: Types.PlayerStats): async (Bool, Text) {
+    // Step 1: Collect all progress updates
+    let progressUpdates = collectProgressUpdates(playerStats);
+
+    // Step 2: Apply all collected progress updates
+    await applyCollectedProgressUpdates(user, progressUpdates);
+
+    return (true, "Achievement progress updated successfully");
+};
+
 
     public func updateProgressManager(user: Principal, playerStats: PlayerStats): async (Bool, Text) {
         let generalProgressBuffer = Buffer.Buffer<MissionProgress>(9);
