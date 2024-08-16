@@ -1183,88 +1183,131 @@ shared actor class Cosmicrafts() = Self {
         var playerAchievements: HashMap.HashMap<PlayerId, [Nat]> = HashMap.fromIter(_playerAchievements.vals(), 0, Principal.equal, Principal.hash);
         var claimedAchievementRewards: HashMap.HashMap<PlayerId, [Nat]> = HashMap.fromIter(_claimedAchievementRewards.vals(), 0, Principal.equal, Principal.hash);
 
-    // Init
-    public shared func initializeAllAchievements(): async () {
-        // Initialize Milestones Category
-        let milestoneCategoryID = Achievements.milestoneCategory.id;
-        categories.put(milestoneCategoryID, Achievements.milestoneCategory);
-        _categories := Iter.toArray(categories.entries());
+    // Initialize all achievements and store them in stable variables
+public shared func initializeAllAchievements(): async ([(Types.AchievementCategory, [Types.Achievement], [Types.IndividualAchievement])]) {
+    var achievementsWithDetails = Buffer.Buffer<(Types.AchievementCategory, [Types.Achievement], [Types.IndividualAchievement])>(0);
 
-        // Initialize the First Steps Achievement Line and Individual Achievements
-        achievements.put(Achievements.firstStepsAchievementLine.id, Achievements.firstStepsAchievementLine);
-        _achievements := Iter.toArray(achievements.entries());
+    // Initialize Milestones Category
+    let milestoneCategoryID = Achievements.milestoneCategory.id;
+    categories.put(milestoneCategoryID, Achievements.milestoneCategory);
+    _categories := Iter.toArray(categories.entries());
 
-        individualAchievements.put(Achievements.completeTutorialAchievement.id, Achievements.completeTutorialAchievement);
-        individualAchievements.put(Achievements.play5AIGamesAchievement.id, Achievements.play5AIGamesAchievement);
-        individualAchievements.put(Achievements.changeAvatarAchievement.id, Achievements.changeAvatarAchievement);
-        individualAchievements.put(Achievements.addFriendAchievement.id, Achievements.addFriendAchievement);
-        individualAchievements.put(Achievements.upgradeNFTAchievement.id, Achievements.upgradeNFTAchievement);
-        _individualAchievements := Iter.toArray(individualAchievements.entries());
+    // Initialize the First Steps Achievement Line and Individual Achievements
+    achievements.put(Achievements.firstStepsAchievementLine.id, Achievements.firstStepsAchievementLine);
+    _achievements := Iter.toArray(achievements.entries());
 
-        // Initialize Combat Category and its Achievement Lines
-        categories.put(Achievements.combatCategory.id, Achievements.combatCategory);
-        _categories := Iter.toArray(categories.entries());
+    individualAchievements.put(Achievements.completeTutorialAchievement.id, Achievements.completeTutorialAchievement);
+    individualAchievements.put(Achievements.play5AIGamesAchievement.id, Achievements.play5AIGamesAchievement);
+    individualAchievements.put(Achievements.changeAvatarAchievement.id, Achievements.changeAvatarAchievement);
+    individualAchievements.put(Achievements.addFriendAchievement.id, Achievements.addFriendAchievement);
+    individualAchievements.put(Achievements.upgradeNFTAchievement.id, Achievements.upgradeNFTAchievement);
+    _individualAchievements := Iter.toArray(individualAchievements.entries());
 
-        achievements.put(Achievements.gamesPlayedAchievementLine.id, Achievements.gamesPlayedAchievementLine);
-        individualAchievements.put(Achievements.play10Games.id, Achievements.play10Games);
-        individualAchievements.put(Achievements.play25Games.id, Achievements.play25Games);
-        individualAchievements.put(Achievements.play50Games.id, Achievements.play50Games);
-        _achievements := Iter.toArray(achievements.entries());
+    achievementsWithDetails.add((
+        Achievements.milestoneCategory,
+        [Achievements.firstStepsAchievementLine],
+        [
+            Achievements.completeTutorialAchievement,
+            Achievements.play5AIGamesAchievement,
+            Achievements.changeAvatarAchievement,
+            Achievements.addFriendAchievement,
+            Achievements.upgradeNFTAchievement
+        ]
+    ));
 
-        achievements.put(Achievements.gamesWonAchievementLine.id, Achievements.gamesWonAchievementLine);
-        individualAchievements.put(Achievements.win10Games.id, Achievements.win10Games);
-        individualAchievements.put(Achievements.win25Games.id, Achievements.win25Games);
-        individualAchievements.put(Achievements.win50Games.id, Achievements.win50Games);
-        _achievements := Iter.toArray(achievements.entries());
+    // Initialize Combat Category and its Achievement Lines
+    categories.put(Achievements.combatCategory.id, Achievements.combatCategory);
+    _categories := Iter.toArray(categories.entries());
 
-        achievements.put(Achievements.damageDealtAchievementLine.id, Achievements.damageDealtAchievementLine);
-        individualAchievements.put(Achievements.deal1000Damage.id, Achievements.deal1000Damage);
-        individualAchievements.put(Achievements.deal2500Damage.id, Achievements.deal2500Damage);
-        individualAchievements.put(Achievements.deal5000Damage.id, Achievements.deal5000Damage);
-        _achievements := Iter.toArray(achievements.entries());
+    achievements.put(Achievements.gamesPlayedAchievementLine.id, Achievements.gamesPlayedAchievementLine);
+    individualAchievements.put(Achievements.play10Games.id, Achievements.play10Games);
+    individualAchievements.put(Achievements.play25Games.id, Achievements.play25Games);
+    individualAchievements.put(Achievements.play50Games.id, Achievements.play50Games);
+    _achievements := Iter.toArray(achievements.entries());
 
-        achievements.put(Achievements.energyUsedAchievementLine.id, Achievements.energyUsedAchievementLine);
-        individualAchievements.put(Achievements.use100Energy.id, Achievements.use100Energy);
-        individualAchievements.put(Achievements.use250Energy.id, Achievements.use250Energy);
-        individualAchievements.put(Achievements.use500Energy.id, Achievements.use500Energy);
-        _achievements := Iter.toArray(achievements.entries());
+    achievements.put(Achievements.gamesWonAchievementLine.id, Achievements.gamesWonAchievementLine);
+    individualAchievements.put(Achievements.win10Games.id, Achievements.win10Games);
+    individualAchievements.put(Achievements.win25Games.id, Achievements.win25Games);
+    individualAchievements.put(Achievements.win50Games.id, Achievements.win50Games);
+    _achievements := Iter.toArray(achievements.entries());
 
-        Debug.print("[initializeAllAchievements] All achievements and categories initialized successfully.");
+    achievements.put(Achievements.damageDealtAchievementLine.id, Achievements.damageDealtAchievementLine);
+    individualAchievements.put(Achievements.deal1000Damage.id, Achievements.deal1000Damage);
+    individualAchievements.put(Achievements.deal2500Damage.id, Achievements.deal2500Damage);
+    individualAchievements.put(Achievements.deal5000Damage.id, Achievements.deal5000Damage);
+    _achievements := Iter.toArray(achievements.entries());
+
+    achievements.put(Achievements.energyUsedAchievementLine.id, Achievements.energyUsedAchievementLine);
+    individualAchievements.put(Achievements.use100Energy.id, Achievements.use100Energy);
+    individualAchievements.put(Achievements.use250Energy.id, Achievements.use250Energy);
+    individualAchievements.put(Achievements.use500Energy.id, Achievements.use500Energy);
+    _achievements := Iter.toArray(achievements.entries());
+
+    achievementsWithDetails.add((
+        Achievements.combatCategory,
+        [
+            Achievements.gamesPlayedAchievementLine,
+            Achievements.gamesWonAchievementLine,
+            Achievements.damageDealtAchievementLine,
+            Achievements.energyUsedAchievementLine
+        ],
+        [
+            Achievements.play10Games,
+            Achievements.play25Games,
+            Achievements.play50Games,
+            Achievements.win10Games,
+            Achievements.win25Games,
+            Achievements.win50Games,
+            Achievements.deal1000Damage,
+            Achievements.deal2500Damage,
+            Achievements.deal5000Damage,
+            Achievements.use100Energy,
+            Achievements.use250Energy,
+            Achievements.use500Energy
+        ]
+    ));
+
+    Debug.print("[initializeAllAchievements] All achievements and categories initialized successfully.");
+
+    return Buffer.toArray(achievementsWithDetails);
+};
+
+public func assignAchievementsToUser(user: PlayerId): async () {
+    var userAchievementsList: [Nat] = switch (playerAchievements.get(user)) {
+        case (null) { [] };
+        case (?achievements) { achievements };
     };
 
-    func assignAchievementsToUser(user: PlayerId): async () {
-        var userAchievementsList: [Nat] = switch (playerAchievements.get(user)) {
-            case (null) { [] };
-            case (?achievements) { achievements };
-        };
+    let userAchievementsBuffer = Buffer.Buffer<Nat>(userAchievementsList.size());
 
-        let userAchievementsBuffer = Buffer.Buffer<Nat>(userAchievementsList.size());
+    // Copy existing achievements to the buffer
+    for (achievement in userAchievementsList.vals()) {
+        userAchievementsBuffer.add(achievement);
+    };
 
-        // Copy existing achievements to the buffer
-        for (achievement in userAchievementsList.vals()) {
-            userAchievementsBuffer.add(achievement);
-        };
+    // Assign all categories, achievements, and individual achievements
+    for ((_, category) in _categories.vals()) {
+        // Iterate through all achievements in each category
+        for ((achievementID, achievement) in _achievements.vals()) {
+            if (not Utils.arrayContains<Nat>(userAchievementsList, achievementID, Utils._natEqual)) {
+                userAchievementsBuffer.add(achievementID);
+            };
 
-        // Assign all categories, achievements, and individual achievements
-        for ((id, _) in _categories.vals()) {
-            // Iterate through all achievements in each category
-            for ((achievementID, achievement) in _achievements.vals()) {
-                if (not Utils.arrayContains<Nat>(userAchievementsList, achievementID, Utils._natEqual)) {
-                    userAchievementsBuffer.add(achievementID);
-                };
-
-                // Iterate through all individual achievements in each achievement
-                for ((individualID, individualAchievement) in _individualAchievements.vals()) {
-                    if (individualAchievement.achievementId == achievementID and not Utils.arrayContains<Nat>(userAchievementsList, individualID, Utils._natEqual)) {
-                        userAchievementsBuffer.add(individualID);
-                    }
+            // Iterate through all individual achievements in each achievement
+            for ((individualID, individualAchievement) in _individualAchievements.vals()) {
+                if (individualAchievement.achievementId == achievementID and not Utils.arrayContains<Nat>(userAchievementsList, individualID, Utils._natEqual)) {
+                    userAchievementsBuffer.add(individualID);
                 }
             }
-        };
-
-        playerAchievements.put(user, Buffer.toArray(userAchievementsBuffer));
+        }
     };
 
+    // Save the updated list back to the user's achievements
+    playerAchievements.put(user, Buffer.toArray(userAchievementsBuffer));
+};
+
+
+    // Retrieve the achievements for the user
     public shared ({ caller }) func getAchievements(): async ([(Types.AchievementCategory, [Types.Achievement], [Types.IndividualAchievement])]) {
         await assignAchievementsToUser(caller);
 
