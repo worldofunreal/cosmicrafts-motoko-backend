@@ -33,6 +33,7 @@
    // import AchievementMissionsTemplate "AchievementMissionsTemplate";
     import Validator "Validator";
     import MissionOptions "MissionOptions";
+    import Set "Set";
 
 shared actor class Cosmicrafts() = Self {
 // Types
@@ -1199,8 +1200,6 @@ shared actor class Cosmicrafts() = Self {
 
         // Define and store each individual achievement for Milestones
         let achievementsToCreate = [
-            ("Complete the Tutorial", #Combat(#GamesCompleted), 1, (#Stardust, 10)),
-            ("Defeat AI 5 Times", #Combat(#GamesCompleted), 5, (#Chest, 1)),
             ("Change Your Avatar", #Misc(#Customization), 1, (#Stardust, 10)),
             ("Have 1 Accepted Friend", #Social(#Social), 1, (#Chest, 1)),
             ("Upgrade Any NFT to Level 3", #Resource(#UpgradeNFT), 1, (#Stardust, 15))
@@ -1208,7 +1207,7 @@ shared actor class Cosmicrafts() = Self {
 
         for (entry in achievementsToCreate.vals()) {
             let (name, achievementType, requiredProgress, reward) = entry;
-            
+
             let newAchievement: Types.IndividualAchievement = {
                 id = idCounter;
                 name = name;
@@ -1253,6 +1252,7 @@ shared actor class Cosmicrafts() = Self {
         individualAchievementIDCounter := idCounter;
 
         Debug.print("[initializeMilestones] Milestones initialized and stored in stable variables.");
+
 
         // Initialize Combat Category
         let combatCategoryID = categoryIDCounter;
@@ -1923,16 +1923,23 @@ shared actor class Cosmicrafts() = Self {
     func applyCollectedProgressUpdates(user: Principal, progressUpdates: [(CombatAchievementType, Nat)]): async () {
         let iter = individualAchievements.vals();
         var optIndAch = iter.next();
-        var achievementsUpdated = Buffer.Buffer<Nat>(0);
+
+        // Use a custom Set instead of a Buffer for tracking updated achievements
+        var achievementsUpdated = Set.new<Nat>(10, Utils._natEqual, Utils._natHash);
 
         while (optIndAch != null) {
             switch (optIndAch) {
                 case (?indAch) {
                     for ((achType, progressIncrement) in progressUpdates.vals()) {
-                        if (indAch.achievementType == #Combat(achType) and not (Utils.arrayContains(Buffer.toArray(achievementsUpdated), indAch.id, Utils._natEqual))) {
-                            // Discard the result of the async call
+                        // Check if the achievement has already been updated in this cycle
+                        if (indAch.achievementType == #Combat(achType) and not Set.contains(achievementsUpdated, indAch.id)) {
+                            Debug.print("Updating Achievement ID: " # Nat.toText(indAch.id) # " with progress increment: " # Nat.toText(progressIncrement));
+                            
+                            // Apply the update
                             let _ = await updateIndividualAchievementProgress(user, indAch.id, progressIncrement);
-                            achievementsUpdated.add(indAch.id);
+                            
+                            // Mark this achievement as updated
+                            Set.put(achievementsUpdated, indAch.id);
                         }
                     }
                 };

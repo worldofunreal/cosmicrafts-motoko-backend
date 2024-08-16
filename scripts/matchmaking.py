@@ -143,24 +143,24 @@ def parse_match_id(search_result):
 def generate_random_stats(shared_energy_generated, shared_sec_remaining, won):
     """Generates randomized game statistics using Nat values."""
     stats = {
-        "botDifficulty": random.randint(0, 5),
-        "botMode": random.randint(0, 5),
+        "botDifficulty": random.randint(0, 2),
+        "botMode": random.randint(0, 1),
         "characterID": random.randint(1, 2),
-        "damageCritic": random.randint(1000, 25000),  # Changed to random integer
-        "damageDealt": random.randint(1000, 25000),   # Changed to random integer
-        "damageEvaded": random.randint(1000, 25000),  # Changed to random integer
-        "damageTaken": random.randint(1000, 25000),   # Changed to random integer
-        "deploys": random.randint(10, 225),           # Changed to random integer
-        "energyChargeRate": random.randint(33, 200),  # Changed to random integer
+        "damageCritic": random.randint(250, 850),  # Changed to random integer
+        "damageDealt": random.randint(1000, 2500),   # Changed to random integer
+        "damageEvaded": random.randint(100, 400),  # Changed to random integer
+        "damageTaken": random.randint(250, 850),   # Changed to random integer
+        "deploys": random.randint(10, 120),           # Changed to random integer
+        "energyChargeRate": random.randint(1, 3),  # Changed to random integer
         "energyGenerated": shared_energy_generated,   # Already Nat
         "energyUsed": random.randint(55, 200),        # Changed to random integer
         "energyWasted": random.randint(33, 200),      # Changed to random integer
         "faction": random.randint(0, 2),
         "gameMode": random.randint(1, 2),
-        "kills": random.randint(10, 250),             # Changed to random integer
+        "kills": random.randint(10, 80),             # Changed to random integer
         "secRemaining": shared_sec_remaining,         # Already Nat
         "wonGame": won,
-        "xpEarned": random.randint(1000, 25000)       # Changed to random integer
+        "xpEarned": random.randint(0, 0)       # Changed to random integer
     }
     return stats
 
