@@ -1327,7 +1327,7 @@ shared actor class Cosmicrafts() = Self {
     public func updateIndividualAchievementProgress(
         user: PlayerId, 
         progressList: [AchievementProgress]
-    ): async (Bool, Text) {
+        ): async (Bool, Text) {
 
         for (newProgress in progressList.vals()) {
             let individualAchievementOpt = individualAchievements.get(newProgress.achievementId);
@@ -1835,6 +1835,7 @@ shared actor class Cosmicrafts() = Self {
             }
         };
     };
+    
     public shared(msg) func claimGeneralAchievementReward(achievementId: Nat): async (Bool, Text) {
         let generalAchievementOpt = achievements.get(achievementId);
         switch (generalAchievementOpt) {
@@ -1951,19 +1952,17 @@ shared actor class Cosmicrafts() = Self {
         }
     };
 
+    public func updateAvatarChangeAchievement(user: PlayerId): async (Bool, Text) {
+        let progressList: [AchievementProgress] = [{
+            achievementId = 3; // Assuming this is the ID for "Change Your Avatar" achievement
+            playerId = user;
+            progress = 1;
+            completed = false;
+        }];
+
+        return await updateIndividualAchievementProgress(user, progressList);
+    };
 //--
-// Progress Manager
-
-public func updateAvatarChangeAchievement(user: PlayerId): async (Bool, Text) {
-    let progressList: [AchievementProgress] = [{
-        achievementId = 3; // Assuming this is the ID for "Change Your Avatar" achievement
-        playerId = user;
-        progress = 1;
-        completed = false;
-    }];
-
-    return await updateIndividualAchievementProgress(user, progressList);
-};
 // Progress Manager
 
     // Function to update achievement progress manager
