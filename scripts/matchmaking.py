@@ -153,10 +153,10 @@ def generate_random_stats(shared_energy_generated, shared_sec_remaining, won):
         "deploys": random.randint(10, 120),           # Changed to random integer
         "energyChargeRate": random.randint(1, 3),  # Changed to random integer
         "energyGenerated": shared_energy_generated,   # Already Nat
-        "energyUsed": random.randint(55, 200),        # Changed to random integer
-        "energyWasted": random.randint(33, 200),      # Changed to random integer
+        "energyUsed": random.randint(30, 120),        # Changed to random integer
+        "energyWasted": random.randint(3, 15),      # Changed to random integer
         "faction": random.randint(0, 2),
-        "gameMode": random.randint(1, 2),
+        "gameMode": random.randint(1, 1),
         "kills": random.randint(10, 80),             # Changed to random integer
         "secRemaining": shared_sec_remaining,         # Already Nat
         "wonGame": won,
