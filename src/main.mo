@@ -33,6 +33,7 @@
    // import AchievementMissionsTemplate "AchievementMissionsTemplate";
     import Validator "Validator";
     import MissionOptions "MissionOptions";
+    import Achievements "Achievements";
 
 shared actor class Cosmicrafts() = Self {
 // Types
@@ -1180,146 +1181,46 @@ shared actor class Cosmicrafts() = Self {
 
     public shared func initializeMilestones(): async () {
         let categoryID = categoryIDCounter;
+        let achievementID = achievementIDCounter;
+        let individualAchievementID = individualAchievementIDCounter;
+
+        let (milestoneCategory, firstStepsAchievementLine, individualAchievementsList) = Achievements.createMilestoneCategory(
+            categoryID,
+            achievementID,
+            individualAchievementID
+        );
+
+        // Update the counters
+        individualAchievementIDCounter += individualAchievementsList.size();
+        achievementIDCounter += 1;
         categoryIDCounter += 1;
 
-        let milestoneCategory: Types.AchievementCategory = {
-            id = categoryID;
-            name = "Milestones";
-            achievements = [];
-            requiredProgress = 5; // Set based on the number of individual achievements
-            tier = #Bronze;
-            progress = 0;
-            completed = false;
-            reward = [];
-        };
-
-        let achievementID = achievementIDCounter;
-        achievementIDCounter += 1;
-
-        let firstStepsAchievementLine: Types.Achievement = {
-            id = achievementID;
-            name = "First Steps in the Cosmos";
-            individualAchievements = [];
-            requiredProgress = 5; // Number of individual achievements
-            tier = #Bronze;
-            progress = 0;
-            completed = false;
-            reward = [];
-            categoryId = milestoneCategory.id;
-        };
-
+        // Create buffers to collect IDs
         let individualAchievementsBuffer = Buffer.Buffer<Nat>(0);
-        var idCounter = individualAchievementIDCounter;
+        let achievementBuffer = Buffer.Buffer<Nat>(0);
 
-        let completeTutorialAchievement: Types.IndividualAchievement = {
-            id = idCounter;
-            name = "Complete the Tutorial";
-            achievementType = #GamesCompleted;
-            requiredProgress = 1;
-            progress = 0;
-            completed = false;
-            reward = [
-                {
-                    rewardType = #Stardust;
-                    amount = 10;
-                }
-            ]; // Directly add rewards here
-            achievementId = firstStepsAchievementLine.id;
+        // Store individual achievements and collect IDs
+        for (indAch in individualAchievementsList.vals()) {
+            individualAchievements.put(indAch.id, indAch);
+            individualAchievementsBuffer.add(indAch.id);
         };
-        idCounter += 1;
-        individualAchievements.put(completeTutorialAchievement.id, completeTutorialAchievement);
-        individualAchievementsBuffer.add(completeTutorialAchievement.id);
 
-        let play5AIGamesAchievement: Types.IndividualAchievement = {
-            id = idCounter;
-            name = "Defeat AI 5 Times";
-            achievementType = #GamesCompleted;
-            requiredProgress = 5;
-            progress = 0;
-            completed = false;
-            reward = [
-                {
-                    rewardType = #Chest;
-                    amount = 1;
-                }
-            ]; // Directly add rewards here
-            achievementId = firstStepsAchievementLine.id;
-        };
-        idCounter += 1;
-        individualAchievements.put(play5AIGamesAchievement.id, play5AIGamesAchievement);
-        individualAchievementsBuffer.add(play5AIGamesAchievement.id);
-
-        let changeAvatarAchievement: Types.IndividualAchievement = {
-            id = idCounter;
-            name = "Change Your Avatar";
-            achievementType = #Customization;
-            requiredProgress = 1;
-            progress = 0;
-            completed = false;
-            reward = [
-                {
-                    rewardType = #Stardust;
-                    amount = 10;
-                }
-            ]; // Directly add rewards here
-            achievementId = firstStepsAchievementLine.id;
-        };
-        idCounter += 1;
-        individualAchievements.put(changeAvatarAchievement.id, changeAvatarAchievement);
-        individualAchievementsBuffer.add(changeAvatarAchievement.id);
-
-        let addFriendAchievement: Types.IndividualAchievement = {
-            id = idCounter;
-            name = "Have 1 Accepted Friend";
-            achievementType = #Social;
-            requiredProgress = 1;
-            progress = 0;
-            completed = false;
-            reward = [
-                {
-                    rewardType = #Chest;
-                    amount = 1;
-                }
-            ]; // Directly add rewards here
-            achievementId = firstStepsAchievementLine.id;
-        };
-        idCounter += 1;
-        individualAchievements.put(addFriendAchievement.id, addFriendAchievement);
-        individualAchievementsBuffer.add(addFriendAchievement.id);
-
-        let upgradeNFTAchievement: Types.IndividualAchievement = {
-            id = idCounter;
-            name = "Upgrade Any NFT to Level 3";
-            achievementType = #UpgradeNFT;
-            requiredProgress = 1;
-            progress = 0;
-            completed = false;
-            reward = [
-                {
-                    rewardType = #Stardust;
-                    amount = 15;
-                }
-            ]; // Directly add rewards here
-            achievementId = firstStepsAchievementLine.id;
-        };
-        idCounter += 1;
-        individualAchievements.put(upgradeNFTAchievement.id, upgradeNFTAchievement);
-        individualAchievementsBuffer.add(upgradeNFTAchievement.id);
-
+        // Convert buffer to array and update the achievement line
         let updatedFirstStepsAchievementLine = {
             firstStepsAchievementLine with
             individualAchievements = Buffer.toArray(individualAchievementsBuffer)
         };
         achievements.put(updatedFirstStepsAchievementLine.id, updatedFirstStepsAchievementLine);
 
+        // Add the achievement line ID to the category's achievements buffer
+        achievementBuffer.add(updatedFirstStepsAchievementLine.id);
+
+        // Convert buffer to array and update the category
         let updatedMilestoneCategory = {
             milestoneCategory with
-            achievements = [updatedFirstStepsAchievementLine.id]
+            achievements = Buffer.toArray(achievementBuffer)
         };
-
         categories.put(updatedMilestoneCategory.id, updatedMilestoneCategory);
-
-        individualAchievementIDCounter := idCounter;
 
         Debug.print("[initializeMilestones] Milestones initialized and stored in stable variables.");
     };
@@ -3017,7 +2918,6 @@ shared actor class Cosmicrafts() = Self {
     public query ({ caller: PlayerId }) func getNotifications() : async [Notification] {
         return Utils.nullishCoalescing<[Notification]>(notifications.get(caller), []);
     };
-
 
     public query ({ caller: PlayerId }) func getFriendRequests() : async [FriendRequest] {
         return Utils.nullishCoalescing<[FriendRequest]>(friendRequests.get(caller), []);
