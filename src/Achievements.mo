@@ -64,7 +64,7 @@ module Achievements {
     public let addFriendAchievement: Types.IndividualAchievement = {
         id = 4;
         name = "Have 1 Accepted Friend";
-        achievementType = #Social(#Social);
+        achievementType = #Social(#Friends);
         requiredProgress = 1;
         progress = 0;
         completed = false;

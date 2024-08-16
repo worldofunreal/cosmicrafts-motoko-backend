@@ -25,7 +25,7 @@ new_avatar_id = 2
 commands = [
     "dfx canister uninstall-code cosmicrafts",
     "dfx deploy",
-    "dfx canister call cosmicrafts initializeAllAchievements",
+    "dfx canister call cosmicrafts initializeMilestones",
     f'dfx canister call cosmicrafts registerPlayer \'("{username}", {avatar_id})\'',
     "dfx canister call cosmicrafts getAchievements",
     f'dfx canister call cosmicrafts updateAvatar \'({new_avatar_id})\'',

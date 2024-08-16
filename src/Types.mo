@@ -406,8 +406,8 @@ module Types {
 
   public type SocialAchievementType = {
       #AchievementsUnlocked;
-      #FriendsAdded;
-      #Social;
+      #Friends;
+      #SomeBullshit;
   };
 
   public type ResourceAchievementType = {
@@ -427,6 +427,7 @@ module Types {
       #UserMissionsCompleted;
       #DailyMissionsCompleted;
       #WeeklyMissionsCompleted;
+      #ChangeAvatar
   };
 
     // Achievement Reward Types
@@ -452,6 +453,11 @@ module Types {
         #Legend;
     };
 
-
+  public type AchievementProgress = {
+        achievementId: Nat;
+        playerId: PlayerId;
+        progress: Nat;
+        completed: Bool;
+    };
 
 }
