@@ -382,53 +382,35 @@ module Types {
 
     // Achievement Type
     public type AchievementType = {
-        #Combat : CombatAchievementType;
-        #Social : SocialAchievementType;
-        #Resource : ResourceAchievementType;
-        #Misc : MiscAchievementType;
+        #GamesWon;
+        #GamesPlayed;
+        #TimePlayed;
+        #FriendsAdded;
+        #LevelReached;
+        #NFTsMinted;
+        #FluxMinted;
+        #ShardsMinted;
+        #ChestsMinted;
+        #DamageDealt;
+        #DamageTaken;
+        #EnergyUsed;
+        #UnitsDeployed;
+        #GamesWithFaction;
+        #GamesWithCharacter;
+        #GameModePlayed;
+        #XPEarned;
+        #Kills;
+        #GamesCompleted;
+        #AchievementsUnlocked;
+        #RewardsClaimed;
+        #ChestsOpened;
+        #DailyMissionsCompleted;
+        #WeeklyMissionsCompleted;
+        #UserMissionsCompleted;
+        #Customization;
+        #Social;
+        #UpgradeNFT;
     };
-
-      public type CombatAchievementType = {
-      #DamageDealt;
-      #DamageTaken;
-      #EnergyUsed;
-      #FactionPlayed;
-      #GameModePlayed;
-      #GamesCompleted;
-      #GamesWon;
-      #Kills;
-      #UnitsDeployed;
-      #XPEarned;
-      #GamesWithCharacter;
-      #GamesWithFaction;
-      #GamesPlayed;
-  };
-
-  public type SocialAchievementType = {
-      #AchievementsUnlocked;
-      #Friends;
-      #SomeBullshit;
-  };
-
-  public type ResourceAchievementType = {
-      #ChestsMinted;
-      #ChestsOpened;
-      #FluxMinted;
-      #NFTsMinted;
-      #ShardsMinted;
-      #RewardsClaimed;
-      #UpgradeNFT;
-  };
-
-  public type MiscAchievementType = {
-      #Customization;
-      #LevelReached;
-      #TimePlayed;
-      #UserMissionsCompleted;
-      #DailyMissionsCompleted;
-      #WeeklyMissionsCompleted;
-      #ChangeAvatar
-  };
 
     // Achievement Reward Types
     public type AchievementRewardsType = {
@@ -453,11 +435,18 @@ module Types {
         #Legend;
     };
 
-  public type AchievementProgress = {
+    // Achievement Progress
+    public type AchievementProgress = {
         achievementId: Nat;
         playerId: PlayerId;
         progress: Nat;
         completed: Bool;
     };
 
+    // Individual Achievement Progress for User
+    public type IndividualAchievementProgress = {
+        individualAchievement: IndividualAchievement;
+        progress: Nat;
+        completed: Bool;
+    };
 }
