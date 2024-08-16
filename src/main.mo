@@ -1191,85 +1191,42 @@ public shared func initializeAllAchievements(): async () {
     // Initialize Milestones Category
     let milestoneCategoryID = Achievements.milestoneCategory.id;
     categories.put(milestoneCategoryID, Achievements.milestoneCategory);
-    
-    let firstStepsAchievementLineID = Achievements.firstStepsAchievementLine.id;
-    achievements.put(firstStepsAchievementLineID, Achievements.firstStepsAchievementLine);
 
-    // Insert individual achievements for Milestones
-    let milestoneAchievements: [Types.IndividualAchievement] = [
-        Achievements.completeTutorialAchievement,
-        Achievements.play5AIGamesAchievement,
-        Achievements.changeAvatarAchievement,
-        Achievements.addFriendAchievement,
-        Achievements.upgradeNFTAchievement
-    ];
+    // Initialize the First Steps Achievement Line and Individual Achievements
+    achievements.put(Achievements.firstStepsAchievementLine.id, Achievements.firstStepsAchievementLine);
 
-    for (indAch in milestoneAchievements.vals()) {
-        individualAchievements.put(indAch.id, indAch);
-    };
+    individualAchievements.put(Achievements.completeTutorialAchievement.id, Achievements.completeTutorialAchievement);
+    individualAchievements.put(Achievements.play5AIGamesAchievement.id, Achievements.play5AIGamesAchievement);
+    individualAchievements.put(Achievements.changeAvatarAchievement.id, Achievements.changeAvatarAchievement);
+    individualAchievements.put(Achievements.addFriendAchievement.id, Achievements.addFriendAchievement);
+    individualAchievements.put(Achievements.upgradeNFTAchievement.id, Achievements.upgradeNFTAchievement);
 
-    // Initialize Combat Category
-    let combatCategoryID = Achievements.combatCategory.id;
-    categories.put(combatCategoryID, Achievements.combatCategory);
+    // Initialize Combat Category and its Achievement Lines
+    categories.put(Achievements.combatCategory.id, Achievements.combatCategory);
 
-    // Games Played Achievement Line
-    let gamesPlayedAchievementLineID = Achievements.gamesPlayedAchievementLine.id;
-    achievements.put(gamesPlayedAchievementLineID, Achievements.gamesPlayedAchievementLine);
+    achievements.put(Achievements.gamesPlayedAchievementLine.id, Achievements.gamesPlayedAchievementLine);
+    individualAchievements.put(Achievements.play10Games.id, Achievements.play10Games);
+    individualAchievements.put(Achievements.play25Games.id, Achievements.play25Games);
+    individualAchievements.put(Achievements.play50Games.id, Achievements.play50Games);
 
-    let gamesPlayedAchievements: [Types.IndividualAchievement] = [
-        Achievements.play10Games,
-        Achievements.play25Games,
-        Achievements.play50Games
-    ];
+    achievements.put(Achievements.gamesWonAchievementLine.id, Achievements.gamesWonAchievementLine);
+    individualAchievements.put(Achievements.win10Games.id, Achievements.win10Games);
+    individualAchievements.put(Achievements.win25Games.id, Achievements.win25Games);
+    individualAchievements.put(Achievements.win50Games.id, Achievements.win50Games);
 
-    for (indAch in gamesPlayedAchievements.vals()) {
-        individualAchievements.put(indAch.id, indAch);
-    };
+    achievements.put(Achievements.damageDealtAchievementLine.id, Achievements.damageDealtAchievementLine);
+    individualAchievements.put(Achievements.deal1000Damage.id, Achievements.deal1000Damage);
+    individualAchievements.put(Achievements.deal2500Damage.id, Achievements.deal2500Damage);
+    individualAchievements.put(Achievements.deal5000Damage.id, Achievements.deal5000Damage);
 
-    // Games Won Achievement Line
-    let gamesWonAchievementLineID = Achievements.gamesWonAchievementLine.id;
-    achievements.put(gamesWonAchievementLineID, Achievements.gamesWonAchievementLine);
-
-    let gamesWonAchievements: [Types.IndividualAchievement] = [
-        Achievements.win10Games,
-        Achievements.win25Games,
-        Achievements.win50Games
-    ];
-
-    for (indAch in gamesWonAchievements.vals()) {
-        individualAchievements.put(indAch.id, indAch);
-    };
-
-    // Damage Dealt Achievement Line
-    let damageDealtAchievementLineID = Achievements.damageDealtAchievementLine.id;
-    achievements.put(damageDealtAchievementLineID, Achievements.damageDealtAchievementLine);
-
-    let damageDealtAchievements: [Types.IndividualAchievement] = [
-        Achievements.deal1000Damage,
-        Achievements.deal2500Damage,
-        Achievements.deal5000Damage
-    ];
-
-    for (indAch in damageDealtAchievements.vals()) {
-        individualAchievements.put(indAch.id, indAch);
-    };
-
-    // Energy Used Achievement Line
-    let energyUsedAchievementLineID = Achievements.energyUsedAchievementLine.id;
-    achievements.put(energyUsedAchievementLineID, Achievements.energyUsedAchievementLine);
-
-    let energyUsedAchievements: [Types.IndividualAchievement] = [
-        Achievements.use100Energy,
-        Achievements.use250Energy,
-        Achievements.use500Energy
-    ];
-
-    for (indAch in energyUsedAchievements.vals()) {
-        individualAchievements.put(indAch.id, indAch);
-    };
+    achievements.put(Achievements.energyUsedAchievementLine.id, Achievements.energyUsedAchievementLine);
+    individualAchievements.put(Achievements.use100Energy.id, Achievements.use100Energy);
+    individualAchievements.put(Achievements.use250Energy.id, Achievements.use250Energy);
+    individualAchievements.put(Achievements.use500Energy.id, Achievements.use500Energy);
 
     Debug.print("[initializeAllAchievements] All achievements and categories initialized successfully.");
 };
+
     
     func determineTier(progress: Nat, requiredProgress: Nat): Types.AchievementTier {
         let progressPercentage = (progress * 100) / requiredProgress;
@@ -1555,7 +1512,7 @@ func updateCategoryProgress(
         playerAchievements.put(user, Buffer.toArray(userAchievementsBuffer));
     };
 
-public shared ({ caller }) func getAchievements(): async ([(AchievementCategory, [Achievement], [IndividualAchievement])]) {
+public shared ({ caller }) func getAchievements(): async ([(Types.AchievementCategory, [Types.Achievement], [Types.IndividualAchievement])]) {
     await assignAchievementsToUser(caller);
 
     let userAchievementsList: [Nat] = switch (playerAchievements.get(caller)) {
@@ -1563,7 +1520,7 @@ public shared ({ caller }) func getAchievements(): async ([(AchievementCategory,
         case (?achievements) { achievements };
     };
 
-    let achievementsWithDetails = Buffer.Buffer<(AchievementCategory, [Achievement], [IndividualAchievement])>(userAchievementsList.size());
+    let achievementsWithDetails = Buffer.Buffer<(Types.AchievementCategory, [Types.Achievement], [Types.IndividualAchievement])>(userAchievementsList.size());
 
     let userCategoryProgress = switch (playerAchievementCategoryProgress.get(caller)) {
         case (null) { [] };
@@ -1580,15 +1537,18 @@ public shared ({ caller }) func getAchievements(): async ([(AchievementCategory,
         case (?progress) { progress };
     };
 
-    for (category in userCategoryProgress.vals()) {
-        let achievementsList = Buffer.Buffer<Achievement>(category.achievements.size());
-        let individualAchievementsList = Buffer.Buffer<IndividualAchievement>(category.achievements.size());
+    // Iterating through the _categories stable variable
+    for ((_, category) in _categories.vals()) {
+        let achievementsList = Buffer.Buffer<Types.Achievement>(category.achievements.size());
+        let individualAchievementsList = Buffer.Buffer<Types.IndividualAchievement>(category.achievements.size());
 
-        for (ach in userAchievementProgress.vals()) {
+        // Iterating through the _achievements stable variable
+        for ((_, ach) in _achievements.vals()) {
             if (ach.categoryId == category.id) {
                 achievementsList.add(ach);
 
-                for (indAch in userIndividualProgress.vals()) {
+                // Iterating through the _individualAchievements stable variable
+                for ((_, indAch) in _individualAchievements.vals()) {
                     if (indAch.achievementId == ach.id) {
                         individualAchievementsList.add(indAch);
                     }
@@ -1601,6 +1561,7 @@ public shared ({ caller }) func getAchievements(): async ([(AchievementCategory,
 
     return Buffer.toArray(achievementsWithDetails);
 };
+
 
 public shared ({ caller }) func updateAndGetAchievements(): async ([(AchievementCategory, [Achievement], [IndividualAchievement])]) {
     // Step 1: Assign new achievements to the user if not already assigned
