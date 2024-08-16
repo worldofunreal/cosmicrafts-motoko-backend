@@ -1,14 +1,7 @@
 import subprocess
-import json
 import logging
-import sys
 from datetime import datetime, timedelta
 
-# Set up logging
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(message)s', handlers=[
-    logging.FileHandler("logs/test.log"),
-    logging.StreamHandler(sys.stdout)
-])
 
 def execute_dfx_command(command):
     """Executes a shell command and logs the output."""

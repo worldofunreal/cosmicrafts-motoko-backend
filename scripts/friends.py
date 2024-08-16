@@ -11,7 +11,7 @@ def execute_dfx_command(command, log_output=True):
         error_message = f"Command failed: {command}\n{result.stderr.strip()}"
         print(error_message)
         logging.error(error_message)
-        raise Exception(error_message)  # Raise an exception to halt on error
+        raise Exception(error_message)
     else:
         output = result.stdout.strip()
         print(f"Command: {command}")
@@ -31,13 +31,18 @@ def get_principal(identity_name):
     principal = execute_dfx_command("dfx identity get-principal")
     return principal
 
-def add_friend(identity_name, friend_principal):
-    """Adds a friend using the addFriend canister method."""
-    command = f'dfx canister call cosmicrafts addFriend "(principal \\"{friend_principal}\\")"'
+def send_friend_request(identity_name, friend_principal):
+    """Sends a friend request using the sendFriendRequest canister method."""
+    command = f'dfx canister call cosmicrafts sendFriendRequest "(principal \\"{friend_principal}\\")"'
+    return execute_dfx_command(command)
+
+def accept_friend_request(identity_name, friend_principal):
+    """Accepts a friend request using the acceptFriendRequest canister method."""
+    command = f'dfx canister call cosmicrafts acceptFriendRequest "(principal \\"{friend_principal}\\")"'
     return execute_dfx_command(command)
 
 def main():
-    """Main function to add friends to each other."""
+    """Main function to send and accept friend requests."""
     num_friends = int(input("Enter the number of friends to add: "))
 
     friends = [f"player{i}" for i in range(1, num_friends + 1)]  # Create player identities
@@ -45,20 +50,28 @@ def main():
     # Get principals for all friends
     principals = {friend: get_principal(friend) for friend in friends}
 
-    # Add each friend to each other
-    for friend in friends:
+    # Send and accept friend requests
+    for i, friend in enumerate(friends):
         try:
             print(f"Switching to identity {friend}\n")
             logging.info(f"Switching to identity {friend}")
             switch_identity(friend)
+            
             for other_friend, principal in principals.items():
-                if friend != other_friend:  # Exclude itself
+                if friend != other_friend:
                     try:
-                        add_friend(friend, principal)
+                        # Send friend request
+                        send_friend_request(friend, principal)
+
+                        # Switch to the other friend and accept the request
+                        switch_identity(other_friend)
+                        accept_friend_request(other_friend, principals[friend])
+
                     except Exception as e:
-                        error_message = f"Error adding {other_friend} for {friend}: {e}"
+                        error_message = f"Error processing friend request between {friend} and {other_friend}: {e}"
                         print(error_message)
                         logging.error(error_message)
+                        continue
         except Exception as e:
             error_message = f"Error switching identity or getting principal for {friend}: {e}"
             print(error_message)

@@ -1835,7 +1835,7 @@ shared actor class Cosmicrafts() = Self {
             }
         };
     };
-    
+
     public shared(msg) func claimGeneralAchievementReward(achievementId: Nat): async (Bool, Text) {
         let generalAchievementOpt = achievements.get(achievementId);
         switch (generalAchievementOpt) {
@@ -1954,7 +1954,7 @@ shared actor class Cosmicrafts() = Self {
 
     public func updateAvatarChangeAchievement(user: PlayerId): async (Bool, Text) {
         let progressList: [AchievementProgress] = [{
-            achievementId = 3; // Assuming this is the ID for "Change Your Avatar" achievement
+            achievementId = 3;
             playerId = user;
             progress = 1;
             completed = false;
@@ -1962,6 +1962,66 @@ shared actor class Cosmicrafts() = Self {
 
         return await updateIndividualAchievementProgress(user, progressList);
     };
+
+    public func updateUpgradeNFTAchievement(user: PlayerId): async (Bool, Text) {
+        var currentProgress: Nat = 0;
+
+        // Retrieve current progress if it exists
+        let existingProgressListOpt = achievementProgress.get(user);
+        switch (existingProgressListOpt) {
+            case (?progressList) {
+                for (progress in progressList.vals()) {
+                    if (progress.achievementId == 5) {
+                        currentProgress := progress.progress;
+                    };
+                };
+            };
+            case (null) {}; // No existing progress, continue with currentProgress = 0
+        };
+
+        // Increment the progress
+        let newProgress: Nat = currentProgress + 1;
+
+        let progressList: [AchievementProgress] = [{
+            achievementId = 5;
+            playerId = user;
+            progress = newProgress;
+            completed = false;
+        }];
+
+        return await updateIndividualAchievementProgress(user, progressList);
+    };
+
+    public func updateAddFriendAchievement(user: PlayerId): async (Bool, Text) {
+        var currentProgress: Nat = 0;
+
+        // Retrieve current progress if it exists
+        let existingProgressListOpt = achievementProgress.get(user);
+        switch (existingProgressListOpt) {
+            case (?progressList) {
+                for (progress in progressList.vals()) {
+                    if (progress.achievementId == 4) {
+                        currentProgress := progress.progress;
+                    };
+                };
+            };
+            case (null) {}; // No existing progress, continue with currentProgress = 0
+        };
+
+        // Increment the progress
+        let newProgress: Nat = currentProgress + 1;
+
+        let progressList: [AchievementProgress] = [{
+            achievementId = 4;
+            playerId = user;
+            progress = newProgress;
+            completed = false;
+        }];
+
+        return await updateIndividualAchievementProgress(user, progressList);
+    };
+
+    
 //--
 // Progress Manager
 
@@ -2752,7 +2812,15 @@ shared actor class Cosmicrafts() = Self {
                         mutualFriendships.put((playerId, fromId), friendship);
                         mutualFriendships.put((fromId, playerId), friendship);
 
-                        return (true, "Friend request accepted");
+                        // Update achievement progress for both players
+                        let updateResult1 = await updateAddFriendAchievement(playerId);
+                        let updateResult2 = await updateAddFriendAchievement(fromId);
+
+                        if (updateResult1.0 and updateResult2.0) {
+                            return (true, "Friend request accepted and achievements updated");
+                        } else {
+                            return (true, "Friend request accepted but achievements update failed");
+                        };
                     };
                 };
             };
@@ -5379,7 +5447,7 @@ shared actor class Cosmicrafts() = Self {
                 _addTokenToOwners(_owner, nftID);
 
                 let _transaction: TypesICRC7.Transaction = _addTransaction(#upgrade, now, ?[nftID], ?_owner, null, null, null, null, null);
-
+                let (_achievementResult, _achievementMessage) = await updateUpgradeNFTAchievement(msg.caller);
                 // Return success with updated metadata
                 return (true, "Upgrade successful. New Metadata: " # debug_show(updatedMetadata));
             };
