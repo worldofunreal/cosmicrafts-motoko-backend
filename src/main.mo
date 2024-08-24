@@ -1185,6 +1185,20 @@ shared actor class Cosmicrafts() = Self {
             #Title;
             #Avatar;
             #NFT;
+            #XP;
+        };
+
+        public type NFTDetails = {
+            unitType: TypesICRC7.Unit;
+            name: Text;
+            description: Text;
+            image: Text;
+            faction: TypesICRC7.Faction;
+            rarity: Nat;
+            level: Nat;
+            health: Nat;
+            damage: Nat;
+            combatExperience: Nat;
         };
 
         public type AchievementType = {
@@ -2009,8 +2023,7 @@ shared actor class Cosmicrafts() = Self {
         };
     };
 
-
-    func mintAchievementRewards(reward: AchievementReward, caller: Types.PlayerId): async (Bool, Text) {
+    public shared func mintAchievementRewards(reward: AchievementReward, caller: Types.PlayerId): async (Bool, Text) {
         switch (reward.rewardType) {
             case (#Stardust) {
                 let mintArgs: ICRC1.Mint = {
@@ -2036,6 +2049,92 @@ shared actor class Cosmicrafts() = Self {
                     return (true, "Chest minted successfully. Quantity: " # Nat.toText(reward.amount));
                 };
                 return (success, message);
+            };
+            case (#NFT) {
+                let nftDetails: NFTDetails = {
+                    unitType = #Spaceship;  // Example: Customize this as needed
+                    name = "Lazerhawk";
+                    description = "Wow a lazer wow";
+                    image = "image_of_lazerhawk";
+                    faction = #Celestial;
+                    rarity = 4;
+                    level = 1;
+                    health = 0;
+                    damage = 0;
+                    combatExperience = 21;
+                };
+
+                let mintResult = await mintUnit(nftDetails);
+
+                switch (mintResult) {
+                    case (#Ok(_tokenId)) {
+                        return (true, "Unit NFT minted successfully.");
+                    };
+                    case (#Err(_error)) {
+                        return (false, "Minting Unit NFT failed");
+                    };
+                };
+            };
+            case (#Title) {
+                let titleQuantity = reward.amount;
+                var success: Bool = true;
+                var titleMessagesText: Text = "";
+
+                for (_i in Iter.range(0, titleQuantity - 1)) {
+                    let (addSuccess, resultMessage) = await addTitleToUser("TitleName");  // Replace "TitleName" with the actual title
+                    if (titleMessagesText != "") {
+                        titleMessagesText := titleMessagesText # "; ";
+                    };
+                    titleMessagesText := titleMessagesText # resultMessage;
+                    if (not addSuccess) {
+                        success := false;
+                    };
+                };
+
+                return (success, titleMessagesText);
+            };
+            case (#Avatar) {
+                let avatarQuantity = reward.amount;
+                var success: Bool = true;
+                var avatarMessagesText: Text = "";
+
+                for (_i in Iter.range(0, avatarQuantity - 1)) {
+                    let (addSuccess, resultMessage) = await addAvatarToUser(_i + 1);  // Replace _i + 1 with the actual avatar ID if different
+                    if (avatarMessagesText != "") {
+                        avatarMessagesText := avatarMessagesText # "; ";
+                    };
+                    avatarMessagesText := avatarMessagesText # resultMessage;
+                    if (not addSuccess) {
+                        success := false;
+                    };
+                };
+
+                return (success, avatarMessagesText);
+            };
+            case (#XP) {
+                // Handle XP reward
+                var playerStatsOpt = playerGamesStats.get(caller);
+                if (playerStatsOpt == null) {
+                    ignore await _initializeNewPlayerStats(caller);
+                    playerStatsOpt := playerGamesStats.get(caller);
+                };
+
+                switch (playerStatsOpt) {
+                    case (null) {
+                        return (false, "Failed to initialize player stats.");
+                    };
+                    case (?stats) {
+                        let updatedStats = {
+                            stats with totalXpEarned = stats.totalXpEarned + reward.amount
+                        };
+                        playerGamesStats.put(caller, updatedStats);
+
+                        // Update player's level based on new total XP
+                        await updatePlayerLevel(caller);
+
+                        return (true, "XP minted successfully. XP added: " # Nat.toText(reward.amount));
+                    };
+                };
             };
         }
     };
@@ -2090,7 +2189,6 @@ shared actor class Cosmicrafts() = Self {
             };
         };
     };
-
 
     
 //--
@@ -2545,6 +2643,9 @@ shared actor class Cosmicrafts() = Self {
         stable var _players: [(PlayerId, Player)] = [];
         stable var _availableTitles: [(Principal, [Text])] = [];
         stable var _selectedTitles: [(Principal, Text)] = [];
+        stable var _availableAvatars: [(Principal, [Nat])] = [];
+        stable var _selectedAvatars: [(Principal, Nat)] = [];
+
         stable var _friendRequests: [(PlayerId, [FriendRequest])] = [];
         stable var _privacySettings: [(PlayerId, PrivacySetting)] = [];
         stable var _blockedUsers: [(PlayerId, [PlayerId])] = [];
@@ -2556,6 +2657,9 @@ shared actor class Cosmicrafts() = Self {
         var players: HashMap.HashMap<PlayerId, Player> = HashMap.fromIter(_players.vals(), 0, Principal.equal, Principal.hash);
         var availableTitles: HashMap.HashMap<Principal, [Text]> = HashMap.fromIter(_availableTitles.vals(), 0, Principal.equal, Principal.hash);
         var selectedTitles: HashMap.HashMap<Principal, Text> = HashMap.fromIter(_selectedTitles.vals(), 0, Principal.equal, Principal.hash);
+        var availableAvatars: HashMap.HashMap<Principal, [Nat]> = HashMap.fromIter(_availableAvatars.vals(), 0, Principal.equal, Principal.hash);
+        var selectedAvatars: HashMap.HashMap<Principal, Nat> = HashMap.fromIter(_selectedAvatars.vals(), 0, Principal.equal, Principal.hash);
+
         var friendRequests: HashMap.HashMap<PlayerId, [FriendRequest]> = HashMap.fromIter(_friendRequests.vals(), 0, Principal.equal, Principal.hash);
         var privacySettings: HashMap.HashMap<PlayerId, PrivacySetting> = HashMap.fromIter(_privacySettings.vals(), 0, Principal.equal, Principal.hash);
         var blockedUsers: HashMap.HashMap<PlayerId, [PlayerId]> = HashMap.fromIter(_blockedUsers.vals(), 0, Principal.equal, Principal.hash);
@@ -2563,18 +2667,83 @@ shared actor class Cosmicrafts() = Self {
         var notifications: HashMap.HashMap<PlayerId, [Notification]> = HashMap.fromIter(_notifications.vals(), 0, Principal.equal, Principal.hash);
         var updateTimestamps: HashMap.HashMap<PlayerId, UpdateTimestamps> = HashMap.fromIter(_updateTimestamps.vals(), 0, Principal.equal, Principal.hash);
     
+    public shared(msg) func addAvatarToUser(newAvatar: Nat): async (Bool, Text) {
+        let userAvatars = switch (availableAvatars.get(msg.caller)) {
+            case (null) { [] };
+            case (?avatars) { avatars };
+        };
 
-    public shared(msg) func addTitleToUser(newTitle: Text): async Bool {
+        if (Array.find<Nat>(userAvatars, func(a) { a == newAvatar }) == null) {
+            let updatedAvatarsBuffer = Buffer.Buffer<Nat>(userAvatars.size() + 1);
+            for (avatar in userAvatars.vals()) {
+                updatedAvatarsBuffer.add(avatar);
+            };
+            updatedAvatarsBuffer.add(newAvatar);
+            availableAvatars.put(msg.caller, Buffer.toArray(updatedAvatarsBuffer));
+            return (true, "Avatar added successfully: " # Nat.toText(newAvatar));
+        };
+        return (false, "Avatar already exists for the user: " # Nat.toText(newAvatar));
+    };
+
+    public shared(msg) func updateAvatar(avatar: Nat): async (Bool, Text) {
+        let userAvatarsOpt = availableAvatars.get(msg.caller);
+        switch (userAvatarsOpt) {
+            case (null) {
+                return (false, "No avatars available for the user.");
+            };
+            case (?userAvatars) {
+                if (Array.find<Nat>(userAvatars, func(a) { a == avatar }) != null) {
+                    selectedAvatars.put(msg.caller, avatar);
+
+                    // Update the player's avatar in their profile
+                    switch (players.get(msg.caller)) {
+                        case (?player) {
+                            let updatedPlayer = { player with avatar = avatar };
+                            players.put(msg.caller, updatedPlayer);
+                        };
+                        case (null) {
+                            return (false, "Player not found");
+                        };
+                    };
+
+                    return (true, "Avatar selected successfully.");
+                };
+                return (false, "Avatar not found in the user's available avatars.");
+            };
+        };
+    };
+
+    public query(msg) func getSelectedAvatar(): async ?Nat {
+        return selectedAvatars.get(msg.caller);
+    };
+
+    public query(msg) func getAvailableAvatars(): async [Nat] {
+        switch (availableAvatars.get(msg.caller)) {
+            case (null) {
+                return [];
+            };
+            case (?avatars) {
+                return avatars;
+            };
+        };
+    };
+
+    public shared(msg) func addTitleToUser(newTitle: Text): async (Bool, Text) {
         let userTitles = switch (availableTitles.get(msg.caller)) {
             case (null) { [] };
             case (?titles) { titles };
         };
 
         if (Array.find<Text>(userTitles, func(t) { t == newTitle }) == null) {
-            availableTitles.put(msg.caller, Array.append<Text>(userTitles, [newTitle]));
-            return true;
+            let updatedTitlesBuffer = Buffer.Buffer<Text>(userTitles.size() + 1);
+            for (title in userTitles.vals()) {
+                updatedTitlesBuffer.add(title);
+            };
+            updatedTitlesBuffer.add(newTitle);
+            availableTitles.put(msg.caller, Buffer.toArray(updatedTitlesBuffer));
+            return (true, "Title added successfully: " # newTitle);
         };
-        return false; // Title already exists for the user
+        return (false, "Title already exists for the user: " # newTitle);
     };
 
     public shared(msg) func updateUserTitle(title: Text): async (Bool, Text) {
@@ -2619,7 +2788,6 @@ shared actor class Cosmicrafts() = Self {
             };
         };
     };
-
 
     private func addNotification(to: PlayerId, notification: Notification) {
         var userNotifications = Utils.nullishCoalescing<[Notification]>(notifications.get(to), []);
@@ -2694,11 +2862,10 @@ shared actor class Cosmicrafts() = Self {
                 };
                 players.put(playerId, newPlayer);
 
-                // Add the first title to the user's available titles
-                let initialTitle = "Starbound Initiate";
-                availableTitles.put(playerId, [initialTitle]);
+                // Add default avatars (IDs 1 to 12) to the user's available avatars
+                availableAvatars.put(playerId, [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]);
 
-                // Initialization of player into the system asynchronously without waiting for its result
+                // Other initializations
                 ignore await mintDeck();
                 ignore await getAchievements();
                 ignore await getGeneralMissions();
@@ -2746,54 +2913,6 @@ shared actor class Cosmicrafts() = Self {
                 updateTimestamps.put(playerId, updatedTimestamps);
 
                 return (true, playerId, "Username updated successfully");
-            };
-        };
-    };
-
-    public shared ({ caller: PlayerId }) func updateAvatar(avatar: AvatarID) : async (Bool, PlayerId, Text) {
-        let playerId = caller;
-        let currentTime = Nat64.fromIntWrap(Time.now());
-
-        switch (players.get(playerId)) {
-            case (null) {
-                return (false, playerId, "User record does not exist");
-            };
-            case (?player) {
-                if (player.avatar == avatar) {
-                    return (false, playerId, "New avatar cannot be the same as the current avatar");
-                };
-
-                let timestamps = Utils.nullishCoalescing<UpdateTimestamps>(updateTimestamps.get(playerId), getDefaultTimestamps());
-                let avatarTimestamp = timestamps.avatar;
-
-                if (Nat64.sub(currentTime, avatarTimestamp) < ONE_MINUTE) {
-                    return (false, playerId, "You can only update your avatar once every minute");
-                };
-
-                let updatedPlayer: Player = {
-                    id = player.id;
-                    username = player.username;
-                    avatar = avatar;
-                    title = player.title;
-                    description = player.description;
-                    registrationDate = player.registrationDate;
-                    level = player.level;
-                    elo = player.elo;
-                    friends = player.friends;
-                };
-                players.put(playerId, updatedPlayer);
-
-                let updatedTimestamps = { timestamps with avatar = currentTime };
-                updateTimestamps.put(playerId, updatedTimestamps);
-
-                // Call the function to update the achievement for changing the avatar
-                let (achievementResult, achievementMessage) = await updateAvatarChangeAchievement(playerId);
-
-                if (achievementResult) {
-                    return (true, playerId, "Avatar updated successfully. " # achievementMessage);
-                } else {
-                    return (false, playerId, "Avatar updated, but failed to update achievement: " # achievementMessage);
-                };
             };
         };
     };
@@ -5722,7 +5841,104 @@ shared actor class Cosmicrafts() = Self {
         return (true, "Deck minted and stored successfully", Buffer.toArray(uuids));
     };
 
+public shared({ caller }) func mintUnit(nftDetails: NFTDetails): async TypesICRC7.MintReceipt {
+    let _now = Nat64.fromIntWrap(Time.now());
+    let acceptedTo: TypesICRC7.Account = { owner = caller; subaccount = null };
 
+    // Check if supply cap is exceeded
+    if (supplyCap != null) {
+        let _supplyCap: Nat = ICRC7Utils.nullishCoalescing<Nat>(supplyCap, 0);
+        if (totalSupply + 1 > _supplyCap) {
+            return #Err(#SupplyCapOverflow);
+        };
+    };
+
+    // Check if the recipient is valid
+    if (Principal.equal(acceptedTo.owner, NULL_PRINCIPAL)) {
+        return #Err(#InvalidRecipient);
+    };
+
+    // Generate a new token ID
+    let tokenId = lastMintedId + 1;
+
+    // Check if the token ID already exists
+    if (_exists(tokenId)) {
+        return #Err(#AlreadyExistTokenId);
+    };
+
+    // Create the general metadata
+    let generalMetadata: TypesICRC7.GeneralMetadata = {
+        rarity = ?nftDetails.rarity;
+        faction = ?nftDetails.faction;
+        id = tokenId;
+        name = nftDetails.name;
+        description = nftDetails.description;
+        image = nftDetails.image;
+    };
+
+    // Initialize SoulMetadata
+    let soulMetadata: TypesICRC7.SoulMetadata = {
+        birth = Time.now();
+        combatExperience = nftDetails.combatExperience;
+        gamesPlayed = null;
+        totalKills = null;
+        totalDamageDealt = null;
+    };
+
+    // Create the complete metadata record
+    let unitMetadata: TypesICRC7.Metadata = {
+        category = #Unit(nftDetails.unitType);
+        general = generalMetadata;
+        basic = ?{
+            level = nftDetails.level;
+            health = nftDetails.health;
+            damage = nftDetails.damage;
+        };
+        skills = null;  // Assuming skills are not provided initially
+        skins = null;   // Assuming skins are not provided initially
+        soul = ?soulMetadata;
+    };
+
+    // Create the mint arguments
+    let mintArgs: TypesICRC7.MintArgs = {
+        to = acceptedTo;
+        token_id = tokenId;
+        metadata = unitMetadata;
+    };
+
+    // Call the mintNFT function with the encapsulated mint arguments
+    let mintResult = await mintNFT(mintArgs);
+
+    // Handle the result of minting
+    switch (mintResult) {
+        case (#Ok(token_id)) {
+            lastMintedId += 1;
+            return #Ok(token_id);
+        };
+        case (#Err(err)) return #Err(err);
+    };
+};
+
+    /*
+    Arguments to mint Unit
+    let result = await mintCustomUnit(
+        #Spaceship,
+        "Custom Spaceship",
+        "A powerful custom spaceship.",
+        "url_to_image",
+        #Cosmicon,
+        3,
+        1,
+        200,
+        50,
+        ?#CriticalStrike,
+        null,
+        100,
+        null,
+        null,
+        null
+    );
+    */
 
 //--
 // Chests
