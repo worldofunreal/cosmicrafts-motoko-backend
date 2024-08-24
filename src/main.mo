@@ -1139,7 +1139,7 @@ shared actor class Cosmicrafts() = Self {
 //--
 // Achievements
     //Achievement Types
-        public type AchievementCategory = {  // Tier  - Social // Gameplay
+        public type AchievementCategory = {
             id: Nat;
             name: Text;
             achievements: [AchievementLine];
@@ -1147,9 +1147,10 @@ shared actor class Cosmicrafts() = Self {
             requiredProgress: Nat;
             completed: Bool;
             progress: Nat;
+            claimed: Bool;
         };
 
-        public type AchievementLine = { // Discord // Twitter // etcc
+        public type AchievementLine = { 
             id: Nat;
             name: Text;
             individualAchievements: [IndividualAchievement];
@@ -1158,10 +1159,10 @@ shared actor class Cosmicrafts() = Self {
             requiredProgress: Nat;
             completed: Bool;
             progress: Nat;
+            claimed: Bool;
         };
-        // Linea de juegos jugados 1000 //-- 10 // 25 // 50 // 100 // 250 // 500 // 1000
 
-        public type IndividualAchievement = { // Discord - 1- Join Server 2-Reacciona a publicacion
+        public type IndividualAchievement = { 
             id: Nat;
             achievementId: Nat;
             name: Text;
@@ -1170,6 +1171,7 @@ shared actor class Cosmicrafts() = Self {
             completed: Bool;
             reward: [AchievementReward];
             progress: Nat;
+            claimed: Bool;
         };
 
         public type AchievementReward = {
@@ -1314,7 +1316,6 @@ shared actor class Cosmicrafts() = Self {
         return true;
     };
 
-    // Crear la estructura de datos en el `HashMap`
     public func createAchievementCategory(
         name: Text,
         rewards: [AchievementReward]
@@ -1325,11 +1326,12 @@ shared actor class Cosmicrafts() = Self {
         let newCategory: AchievementCategory = {
             id = id;
             name = name;
-            achievements = []; // Inicialmente vacío, pero luego se agregan los logros (ach lines)
+            achievements = [];
             reward = rewards;
             requiredProgress = 0;
             completed = false;
             progress = 0;
+            claimed = false;
         };
 
         achievementCategories.put(id, newCategory);
@@ -1349,12 +1351,13 @@ shared actor class Cosmicrafts() = Self {
         let newAchievement: AchievementLine = {
             id = id;
             name = name;
-            individualAchievements = []; // Inicialmente vacío, se agregan los logros individuales después
+            individualAchievements = [];
             categoryId = categoryId;
             reward = rewards;
-            requiredProgress = 0; // Inicialmente 0, se actualiza cuando se agregan logros individuales
+            requiredProgress = 0;
             completed = false;
             progress = 0;
+            claimed = false;
         };
 
         achievements.put(id, newAchievement);
@@ -1396,6 +1399,7 @@ shared actor class Cosmicrafts() = Self {
             achievementId = achievementId;
             completed = false;
             progress = 0;
+            claimed = false;
         };
 
         individualAchievements.put(id, newIndividualAchievement);
@@ -1586,6 +1590,7 @@ public shared func addProgressToIndividualAchievement(
                         reward = individualAchievement.reward;
                         progress = newProgress;
                         completed = isCompleted;
+                        claimed = individualAchievement.claimed; // Preserve the current claimed status
                     };
 
                     // Update the achievement line with the new individual achievement
@@ -1617,6 +1622,7 @@ public shared func addProgressToIndividualAchievement(
                                 requiredProgress = achievementLine.requiredProgress;
                                 completed = isLineCompleted;
                                 progress = lineProgress;
+                                claimed = achievementLine.claimed; // Preserve the current claimed status
                             };
 
                             // Update the category with the new achievement line
@@ -1646,6 +1652,7 @@ public shared func addProgressToIndividualAchievement(
                                         requiredProgress = category.requiredProgress;
                                         completed = isCategoryCompleted;
                                         progress = categoryProgress;
+                                        claimed = category.claimed; // Preserve the current claimed status
                                     };
 
                                     // Update the user's progress
@@ -1675,8 +1682,6 @@ public shared func addProgressToIndividualAchievement(
     };
 };
 
-
-
     // queries deben tener estructurado los tipos nesteados en jerarquia Categoria/Linea/Individuales
 
 public shared(msg) func claimIndividualAchievementReward(achievementId: Nat): async (Bool, Text) {
@@ -1686,7 +1691,7 @@ public shared(msg) func claimIndividualAchievementReward(achievementId: Nat): as
             return (false, "User has no progress records.");
         };
         case (?userCategoriesList) {
-            let (_, _, individualAchievementOpt) = findIndividualAchievement(userCategoriesList, achievementId);
+            let (categoryOpt, achievementLineOpt, individualAchievementOpt) = findIndividualAchievement(userCategoriesList, achievementId);
             switch (individualAchievementOpt) {
                 case (null) {
                     return (false, "Individual Achievement not found");
@@ -1723,13 +1728,104 @@ public shared(msg) func claimIndividualAchievementReward(achievementId: Nat): as
                     updatedClaimedRewardsBuffer.add(achievementId);
                     claimedIndividualAchievementRewards.put(msg.caller, Buffer.toArray(updatedClaimedRewardsBuffer));
 
-                    return (true, "Individual Achievement rewards claimed successfully. " # rewardMessage);
+                    // Safely unwrap the optionals using a switch
+                    switch (achievementLineOpt) {
+                        case (null) {
+                            return (false, "Achievement Line not found");
+                        };
+                        case (?achievementLine) {
+                            // Update the claimed status by creating a new object with claimed = true
+                            let updatedIndividualAchievement: IndividualAchievement = {
+                                id = individualAchievement.id;
+                                achievementId = individualAchievement.achievementId;
+                                name = individualAchievement.name;
+                                achievementType = individualAchievement.achievementType;
+                                requiredProgress = individualAchievement.requiredProgress;
+                                reward = individualAchievement.reward;
+                                progress = individualAchievement.progress;
+                                completed = individualAchievement.completed;
+                                claimed = true;  // Set claimed to true
+                            };
+
+                            // Replace the old individual achievement with the updated one
+                            let updatedIndividualAchievements = Array.tabulate<IndividualAchievement>(
+                                Array.size(achievementLine.individualAchievements),
+                                func(i: Nat): IndividualAchievement {
+                                    let indAch = achievementLine.individualAchievements[i];
+                                    if (indAch.id == updatedIndividualAchievement.id) {
+                                        updatedIndividualAchievement
+                                    } else {
+                                        indAch
+                                    }
+                                }
+                            );
+
+                            let updatedAchievementLine: AchievementLine = {
+                                id = achievementLine.id;
+                                name = achievementLine.name;
+                                individualAchievements = updatedIndividualAchievements;
+                                categoryId = achievementLine.categoryId;
+                                reward = achievementLine.reward;
+                                requiredProgress = achievementLine.requiredProgress;
+                                completed = achievementLine.completed;
+                                progress = achievementLine.progress;
+                                claimed = achievementLine.claimed;
+                            };
+
+                            switch (categoryOpt) {
+                                case (null) {
+                                    return (false, "Achievement Category not found");
+                                };
+                                case (?category) {
+                                    // Update the category with the new achievement line
+                                    let updatedLines = Array.tabulate<AchievementLine>(
+                                        Array.size(category.achievements),
+                                        func(i: Nat): AchievementLine {
+                                            let line = category.achievements[i];
+                                            if (line.id == updatedAchievementLine.id) {
+                                                updatedAchievementLine
+                                            } else {
+                                                line
+                                            }
+                                        }
+                                    );
+
+                                    let updatedCategory: AchievementCategory = {
+                                        id = category.id;
+                                        name = category.name;
+                                        achievements = updatedLines;
+                                        reward = category.reward;
+                                        requiredProgress = category.requiredProgress;
+                                        completed = category.completed;
+                                        progress = category.progress;
+                                        claimed = category.claimed;
+                                    };
+
+                                    // Update the user's progress
+                                    let updatedCategories = Array.tabulate<AchievementCategory>(
+                                        Array.size(userCategoriesList),
+                                        func(i: Nat): AchievementCategory {
+                                            let cat = userCategoriesList[i];
+                                            if (cat.id == updatedCategory.id) {
+                                                updatedCategory
+                                            } else {
+                                                cat
+                                            }
+                                        }
+                                    );
+
+                                    userProgress.put(msg.caller, updatedCategories);
+
+                                    return (true, "Individual Achievement rewards claimed successfully. " # rewardMessage);
+                                };
+                            };
+                        };
+                    };
                 };
             };
         };
     };
 };
-
 
 public shared(msg) func claimAchievementLineReward(achievementId: Nat): async (Bool, Text) {
     let userProgressOpt = userProgress.get(msg.caller);
@@ -1739,40 +1835,94 @@ public shared(msg) func claimAchievementLineReward(achievementId: Nat): async (B
         };
         case (?userCategoriesList) {
             for (category in userCategoriesList.vals()) {
-                for (achievementLine in category.achievements.vals()) {
-                    if (achievementLine.id == achievementId) {
-                        if (not achievementLine.completed) {
-                            return (false, "Achievement Line not completed");
-                        };
+                for (achievementLineOpt in category.achievements.vals()) {
+                    switch (achievementLineOpt) {
+                        case (achievementLine) {
+                            if (achievementLine.id == achievementId) {
+                                if (not achievementLine.completed) {
+                                    return (false, "Achievement Line not completed");
+                                };
 
-                        let claimedRewards = switch (claimedAchievementLineRewards.get(msg.caller)) {
-                            case (null) { [] };
-                            case (?rewards) { rewards };
-                        };
+                                let claimedRewards = switch (claimedAchievementLineRewards.get(msg.caller)) {
+                                    case (null) { [] };
+                                    case (?rewards) { rewards };
+                                };
 
-                        if (Array.find<Nat>(claimedRewards, func(r) { r == achievementId }) != null) {
-                            return (false, "Achievement Line reward already claimed");
-                        };
+                                if (Array.find<Nat>(claimedRewards, func(r) { r == achievementId }) != null) {
+                                    return (false, "Achievement Line reward already claimed");
+                                };
 
-                        // Mint the rewards and collect messages
-                        var rewardMessage: Text = "";
-                        for (reward in achievementLine.reward.vals()) {
-                            let (success, message) = await mintAchievementRewards(reward, msg.caller);
-                            if (not success) {
-                                return (false, message);
+                                // Mint the rewards and collect messages
+                                var rewardMessage: Text = "";
+                                for (reward in achievementLine.reward.vals()) {
+                                    let (success, message) = await mintAchievementRewards(reward, msg.caller);
+                                    if (not success) {
+                                        return (false, message);
+                                    };
+                                    rewardMessage := rewardMessage # "; " # message;
+                                };
+
+                                // Update claimed rewards
+                                let updatedClaimedRewardsBuffer = Buffer.Buffer<Nat>(claimedRewards.size() + 1);
+                                for (reward in claimedRewards.vals()) {
+                                    updatedClaimedRewardsBuffer.add(reward);
+                                };
+                                updatedClaimedRewardsBuffer.add(achievementId);
+                                claimedAchievementLineRewards.put(msg.caller, Buffer.toArray(updatedClaimedRewardsBuffer));
+
+                                // Update the claimed status by creating a new object with claimed = true
+                                let updatedAchievementLine: AchievementLine = {
+                                    id = achievementLine.id;
+                                    name = achievementLine.name;
+                                    individualAchievements = achievementLine.individualAchievements;
+                                    categoryId = achievementLine.categoryId;
+                                    reward = achievementLine.reward;
+                                    requiredProgress = achievementLine.requiredProgress;
+                                    completed = achievementLine.completed;
+                                    progress = achievementLine.progress;
+                                    claimed = true;  // Set claimed to true
+                                };
+
+                                let updatedLines = Array.tabulate<AchievementLine>(
+                                    Array.size(category.achievements),
+                                    func(i: Nat): AchievementLine {
+                                        let line = category.achievements[i];
+                                        if (line.id == updatedAchievementLine.id) {
+                                            updatedAchievementLine
+                                        } else {
+                                            line
+                                        }
+                                    }
+                                );
+
+                                let updatedCategory: AchievementCategory = {
+                                    id = category.id;
+                                    name = category.name;
+                                    achievements = updatedLines;
+                                    reward = category.reward;
+                                    requiredProgress = category.requiredProgress;
+                                    completed = category.completed;
+                                    progress = category.progress;
+                                    claimed = category.claimed;
+                                };
+
+                                let updatedCategories = Array.tabulate<AchievementCategory>(
+                                    Array.size(userCategoriesList),
+                                    func(i: Nat): AchievementCategory {
+                                        let cat = userCategoriesList[i];
+                                        if (cat.id == updatedCategory.id) {
+                                            updatedCategory
+                                        } else {
+                                            cat
+                                        }
+                                    }
+                                );
+
+                                userProgress.put(msg.caller, updatedCategories);
+
+                                return (true, "Achievement Line rewards claimed successfully. " # rewardMessage);
                             };
-                            rewardMessage := rewardMessage # "; " # message;
                         };
-
-                        // Update claimed rewards
-                        let updatedClaimedRewardsBuffer = Buffer.Buffer<Nat>(claimedRewards.size() + 1);
-                        for (reward in claimedRewards.vals()) {
-                            updatedClaimedRewardsBuffer.add(reward);
-                        };
-                        updatedClaimedRewardsBuffer.add(achievementId);
-                        claimedAchievementLineRewards.put(msg.caller, Buffer.toArray(updatedClaimedRewardsBuffer));
-
-                        return (true, "Achievement Line rewards claimed successfully. " # rewardMessage);
                     };
                 };
             };
@@ -1781,7 +1931,6 @@ public shared(msg) func claimAchievementLineReward(achievementId: Nat): async (B
     };
 };
 
-
 public shared(msg) func claimCategoryAchievementReward(categoryId: Nat): async (Bool, Text) {
     let userProgressOpt = userProgress.get(msg.caller);
     switch (userProgressOpt) {
@@ -1789,47 +1938,76 @@ public shared(msg) func claimCategoryAchievementReward(categoryId: Nat): async (
             return (false, "User has no progress records.");
         };
         case (?userCategoriesList) {
-            for (category in userCategoriesList.vals()) {
-                if (category.id == categoryId) {
-                    if (not category.completed) {
-                        return (false, "Achievement Category not completed");
-                    };
+            for (categoryOpt in userCategoriesList.vals()) {
+                switch (categoryOpt) {
+                    case (category) {
+                        if (category.id == categoryId) {
+                            if (not category.completed) {
+                                return (false, "Achievement Category not completed");
+                            };
 
-                    let claimedRewards = switch (claimedCategoryAchievementRewards.get(msg.caller)) {
-                        case (null) { [] };
-                        case (?rewards) { rewards };
-                    };
+                            let claimedRewards = switch (claimedCategoryAchievementRewards.get(msg.caller)) {
+                                case (null) { [] };
+                                case (?rewards) { rewards };
+                            };
 
-                    if (Array.find<Nat>(claimedRewards, func(r) { r == categoryId }) != null) {
-                        return (false, "Achievement Category reward already claimed");
-                    };
+                            if (Array.find<Nat>(claimedRewards, func(r) { r == categoryId }) != null) {
+                                return (false, "Achievement Category reward already claimed");
+                            };
 
-                    // Mint the rewards and collect messages
-                    var rewardMessage: Text = "";
-                    for (reward in category.reward.vals()) {
-                        let (success, message) = await mintAchievementRewards(reward, msg.caller);
-                        if (not success) {
-                            return (false, message);
+                            // Mint the rewards and collect messages
+                            var rewardMessage: Text = "";
+                            for (reward in category.reward.vals()) {
+                                let (success, message) = await mintAchievementRewards(reward, msg.caller);
+                                if (not success) {
+                                    return (false, message);
+                                };
+                                rewardMessage := rewardMessage # "; " # message;
+                            };
+
+                            // Update claimed rewards
+                            let updatedClaimedRewardsBuffer = Buffer.Buffer<Nat>(claimedRewards.size() + 1);
+                            for (reward in claimedRewards.vals()) {
+                                updatedClaimedRewardsBuffer.add(reward);
+                            };
+                            updatedClaimedRewardsBuffer.add(categoryId);
+                            claimedCategoryAchievementRewards.put(msg.caller, Buffer.toArray(updatedClaimedRewardsBuffer));
+
+                            // Update the claimed status by creating a new object with claimed = true
+                            let updatedCategory: AchievementCategory = {
+                                id = category.id;
+                                name = category.name;
+                                achievements = category.achievements;
+                                reward = category.reward;
+                                requiredProgress = category.requiredProgress;
+                                completed = category.completed;
+                                progress = category.progress;
+                                claimed = true;  // Set claimed to true
+                            };
+
+                            let updatedCategories = Array.tabulate<AchievementCategory>(
+                                Array.size(userCategoriesList),
+                                func(i: Nat): AchievementCategory {
+                                    let cat = userCategoriesList[i];
+                                    if (cat.id == updatedCategory.id) {
+                                        updatedCategory
+                                    } else {
+                                        cat
+                                    }
+                                }
+                            );
+
+                            userProgress.put(msg.caller, updatedCategories);
+
+                            return (true, "Achievement Category rewards claimed successfully. " # rewardMessage);
                         };
-                        rewardMessage := rewardMessage # "; " # message;
                     };
-
-                    // Update claimed rewards
-                    let updatedClaimedRewardsBuffer = Buffer.Buffer<Nat>(claimedRewards.size() + 1);
-                    for (reward in claimedRewards.vals()) {
-                        updatedClaimedRewardsBuffer.add(reward);
-                    };
-                    updatedClaimedRewardsBuffer.add(categoryId);
-                    claimedCategoryAchievementRewards.put(msg.caller, Buffer.toArray(updatedClaimedRewardsBuffer));
-
-                    return (true, "Achievement Category rewards claimed successfully. " # rewardMessage);
                 };
             };
             return (false, "Achievement Category not found");
         };
     };
 };
-
 
 
     func mintAchievementRewards(reward: AchievementReward, caller: Types.PlayerId): async (Bool, Text) {
