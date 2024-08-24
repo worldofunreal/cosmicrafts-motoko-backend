@@ -33,6 +33,7 @@ commands = [
     "dfx canister uninstall-code cosmicrafts",
     "dfx deploy",
     "dfx canister call cosmicrafts loadAchievements",
+    'dfx canister call cosmicrafts registerPlayer \'("BiZKiT", 1)\'',
     "dfx canister call cosmicrafts getAchievements",
 ]
 
@@ -44,29 +45,38 @@ for command in commands:
 principal = get_principal()
 
 if principal:
-    # Add progress to individual achievements and claim them
-    individual_achievement_ids = [1, 2, 3, 4, 5, 6]
+    # Define individual achievement IDs
+    individual_achievement_ids = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25]
+    referral_achievement_ids = [26, 27, 28, 29, 30]
 
+    # Update and claim progress for regular individual achievements
     for ind_ach_id in individual_achievement_ids:
-        # Add progress to individual achievement
+        # Update progress to meet the required progress for regular achievements
         run_command(f"dfx canister call cosmicrafts addProgressToIndividualAchievement '(principal \"{principal}\", {ind_ach_id}, 1)'")
         
         # Claim the individual achievement reward
         run_command(f"dfx canister call cosmicrafts claimIndividualAchievementReward '({ind_ach_id})'")
 
+    # Handle referral achievements with specific progress requirements
+    referral_progress_requirements = [1, 3, 5, 10, 25]
+
+    for ind_ach_id, required_progress in zip(referral_achievement_ids, referral_progress_requirements):
+        # Update progress to meet the required progress for referral achievements
+        run_command(f"dfx canister call cosmicrafts addProgressToIndividualAchievement '(principal \"{principal}\", {ind_ach_id}, {required_progress})'")
+        
+        # Claim the individual achievement reward
+        run_command(f"dfx canister call cosmicrafts claimIndividualAchievementReward '({ind_ach_id})'")
+
     # Claim all achievement lines after all individual achievements are completed
-    achievement_line_ids = [1, 2, 3]  # Replace with actual achievement line IDs
+    achievement_line_ids = [1, 2, 3, 4, 5, 6, 7]  # Replace with actual achievement line IDs
 
     for ach_line_id in achievement_line_ids:
         # Claim the achievement line reward
         run_command(f"dfx canister call cosmicrafts claimAchievementLineReward '({ach_line_id})'")
 
-    # Finally, claim the category rewards
-    category_ids = [1, 2]  # Replace with actual category IDs
-
-    for cat_id in category_ids:
-        # Claim the category reward
-        run_command(f"dfx canister call cosmicrafts claimCategoryAchievementReward '({cat_id})'")
+    # Finally, claim the category reward
+    category_id = 1  # Replace with the actual category ID
+    run_command(f"dfx canister call cosmicrafts claimCategoryAchievementReward '({category_id})'")
 
     # Check the final state of all achievements
     run_command("dfx canister call cosmicrafts getAchievements")

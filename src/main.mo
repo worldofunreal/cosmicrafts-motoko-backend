@@ -33,6 +33,7 @@
    // import AchievementMissionsTemplate "AchievementMissionsTemplate";
     import Validator "Validator";
     import MissionOptions "MissionOptions";
+    import AchievementData "AchievementData";
     import Set "Set";
 
 shared actor class Cosmicrafts() = Self {
@@ -83,6 +84,14 @@ shared actor class Cosmicrafts() = Self {
   public type RewardPool = Types.RewardPool;
   public type MissionOption = Types.MissionOption;
   public type TokenId = TypesICRC7.TokenId;
+
+    public type AchievementCategory = Types.AchievementCategory;
+    public type AchievementLine = Types.AchievementLine;
+    public type IndividualAchievement = Types.IndividualAchievement;
+    public type AchievementReward = Types.AchievementReward;
+    public type AchievementRewardsType = Types.AchievementRewardsType;
+    public type NFTDetails = Types.NFTDetails;
+    public type AchievementType = Types.AchievementType;
 
   //Timer
   public type Duration = Timer.Duration;
@@ -1138,99 +1147,6 @@ shared actor class Cosmicrafts() = Self {
 
 //--
 // Achievements
-    //Achievement Types
-        public type AchievementCategory = {
-            id: Nat;
-            name: Text;
-            achievements: [AchievementLine];
-            reward: [AchievementReward];
-            requiredProgress: Nat;
-            completed: Bool;
-            progress: Nat;
-            claimed: Bool;
-        };
-
-        public type AchievementLine = { 
-            id: Nat;
-            name: Text;
-            individualAchievements: [IndividualAchievement];
-            categoryId: Nat;
-            reward: [AchievementReward];
-            requiredProgress: Nat;
-            completed: Bool;
-            progress: Nat;
-            claimed: Bool;
-        };
-
-        public type IndividualAchievement = { 
-            id: Nat;
-            achievementId: Nat;
-            name: Text;
-            achievementType: AchievementType;
-            requiredProgress: Nat;
-            completed: Bool;
-            reward: [AchievementReward];
-            progress: Nat;
-            claimed: Bool;
-        };
-
-        public type AchievementReward = {
-            rewardType: AchievementRewardsType;
-            amount: Nat;
-        };
-
-        public type AchievementRewardsType = {
-            #Stardust;
-            #Chest;
-            #Title;
-            #Avatar;
-            #NFT;
-            #XP;
-        };
-
-        public type NFTDetails = {
-            unitType: TypesICRC7.Unit;
-            name: Text;
-            description: Text;
-            image: Text;
-            faction: TypesICRC7.Faction;
-            rarity: Nat;
-            level: Nat;
-            health: Nat;
-            damage: Nat;
-            combatExperience: Nat;
-        };
-
-        public type AchievementType = {
-            #AchievementsUnlocked;
-            #ChestsMinted;
-            #ChestsOpened;
-            #Customization;
-            #DailyMissionsCompleted;
-            #DamageDealt;
-            #DamageTaken;
-            #EnergyUsed;
-            #FluxMinted;
-            #FriendsAdded;
-            #GameModePlayed;
-            #GamesCompleted;
-            #GamesPlayed;
-            #GamesWithCharacter;
-            #GamesWithFaction;
-            #GamesWon;
-            #Kills;
-            #LevelReached;
-            #NFTsMinted;
-            #RewardsClaimed;
-            #ShardsMinted;
-            #Social;
-            #TimePlayed;
-            #UnitsDeployed;
-            #UpgradeNFT;
-            #UserMissionsCompleted;
-            #WeeklyMissionsCompleted;
-            #XPEarned;
-        };
 
     // Stable Variables for Achievement System
         stable var achievementCategoryIDCounter: Nat = 1;
@@ -1279,56 +1195,40 @@ shared actor class Cosmicrafts() = Self {
         return categories;
     };
 
-    public func loadAchievements(): async Bool {
-        // Crear la primera categoría con 2 líneas de logros
-        let (successCat1, messageCat1, categoryID1) = await createAchievementCategory("First Category", [{ rewardType = #Stardust; amount = 10 }]);
+public func loadAchievements(): async Bool {
+    // Get the pre-defined "Tiers" category from the AchievementData module
+    let tiersCategory = AchievementData.getTiersCategory();
 
-        if (not successCat1) {
-            Debug.print("Failed to create category: " # messageCat1);
-            return false;
-        };
-
-        // Crear el primer logro en la primera categoría con 1 logro individual
-        let (successAch1, messageAch1, achievementID1) = await createAchievement(categoryID1, "First Achievement Line", [{ rewardType = #Stardust; amount = 10 }]);
-        if (not successAch1) {
-            Debug.print("Failed to create achievement: " # messageAch1);
-            return false;
-        };
-
-        let _successIndAch1 = await createIndividualAchievement(achievementID1, "First Individual Achievement", #GamesCompleted, 1, [{ rewardType = #Stardust; amount = 10 }]);
-
-        // Crear el segundo logro en la primera categoría con 2 logros individuales
-        let (successAch2, messageAch2, achievementID2) = await createAchievement(categoryID1, "Second Achievement Line", [{ rewardType = #Stardust; amount = 10 }]);
-        if (not successAch2) {
-            Debug.print("Failed to create achievement: " # messageAch2);
-            return false;
-        };
-
-        let _successIndAch2 = await createIndividualAchievement(achievementID2, "Second Individual Achievement", #GamesCompleted, 1, [{ rewardType = #Stardust; amount = 10 }]);
-        let _successIndAch3 = await createIndividualAchievement(achievementID2, "Third Individual Achievement", #GamesCompleted, 1, [{ rewardType = #Stardust; amount = 10 }]);
-
-        // Crear la segunda categoría con 1 línea de logros que contiene 3 logros individuales
-        let (successCat2, messageCat2, categoryID2) = await createAchievementCategory("Second Category", [{ rewardType = #Stardust; amount = 10 }]);
-
-        if (not successCat2) {
-            Debug.print("Failed to create category: " # messageCat2);
-            return false;
-        };
-
-        // Crear el logro en la segunda categoría con 3 logros individuales
-        let (successAch3, messageAch3, achievementID3) = await createAchievement(categoryID2, "Third Achievement Line", [{ rewardType = #Stardust; amount = 10 }]);
-        if (not successAch3) {
-            Debug.print("Failed to create achievement: " # messageAch3);
-            return false;
-        };
-
-        let _successIndAch4 = await createIndividualAchievement(achievementID3, "Fourth Individual Achievement", #GamesCompleted, 1, [{ rewardType = #Stardust; amount = 10 }]);
-        let _successIndAch5 = await createIndividualAchievement(achievementID3, "Fifth Individual Achievement", #GamesCompleted, 1, [{ rewardType = #Stardust; amount = 10 }]);
-        let _successIndAch6 = await createIndividualAchievement(achievementID3, "Sixth Individual Achievement", #GamesCompleted, 1, [{ rewardType = #Stardust; amount = 10 }]);
-
-        Debug.print("Achievements initialized successfully");
-        return true;
+    // Step 1: Create the category
+    let (successCat, messageCat, categoryID) = await createAchievementCategory(tiersCategory.name, tiersCategory.reward);
+    if (not successCat) {
+        Debug.print("Failed to create category: " # messageCat);
+        return false;
     };
+
+    // Step 2: Iterate through the achievement lines in the category
+    for (achievementLine in tiersCategory.achievements.vals()) {
+        let (successAch, messageAch, achievementID) = await createAchievement(categoryID, achievementLine.name, achievementLine.reward);
+        if (not successAch) {
+            Debug.print("Failed to create achievement: " # messageAch);
+            return false;
+        };
+
+        // Step 3: Iterate through the individual achievements in the line
+        for (individualAchievement in achievementLine.individualAchievements.vals()) {
+            let _successIndAch = await createIndividualAchievement(
+                achievementID, 
+                individualAchievement.name, 
+                individualAchievement.achievementType, 
+                individualAchievement.requiredProgress, 
+                individualAchievement.reward
+            );
+        };
+    };
+
+    Debug.print("Achievements initialized successfully");
+    return true;
+};
 
     public func createAchievementCategory(
         name: Text,
@@ -5841,83 +5741,83 @@ shared actor class Cosmicrafts() = Self {
         return (true, "Deck minted and stored successfully", Buffer.toArray(uuids));
     };
 
-public shared({ caller }) func mintUnit(nftDetails: NFTDetails): async TypesICRC7.MintReceipt {
-    let _now = Nat64.fromIntWrap(Time.now());
-    let acceptedTo: TypesICRC7.Account = { owner = caller; subaccount = null };
+    public shared({ caller }) func mintUnit(nftDetails: NFTDetails): async TypesICRC7.MintReceipt {
+        let _now = Nat64.fromIntWrap(Time.now());
+        let acceptedTo: TypesICRC7.Account = { owner = caller; subaccount = null };
 
-    // Check if supply cap is exceeded
-    if (supplyCap != null) {
-        let _supplyCap: Nat = ICRC7Utils.nullishCoalescing<Nat>(supplyCap, 0);
-        if (totalSupply + 1 > _supplyCap) {
-            return #Err(#SupplyCapOverflow);
+        // Check if supply cap is exceeded
+        if (supplyCap != null) {
+            let _supplyCap: Nat = ICRC7Utils.nullishCoalescing<Nat>(supplyCap, 0);
+            if (totalSupply + 1 > _supplyCap) {
+                return #Err(#SupplyCapOverflow);
+            };
+        };
+
+        // Check if the recipient is valid
+        if (Principal.equal(acceptedTo.owner, NULL_PRINCIPAL)) {
+            return #Err(#InvalidRecipient);
+        };
+
+        // Generate a new token ID
+        let tokenId = lastMintedId + 1;
+
+        // Check if the token ID already exists
+        if (_exists(tokenId)) {
+            return #Err(#AlreadyExistTokenId);
+        };
+
+        // Create the general metadata
+        let generalMetadata: TypesICRC7.GeneralMetadata = {
+            rarity = ?nftDetails.rarity;
+            faction = ?nftDetails.faction;
+            id = tokenId;
+            name = nftDetails.name;
+            description = nftDetails.description;
+            image = nftDetails.image;
+        };
+
+        // Initialize SoulMetadata
+        let soulMetadata: TypesICRC7.SoulMetadata = {
+            birth = Time.now();
+            combatExperience = nftDetails.combatExperience;
+            gamesPlayed = null;
+            totalKills = null;
+            totalDamageDealt = null;
+        };
+
+        // Create the complete metadata record
+        let unitMetadata: TypesICRC7.Metadata = {
+            category = #Unit(nftDetails.unitType);
+            general = generalMetadata;
+            basic = ?{
+                level = nftDetails.level;
+                health = nftDetails.health;
+                damage = nftDetails.damage;
+            };
+            skills = null;  // Assuming skills are not provided initially
+            skins = null;   // Assuming skins are not provided initially
+            soul = ?soulMetadata;
+        };
+
+        // Create the mint arguments
+        let mintArgs: TypesICRC7.MintArgs = {
+            to = acceptedTo;
+            token_id = tokenId;
+            metadata = unitMetadata;
+        };
+
+        // Call the mintNFT function with the encapsulated mint arguments
+        let mintResult = await mintNFT(mintArgs);
+
+        // Handle the result of minting
+        switch (mintResult) {
+            case (#Ok(token_id)) {
+                lastMintedId += 1;
+                return #Ok(token_id);
+            };
+            case (#Err(err)) return #Err(err);
         };
     };
-
-    // Check if the recipient is valid
-    if (Principal.equal(acceptedTo.owner, NULL_PRINCIPAL)) {
-        return #Err(#InvalidRecipient);
-    };
-
-    // Generate a new token ID
-    let tokenId = lastMintedId + 1;
-
-    // Check if the token ID already exists
-    if (_exists(tokenId)) {
-        return #Err(#AlreadyExistTokenId);
-    };
-
-    // Create the general metadata
-    let generalMetadata: TypesICRC7.GeneralMetadata = {
-        rarity = ?nftDetails.rarity;
-        faction = ?nftDetails.faction;
-        id = tokenId;
-        name = nftDetails.name;
-        description = nftDetails.description;
-        image = nftDetails.image;
-    };
-
-    // Initialize SoulMetadata
-    let soulMetadata: TypesICRC7.SoulMetadata = {
-        birth = Time.now();
-        combatExperience = nftDetails.combatExperience;
-        gamesPlayed = null;
-        totalKills = null;
-        totalDamageDealt = null;
-    };
-
-    // Create the complete metadata record
-    let unitMetadata: TypesICRC7.Metadata = {
-        category = #Unit(nftDetails.unitType);
-        general = generalMetadata;
-        basic = ?{
-            level = nftDetails.level;
-            health = nftDetails.health;
-            damage = nftDetails.damage;
-        };
-        skills = null;  // Assuming skills are not provided initially
-        skins = null;   // Assuming skins are not provided initially
-        soul = ?soulMetadata;
-    };
-
-    // Create the mint arguments
-    let mintArgs: TypesICRC7.MintArgs = {
-        to = acceptedTo;
-        token_id = tokenId;
-        metadata = unitMetadata;
-    };
-
-    // Call the mintNFT function with the encapsulated mint arguments
-    let mintResult = await mintNFT(mintArgs);
-
-    // Handle the result of minting
-    switch (mintResult) {
-        case (#Ok(token_id)) {
-            lastMintedId += 1;
-            return #Ok(token_id);
-        };
-        case (#Err(err)) return #Err(err);
-    };
-};
 
     /*
     Arguments to mint Unit

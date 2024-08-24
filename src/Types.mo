@@ -1,4 +1,5 @@
 import Time "mo:base/Time";
+import TypesICRC7 "/icrc7/types";
 
 module Types {
 // General Types
@@ -342,4 +343,97 @@ module Types {
   
 //--
 //Achievements
+
+        public type AchievementCategory = {
+            id: Nat;
+            name: Text;
+            achievements: [AchievementLine];
+            reward: [AchievementReward];
+            requiredProgress: Nat;
+            completed: Bool;
+            progress: Nat;
+            claimed: Bool;
+        };
+
+        public type AchievementLine = { 
+            id: Nat;
+            name: Text;
+            individualAchievements: [IndividualAchievement];
+            categoryId: Nat;
+            reward: [AchievementReward];
+            requiredProgress: Nat;
+            completed: Bool;
+            progress: Nat;
+            claimed: Bool;
+        };
+
+        public type IndividualAchievement = { 
+            id: Nat;
+            achievementId: Nat;
+            name: Text;
+            achievementType: AchievementType;
+            requiredProgress: Nat;
+            completed: Bool;
+            reward: [AchievementReward];
+            progress: Nat;
+            claimed: Bool;
+        };
+
+        public type AchievementReward = {
+            rewardType: AchievementRewardsType;
+            amount: Nat;
+        };
+
+        public type AchievementRewardsType = {
+            #Stardust;
+            #Chest;
+            #Title;
+            #Avatar;
+            #NFT;
+            #XP;
+        };
+
+        public type NFTDetails = {
+            unitType: TypesICRC7.Unit;
+            name: Text;
+            description: Text;
+            image: Text;
+            faction: TypesICRC7.Faction;
+            rarity: Nat;
+            level: Nat;
+            health: Nat;
+            damage: Nat;
+            combatExperience: Nat;
+        };
+
+        public type AchievementType = {
+            #AchievementsUnlocked;
+            #ChestsMinted;
+            #ChestsOpened;
+            #Customization;
+            #DailyMissionsCompleted;
+            #DamageDealt;
+            #DamageTaken;
+            #EnergyUsed;
+            #FluxMinted;
+            #FriendsAdded;
+            #GameModePlayed;
+            #GamesCompleted;
+            #GamesPlayed;
+            #GamesWithCharacter;
+            #GamesWithFaction;
+            #GamesWon;
+            #Kills;
+            #LevelReached;
+            #NFTsMinted;
+            #RewardsClaimed;
+            #ShardsMinted;
+            #Social;
+            #TimePlayed;
+            #UnitsDeployed;
+            #UpgradeNFT;
+            #UserMissionsCompleted;
+            #WeeklyMissionsCompleted;
+            #XPEarned;
+        };
 }
