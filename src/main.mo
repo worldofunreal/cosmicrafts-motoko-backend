@@ -33,7 +33,7 @@
    // import AchievementMissionsTemplate "AchievementMissionsTemplate";
     import Validator "Validator";
     import MissionOptions "MissionOptions";
-    import Achievements "Achievements";
+    import Set "Set";
 
 shared actor class Cosmicrafts() = Self {
 // Types
@@ -83,23 +83,6 @@ shared actor class Cosmicrafts() = Self {
   public type RewardPool = Types.RewardPool;
   public type MissionOption = Types.MissionOption;
   public type TokenId = TypesICRC7.TokenId;
-
-    public type IndividualAchievement = Types.IndividualAchievement;
-    public type Achievement = Types.Achievement;
-    public type AchievementCategory = Types.AchievementCategory;
-    public type AchievementType = Types.AchievementType;
-    public type AchievementRewardsType = Types.AchievementRewardsType;
-    public type AchievementReward = Types.AchievementReward;
-    public type AchievementTier = Types.AchievementTier;
-    public type AchievementProgress = Types.AchievementProgress;
-    public type IndividualAchievementProgress = Types.IndividualAchievementProgress;
-    
-    
-    type AchievementName = Text;
-    type IndividualAchievementList = [Nat];
-    type RequiredProgress = Nat;
-    type CategoryId = Nat;
-
 
   //Timer
   public type Duration = Timer.Duration;
@@ -1155,703 +1138,729 @@ shared actor class Cosmicrafts() = Self {
 
 //--
 // Achievements
+    //Achievement Types
+        public type AchievementCategory = {  // Tier  - Social // Gameplay
+            id: Nat;
+            name: Text;
+            achievements: [AchievementLine];
+            reward: [AchievementReward];
+            requiredProgress: Nat;
+            completed: Bool;
+            progress: Nat;
+        };
 
-    // Stable Variables
-        stable var individualAchievementIDCounter: Nat = 1;
+        public type AchievementLine = { // Discord // Twitter // etcc
+            id: Nat;
+            name: Text;
+            individualAchievements: [IndividualAchievement];
+            categoryId: Nat;
+            reward: [AchievementReward];
+            requiredProgress: Nat;
+            completed: Bool;
+            progress: Nat;
+        };
+        // Linea de juegos jugados 1000 //-- 10 // 25 // 50 // 100 // 250 // 500 // 1000
+
+        public type IndividualAchievement = { // Discord - 1- Join Server 2-Reacciona a publicacion
+            id: Nat;
+            achievementId: Nat;
+            name: Text;
+            achievementType: AchievementType;
+            requiredProgress: Nat;
+            completed: Bool;
+            reward: [AchievementReward];
+            progress: Nat;
+        };
+
+        public type AchievementReward = {
+            rewardType: AchievementRewardsType;
+            amount: Nat;
+        };
+
+        public type AchievementRewardsType = {
+            #Stardust;
+            #Chest;
+            #Title;
+            #Avatar;
+            #NFT;
+        };
+
+        public type AchievementType = {
+            #AchievementsUnlocked;
+            #ChestsMinted;
+            #ChestsOpened;
+            #Customization;
+            #DailyMissionsCompleted;
+            #DamageDealt;
+            #DamageTaken;
+            #EnergyUsed;
+            #FluxMinted;
+            #FriendsAdded;
+            #GameModePlayed;
+            #GamesCompleted;
+            #GamesPlayed;
+            #GamesWithCharacter;
+            #GamesWithFaction;
+            #GamesWon;
+            #Kills;
+            #LevelReached;
+            #NFTsMinted;
+            #RewardsClaimed;
+            #ShardsMinted;
+            #Social;
+            #TimePlayed;
+            #UnitsDeployed;
+            #UpgradeNFT;
+            #UserMissionsCompleted;
+            #WeeklyMissionsCompleted;
+            #XPEarned;
+        };
+
+    // Stable Variables for Achievement System
+        stable var achievementCategoryIDCounter: Nat = 1;
         stable var achievementIDCounter: Nat = 1;
-        stable var categoryIDCounter: Nat = 1;
+        stable var individualAchievementIDCounter: Nat = 1;
 
+        stable var _achievementCategories: [(Nat, AchievementCategory)] = [];
+        stable var _achievements: [(Nat, AchievementLine)] = [];
         stable var _individualAchievements: [(Nat, IndividualAchievement)] = [];
-        stable var _achievements: [(Nat, Achievement)] = [];
-        stable var _categories: [(Nat, AchievementCategory)] = [];
 
-        stable var _achievementProgress: [(PlayerId, [AchievementProgress])] = [];
-        stable var _playerAchievements: [(PlayerId, [Nat])] = [];
-        stable var _categoryProgress: [(PlayerId, [AchievementProgress])] = [];
-        stable var _claimedAchievementRewards: [(PlayerId, [Nat])] = []; // Added this line
+        stable var _userProgress: [(PlayerId, [AchievementCategory])] = [];
 
-    // HashMaps
+        stable var _claimedAchievementRewards: [(PlayerId, [Nat])] = [];
+
+        // HashMaps for fast access
+        var achievementCategories: HashMap.HashMap<Nat, AchievementCategory> = HashMap.fromIter(_achievementCategories.vals(), 0, Utils._natEqual, Utils._natHash);
+        var achievements: HashMap.HashMap<Nat, AchievementLine> = HashMap.fromIter(_achievements.vals(), 0, Utils._natEqual, Utils._natHash);
         var individualAchievements: HashMap.HashMap<Nat, IndividualAchievement> = HashMap.fromIter(_individualAchievements.vals(), 0, Utils._natEqual, Utils._natHash);
-        var achievements: HashMap.HashMap<Nat, Achievement> = HashMap.fromIter(_achievements.vals(), 0, Utils._natEqual, Utils._natHash);
-        var categories: HashMap.HashMap<Nat, AchievementCategory> = HashMap.fromIter(_categories.vals(), 0, Utils._natEqual, Utils._natHash);
-        var achievementProgress: HashMap.HashMap<PlayerId, [AchievementProgress]> = HashMap.fromIter(_achievementProgress.vals(), 0, Principal.equal, Principal.hash);
-        var playerAchievements: HashMap.HashMap<PlayerId, [Nat]> = HashMap.fromIter(_playerAchievements.vals(), 0, Principal.equal, Principal.hash);
-        var categoryProgress: HashMap.HashMap<PlayerId, [AchievementProgress]> = HashMap.fromIter(_categoryProgress.vals(), 0, Principal.equal, Principal.hash);
-        var claimedAchievementRewards: HashMap.HashMap<PlayerId, [Nat]> = HashMap.fromIter(_claimedAchievementRewards.vals(), 0, Principal.equal, Principal.hash); // Added this line
 
-    public shared func initializeMilestones(): async () {
-        let categoryID = categoryIDCounter;
-        let achievementID = achievementIDCounter;
-        let individualAchievementID = individualAchievementIDCounter;
+        var userProgress: HashMap.HashMap<PlayerId, [AchievementCategory]> = HashMap.fromIter(_userProgress.vals(), 0, Principal.equal, Principal.hash);
 
-        let (milestoneCategory, firstStepsAchievementLine, individualAchievementsList) = Achievements.createMilestoneCategory(
-            categoryID,
-            achievementID,
-            individualAchievementID
-        );
+        var claimedAchievementRewards: HashMap.HashMap<PlayerId, [Nat]> = HashMap.fromIter(_claimedAchievementRewards.vals(), 0, Principal.equal, Principal.hash);
 
-        // Update the counters
-        individualAchievementIDCounter += individualAchievementsList.size();
-        achievementIDCounter += 1;
-        categoryIDCounter += 1;
+    //-- Functions
 
-        // Create buffers to collect IDs
-        let individualAchievementsBuffer = Buffer.Buffer<Nat>(0);
-        let achievementBuffer = Buffer.Buffer<Nat>(0);
+    public query func getAllAchievementsData(): async [AchievementCategory] {
+        var categories: [AchievementCategory] = [];
+        let iter = achievementCategories.vals();
+        var nextItem = iter.next();
 
-        // Store individual achievements and collect IDs
-        for (indAch in individualAchievementsList.vals()) {
-            individualAchievements.put(indAch.id, indAch);
-            individualAchievementsBuffer.add(indAch.id);
-        };
-
-        // Convert buffer to array and update the achievement line
-        let updatedFirstStepsAchievementLine = {
-            firstStepsAchievementLine with
-            individualAchievements = Buffer.toArray(individualAchievementsBuffer)
-        };
-        achievements.put(updatedFirstStepsAchievementLine.id, updatedFirstStepsAchievementLine);
-
-        // Add the achievement line ID to the category's achievements buffer
-        achievementBuffer.add(updatedFirstStepsAchievementLine.id);
-
-        // Convert buffer to array and update the category
-        let updatedMilestoneCategory = {
-            milestoneCategory with
-            achievements = Buffer.toArray(achievementBuffer)
-        };
-        categories.put(updatedMilestoneCategory.id, updatedMilestoneCategory);
-
-        Debug.print("[initializeMilestones] Milestones initialized and stored in stable variables.");
-    };
-
-    public func updateGeneralAchievementProgress(
-        user: PlayerId, 
-        achievementId: Nat
-    ): async (Bool, Text) {
-        let achievementOpt = achievements.get(achievementId);
-        switch (achievementOpt) {
-            case (null) return (false, "Achievement not found");
-            case (?achievement) {
-                let individualAchievementIds = achievement.individualAchievements;
-                var completedAchievements: Nat = 0;
-
-                for (indAchId in individualAchievementIds.vals()) {
-                    let indAchOpt = individualAchievements.get(indAchId);
-                    switch (indAchOpt) {
-                        case (?indAch) {
-                            if (indAch.completed) {
-                                completedAchievements += 1;
-                            };
-                        };
-                        case (null) {};
-                    };
+        // Iterar sobre todos los elementos y agregarlos a la lista
+        while (nextItem != null) {
+            switch (nextItem) {
+                case (?value) {
+                    categories := Array.append(categories, [value]);
                 };
-
-                let isCompleted = completedAchievements == individualAchievementIds.size();
-                if (isCompleted) {
-                    let _ = await updateCategoryProgress(user, achievement.categoryId);
-                };
-
-                achievements.put(achievementId, {
-                    achievement with
-                    progress = completedAchievements;
-                    completed = isCompleted;
-                });
-
-                return (true, "Achievement line progress updated successfully");
+                case (null) {};
             };
+            nextItem := iter.next();
         };
+
+        return categories;
     };
 
-    func determineTier(progress: Nat, requiredProgress: Nat): Types.AchievementTier {
-        let progressPercentage = (progress * 100) / requiredProgress;
-        if (progressPercentage >= 100) {
-            return #Legend;
-        } else if (progressPercentage >= 80) {
-            return #Master;
-        } else if (progressPercentage >= 60) {
-            return #Diamond;
-        } else if (progressPercentage >= 40) {
-            return #Platinum;
-        } else if (progressPercentage >= 20) {
-            return #Gold;
-        } else if (progressPercentage >= 10) {
-            return #Silver;
-        } else {
-            return #Bronze;
-        }
+    public func loadAchievements(): async Bool {
+        // Crear la primera categoría con 2 líneas de logros
+        let (successCat1, messageCat1, categoryID1) = await createAchievementCategory("First Category", [{ rewardType = #Stardust; amount = 10 }]);
+
+        if (not successCat1) {
+            Debug.print("Failed to create category: " # messageCat1);
+            return false;
+        };
+
+        // Crear el primer logro en la primera categoría con 1 logro individual
+        let (successAch1, messageAch1, achievementID1) = await createAchievement(categoryID1, "First Achievement Line", [{ rewardType = #Stardust; amount = 10 }]);
+        if (not successAch1) {
+            Debug.print("Failed to create achievement: " # messageAch1);
+            return false;
+        };
+
+        let _successIndAch1 = await createIndividualAchievement(achievementID1, "First Individual Achievement", #GamesCompleted, 1, [{ rewardType = #Stardust; amount = 10 }]);
+
+        // Crear el segundo logro en la primera categoría con 2 logros individuales
+        let (successAch2, messageAch2, achievementID2) = await createAchievement(categoryID1, "Second Achievement Line", [{ rewardType = #Stardust; amount = 10 }]);
+        if (not successAch2) {
+            Debug.print("Failed to create achievement: " # messageAch2);
+            return false;
+        };
+
+        let _successIndAch2 = await createIndividualAchievement(achievementID2, "Second Individual Achievement", #GamesCompleted, 1, [{ rewardType = #Stardust; amount = 10 }]);
+        let _successIndAch3 = await createIndividualAchievement(achievementID2, "Third Individual Achievement", #GamesCompleted, 1, [{ rewardType = #Stardust; amount = 10 }]);
+
+        // Crear la segunda categoría con 1 línea de logros que contiene 3 logros individuales
+        let (successCat2, messageCat2, categoryID2) = await createAchievementCategory("Second Category", [{ rewardType = #Stardust; amount = 10 }]);
+
+        if (not successCat2) {
+            Debug.print("Failed to create category: " # messageCat2);
+            return false;
+        };
+
+        // Crear el logro en la segunda categoría con 3 logros individuales
+        let (successAch3, messageAch3, achievementID3) = await createAchievement(categoryID2, "Third Achievement Line", [{ rewardType = #Stardust; amount = 10 }]);
+        if (not successAch3) {
+            Debug.print("Failed to create achievement: " # messageAch3);
+            return false;
+        };
+
+        let _successIndAch4 = await createIndividualAchievement(achievementID3, "Fourth Individual Achievement", #GamesCompleted, 1, [{ rewardType = #Stardust; amount = 10 }]);
+        let _successIndAch5 = await createIndividualAchievement(achievementID3, "Fifth Individual Achievement", #GamesCompleted, 1, [{ rewardType = #Stardust; amount = 10 }]);
+        let _successIndAch6 = await createIndividualAchievement(achievementID3, "Sixth Individual Achievement", #GamesCompleted, 1, [{ rewardType = #Stardust; amount = 10 }]);
+
+        Debug.print("Achievements initialized successfully");
+        return true;
     };
 
-    public func createIndividualAchievement(
-        name: Text, 
-        achievementType: Types.AchievementType, 
-        requiredProgress: Nat, 
-        rewards: [Types.AchievementReward], 
-        achievementId: Nat
+    // Crear la estructura de datos en el `HashMap`
+    public func createAchievementCategory(
+        name: Text,
+        rewards: [AchievementReward]
         ): async (Bool, Text, Nat) {
-        let id = individualAchievementIDCounter;
-        individualAchievementIDCounter += 1;
+        let id = achievementCategoryIDCounter;
+        achievementCategoryIDCounter += 1;
 
-        let newIndividualAchievement: Types.IndividualAchievement = {
+        let newCategory: AchievementCategory = {
             id = id;
             name = name;
-            achievementType = achievementType;
-            requiredProgress = requiredProgress;
-            progress = 0;
+            achievements = []; // Inicialmente vacío, pero luego se agregan los logros (ach lines)
+            reward = rewards;
+            requiredProgress = 0;
             completed = false;
-            reward = rewards; // Allowing multiple rewards
-            achievementId = achievementId;
+            progress = 0;
         };
 
-        individualAchievements.put(id, newIndividualAchievement);
-        Debug.print("[createIndividualAchievement] Individual Achievement created with ID: " # Nat.toText(id));
+        achievementCategories.put(id, newCategory);
+        Debug.print("[createAchievementCategory] Category created with ID: " # Nat.toText(id));
 
-        return (true, "Individual Achievement created successfully", id);
+        return (true, "Category created successfully", id);
     };
 
     public func createAchievement(
-        name: Text, 
-        individualAchievements: [Nat], 
-        requiredProgress: Nat,
         categoryId: Nat,
-        rewards: [Types.AchievementReward]
+        name: Text,
+        rewards: [AchievementReward]
         ): async (Bool, Text, Nat) {
         let id = achievementIDCounter;
         achievementIDCounter += 1;
 
-        let newAchievement: Types.Achievement = {
+        let newAchievement: AchievementLine = {
             id = id;
             name = name;
-            individualAchievements = individualAchievements;
-            tier = determineTier(0, requiredProgress); // Initial tier based on zero progress
-            progress = 0;
-            requiredProgress = requiredProgress;
+            individualAchievements = []; // Inicialmente vacío, se agregan los logros individuales después
             categoryId = categoryId;
-            reward = rewards; // Allowing multiple rewards
+            reward = rewards;
+            requiredProgress = 0; // Inicialmente 0, se actualiza cuando se agregan logros individuales
             completed = false;
+            progress = 0;
         };
 
         achievements.put(id, newAchievement);
+
+        // Agregar este logro a su categoría
+        let categoryOpt = achievementCategories.get(categoryId);
+        switch (categoryOpt) {
+            case (null) return (false, "Category not found", id);
+            case (?category) {
+                let updatedCategory = {
+                    category with
+                    achievements = Array.append(category.achievements, [newAchievement])
+                };
+                achievementCategories.put(categoryId, updatedCategory);
+            };
+        };
+
         Debug.print("[createAchievement] Achievement created with ID: " # Nat.toText(id));
 
         return (true, "Achievement created successfully", id);
     };
 
-    public func createCategory(
-        name: Text, 
-        achievements: [Nat], 
+    public func createIndividualAchievement(
+        achievementId: Nat,
+        name: Text,
+        achievementType: AchievementType,
         requiredProgress: Nat,
-        rewards: [Types.AchievementReward]
+        rewards: [AchievementReward]
         ): async (Bool, Text, Nat) {
-        let id = categoryIDCounter;
-        categoryIDCounter += 1;
+        let id = individualAchievementIDCounter;
+        individualAchievementIDCounter += 1;
 
-        let newCategory: Types.AchievementCategory = {
+        let newIndividualAchievement: IndividualAchievement = {
             id = id;
             name = name;
-            achievements = achievements;
-            tier = determineTier(0, requiredProgress); // Initial tier based on zero progress
-            progress = 0;
+            achievementType = achievementType;
             requiredProgress = requiredProgress;
-            reward = rewards; // Allowing multiple rewards
+            reward = rewards;
+            achievementId = achievementId;
             completed = false;
+            progress = 0;
         };
 
-        categories.put(id, newCategory);
-        Debug.print("[createCategory] Category created with ID: " # Nat.toText(id));
+        individualAchievements.put(id, newIndividualAchievement);
 
-        return (true, "Category created successfully", id);
+        // Obtener el logro existente y actualizar su lista de logros individuales
+        var achievementOpt = achievements.get(achievementId);
+        switch (achievementOpt) {
+            case (null) return (false, "Achievement not found", id);
+            case (?achievement) {
+                // Actualizar la lista de logros individuales
+                let updatedAchievement = {
+                    achievement with
+                    individualAchievements = Array.append(achievement.individualAchievements, [newIndividualAchievement])
+                };
+
+                // Actualizar la categoría con el nuevo array de logros
+                let updatedAchievementsArray = updateAchievementsArray(updatedAchievement.categoryId, updatedAchievement);
+
+                // Colocar el logro actualizado en el HashMap
+                achievements.put(achievementId, updatedAchievement);
+
+                // Actualizar la categoría sin `await` si no es `async`
+                updateCategoryWithAchievement(updatedAchievement.categoryId, updatedAchievementsArray);
+            };
+        };
+
+        Debug.print("[createIndividualAchievement] Individual Achievement created with ID: " # Nat.toText(id));
+
+        return (true, "Individual Achievement created successfully", id);
     };
 
-    public func updateCategoryProgress(
-        user: PlayerId, 
-        categoryId: Nat
-        ): async (Bool, Text) {
-        let categoryOpt = categories.get(categoryId);
+    // Function to update achievements array in a category
+    func updateAchievementsArray(categoryId: Nat, updatedAchievement: AchievementLine): [AchievementLine] {
+        let categoryOpt = achievementCategories.get(categoryId);
         switch (categoryOpt) {
-            case (null) return (false, "Category not found");
+            case (null) {
+                Debug.print("Category not found");
+                return []; // Return an empty array if category is not found
+            };
             case (?category) {
-                let achievementsList = category.achievements;
-                var totalProgress: Nat = 0;
-                var allCompleted = true;
-
-                var userProgress: [AchievementProgress] = switch (categoryProgress.get(user)) {
-                    case (null) { [] };
-                    case (?progress) { progress };
-                };
-
-                for (achId in achievementsList.vals()) {
-                    let achOpt = achievements.get(achId);
-                    switch (achOpt) {
-                        case (?ach) {
-                            totalProgress += ach.progress;
-                            if (not ach.completed) {
-                                allCompleted := false;
-                            };
-                        };
-                        case (null) allCompleted := false;
-                    };
-                };
-
-                let isCompleted = totalProgress >= category.requiredProgress and allCompleted;
-
-                var updatedProgressList = Buffer.Buffer<AchievementProgress>(userProgress.size());
-                var found = false;
-                for (p in userProgress.vals()) {
-                    if (p.achievementId == categoryId) {
-                        updatedProgressList.add({
-                            achievementId = p.achievementId;
-                            playerId = p.playerId;
-                            progress = totalProgress;
-                            completed = isCompleted;
-                        });
-                        found := true;
+                var updatedAchievements: [AchievementLine] = [];
+                for (ach in category.achievements.vals()) {
+                    if (ach.id == updatedAchievement.id) {
+                        updatedAchievements := Array.append(updatedAchievements, [updatedAchievement]);
                     } else {
-                        updatedProgressList.add(p);
+                        updatedAchievements := Array.append(updatedAchievements, [ach]);
                     }
                 };
-                if (not found) {
-                    updatedProgressList.add({
-                        achievementId = categoryId;
-                        playerId = user;
-                        progress = totalProgress;
-                        completed = isCompleted;
-                    });
-                };
+                return updatedAchievements;
+            };
+        };
+    };
 
-                categoryProgress.put(user, Buffer.toArray(updatedProgressList));
-
-                categories.put(categoryId, {
+    // Function to update the category with the updated achievements array
+    func updateCategoryWithAchievement(categoryId: Nat, updatedAchievementsArray: [AchievementLine]) {
+        let categoryOpt = achievementCategories.get(categoryId);
+        switch (categoryOpt) {
+            case (null) Debug.print("Category not found");
+            case (?category) {
+                let updatedCategory = {
                     category with
-                    progress = totalProgress;
-                    completed = isCompleted;
-                });
-
-                return (true, "Category progress updated successfully");
-            };
-        };
-    };
-
-public func assignAchievementsToUser(user: PlayerId): async [(Nat, AchievementProgress)] {
-    Debug.print("[assignAchievementsToUser] Assigning achievements to user: " # Principal.toText(user));
-
-    var userAchievementsList: [Nat] = switch (playerAchievements.get(user)) {
-        case (null) { [] };
-        case (?achievements) { achievements };
-    };
-
-    let userAchievementsBuffer = Buffer.Buffer<Nat>(userAchievementsList.size());
-
-    // Copy existing achievements to the buffer
-    for (achievement in userAchievementsList.vals()) {
-        userAchievementsBuffer.add(achievement);
-    };
-
-    // Assign individual achievements
-    for ((id, _) in individualAchievements.entries()) {
-        if (not Utils.arrayContains<Nat>(userAchievementsList, id, Utils._natEqual)) {
-            userAchievementsBuffer.add(id);
-        }
-    };
-
-    // Assign general achievements
-    for ((id, _) in achievements.entries()) {
-        if (not Utils.arrayContains<Nat>(userAchievementsList, id, Utils._natEqual)) {
-            userAchievementsBuffer.add(id);
-        }
-    };
-
-    // Update player-specific achievement assignment
-    playerAchievements.put(user, Buffer.toArray(userAchievementsBuffer));
-
-    // Ensure that the progress map has an entry for this user
-    if (achievementProgress.get(user) == null) {
-        achievementProgress.put(user, []);
-    };
-
-    Debug.print("[assignAchievementsToUser] User achievements after update: " # debug_show(playerAchievements.get(user)));
-
-    // Now return a list of all achievements with their associated progress
-    let userProgressMap: [AchievementProgress] = switch (achievementProgress.get(user)) {
-        case (null) { [] };
-        case (?progress) { progress };
-    };
-
-    var achievementsWithProgress = Buffer.Buffer<(Nat, AchievementProgress)>(userAchievementsBuffer.size());
-
-    for (achievementId in userAchievementsBuffer.vals()) {
-        let progressOpt = Array.find<AchievementProgress>(userProgressMap, func(p) { p.achievementId == achievementId });
-        let progress = switch (progressOpt) {
-            case (null) {
-                // If there's no recorded progress, create a default one
-                {
-                    achievementId = achievementId;
-                    playerId = user;
-                    progress = 0;
-                    completed = false;
-                }
-            };
-            case (?existingProgress) {
-                existingProgress
-            };
-        };
-        achievementsWithProgress.add((achievementId, progress));
-    };
-
-    return Buffer.toArray(achievementsWithProgress);
-};
-
-
-public shared ({ caller }) func getAchievements(): async ([(AchievementCategory, [Achievement], [IndividualAchievementProgress])]) {
-    // Step 1: Assign new achievements to the user if not already assigned
-   // await assignAchievementsToUser(caller);
-
-    // Step 2: Get the achievements and progress assigned to the user
-    let userAchievementsList: [Nat] = switch (playerAchievements.get(caller)) {
-        case (null) { [] };
-        case (?achievements) { achievements };
-    };
-
-    let achievementsWithDetails = Buffer.Buffer<(AchievementCategory, [Achievement], [IndividualAchievementProgress])>(userAchievementsList.size());
-
-    // Get the progress associated with the user
-    var userProgressMap: [AchievementProgress] = switch (achievementProgress.get(caller)) {
-        case (null) { [] };
-        case (?progress) { progress };
-    };
-
-    // Collect achievements in each category
-    for (category in categories.vals()) {
-        let achievementsList = Buffer.Buffer<Achievement>(category.achievements.size());
-        let individualAchievementProgressList = Buffer.Buffer<IndividualAchievementProgress>(category.achievements.size());
-
-        for (achId in category.achievements.vals()) {
-            if (Utils.arrayContains<Nat>(userAchievementsList, achId, Utils._natEqual)) {
-                let achievementOpt = achievements.get(achId);
-                switch (achievementOpt) {
-                    case (null) {};
-                    case (?achievement) {
-                        achievementsList.add(achievement);
-
-                        for (indAchId in achievement.individualAchievements.vals()) {
-                            let indAchOpt = individualAchievements.get(indAchId);
-                            switch (indAchOpt) {
-                                case (null) {};
-                                case (?indAch) {
-                                    let progressOpt = Array.find<AchievementProgress>(userProgressMap, func(p) { p.achievementId == indAchId });
-                                    let indAchProgress: Types.IndividualAchievementProgress = switch (progressOpt) {
-                                        case (null) {
-                                            {
-                                                individualAchievement = indAch;
-                                                progress = 0;
-                                                completed = false;
-                                            };
-                                        };
-                                        case (?progress) {
-                                            {
-                                                individualAchievement = indAch;
-                                                progress = progress.progress;
-                                                completed = progress.completed;
-                                            };
-                                        };
-                                    };
-                                    individualAchievementProgressList.add(indAchProgress);
-                                };
-                            };
-                        }
-                    };
+                    achievements = updatedAchievementsArray
                 };
+                
+                achievementCategories.put(categoryId, updatedCategory);
             };
         };
-
-        if (achievementsList.size() > 0) {
-            achievementsWithDetails.add((category, Buffer.toArray(achievementsList), Buffer.toArray(individualAchievementProgressList)));
-        }
     };
 
-    return Buffer.toArray(achievementsWithDetails);
-};
+    public func assignAchievementsToUser(user: PlayerId): async () {
+        let userProgressOpt = userProgress.get(user);
 
-public query func searchActiveAchievements(user: PlayerId): async [(AchievementCategory, [Achievement], [IndividualAchievementProgress])] {
-    Debug.print("[searchActiveAchievements] Searching achievements for user: " # Principal.toText(user));
-
-    // Get the achievements and progress assigned to the user
-    let userAchievementsList: [Nat] = switch (playerAchievements.get(user)) {
-        case (null) { [] };
-        case (?achievements) { achievements };
-    };
-
-    Debug.print("[searchActiveAchievements] User's assigned achievements: " # debug_show(userAchievementsList));
-
-    let achievementsWithDetails = Buffer.Buffer<(AchievementCategory, [Achievement], [IndividualAchievementProgress])>(userAchievementsList.size());
-    
-    // Get individual achievement progress
-    var userProgress: [AchievementProgress] = switch (achievementProgress.get(user)) {
-        case (null) { [] };
-        case (?progress) { progress };
-    };
-
-    Debug.print("[searchActiveAchievements] User's progress: " # debug_show(userProgress));
-
-    // Collect achievements in each category
-    for (category in categories.vals()) {
-        let achievementsList = Buffer.Buffer<Achievement>(category.achievements.size());
-        let individualAchievementProgressList = Buffer.Buffer<IndividualAchievementProgress>(category.achievements.size());
-        
-        for (achId in category.achievements.vals()) {
-            if (Utils.arrayContains<Nat>(userAchievementsList, achId, Utils._natEqual)) {
-                let achievementOpt = achievements.get(achId);
-                switch (achievementOpt) {
-                    case (null) {};
-                    case (?achievement) {
-                        achievementsList.add(achievement);
-
-                        for (indAchId in achievement.individualAchievements.vals()) {
-                            let indAchOpt = individualAchievements.get(indAchId);
-                            switch (indAchOpt) {
-                                case (null) {};
-                                case (?indAch) {
-                                    // Find progress for this individual achievement
-                                    let progressOpt = Array.find<AchievementProgress>(userProgress, func(p) { p.achievementId == indAchId });
-                                    let indAchProgress: Types.IndividualAchievementProgress = switch (progressOpt) {
-                                        case (null) {
-                                            {
-                                                individualAchievement = indAch;
-                                                progress = 0;
-                                                completed = false;
-                                            };
-                                        };
-                                        case (?progress) {
-                                            {
-                                                individualAchievement = indAch;
-                                                progress = progress.progress;
-                                                completed = progress.completed;
-                                            };
-                                        };
-                                    };
-                                    individualAchievementProgressList.add(indAchProgress);
-                                };
-                            };
-                        }
-                    };
-                };
-            };
-        };
-
-        if (achievementsList.size() > 0) {
-            achievementsWithDetails.add((category, Buffer.toArray(achievementsList), Buffer.toArray(individualAchievementProgressList)));
-        }
-    };
-
-    Debug.print("[searchActiveAchievements] Achievements with details: " # debug_show(Buffer.toArray(achievementsWithDetails)));
-
-    return Buffer.toArray(achievementsWithDetails);
-};
-
-
-    public func updateIndividualAchievementProgress(
-        user: PlayerId, 
-        progressList: [AchievementProgress]
-        ): async (Bool, Text) {
-
-        // Get current user progress or initialize it
-        var userProgress: [AchievementProgress] = switch (achievementProgress.get(user)) {
+        var userCategoriesList: [AchievementCategory] = switch (userProgressOpt) {
             case (null) { [] };
-            case (?progress) { progress };
+            case (?categories) { categories };
         };
 
-        // Iterate through the new progress list
-        for (newProgress in progressList.vals()) {
-            var updated = false;
+        let categorySet = Set.new<AchievementCategory>(
+            userCategoriesList.size(),
+            func(a, b) { a.id == b.id },
+            func(a) { Utils._natHash(a.id) }
+        );
 
-            // Create a new array to hold the updated progress
-            let updatedProgressArray = Buffer.Buffer<AchievementProgress>(userProgress.size());
+        // Assign categories only, as they contain all needed data
+        for ((id, category) in achievementCategories.entries()) {
+            if (not Set.contains(categorySet, category)) {
+                userCategoriesList := Array.append(userCategoriesList, [category]);
+            }
+        };
 
-            // Update progress if it already exists for this achievement
-            for (progress in userProgress.vals()) {
-                if (progress.achievementId == newProgress.achievementId) {
-                    let requiredProgress = switch (individualAchievements.get(newProgress.achievementId)) {
-                        case (?indAch) indAch.requiredProgress;
-                        case (null) 0;
+        // Update the unified progress map with the assigned categories
+        userProgress.put(user, userCategoriesList);
+
+        Debug.print("[assignAchievementsToUser] User progress after update: " # debug_show(userProgress.get(user)));
+    };
+
+    public shared ({ caller }) func initAchievementsByCaller(): async [AchievementCategory] {
+        await assignAchievementsToUser(caller);
+        return await getUserAchievementsStructure(caller);
+    };
+
+    public query func getUserAchievementsStructure(user: PlayerId): async [AchievementCategory] {
+        let userProgressOpt = userProgress.get(user);
+
+        switch (userProgressOpt) {
+            case (null) {
+                Debug.print("[getUserAchievementsStructure] No progress found for user.");
+                return [];
+            };
+            case (?userCategoriesList) {
+                return userCategoriesList;
+            };
+        };
+    };
+
+    public shared({caller}) func getUserAchievementsStructureByCaller(): async [AchievementCategory] {
+        let userProgressOpt = userProgress.get(caller);
+
+        switch (userProgressOpt) {
+            case (null) {
+                Debug.print("[getUserAchievementsStructure] No progress found for user.");
+                return [];
+            };
+            case (?userCategoriesList) {
+                return userCategoriesList;
+            };
+        };
+    };
+
+    // Helper function to find the individual achievement
+    private func findIndividualAchievement(userCategoriesList : [AchievementCategory], individualAchievementId : Nat) 
+        : (?AchievementCategory, 
+            ?AchievementLine, 
+                ?IndividualAchievement) 
+        {
+            for (category in userCategoriesList.vals()) {
+                for (achievementLine in category.achievements.vals()) {
+                for (individualAchievement in achievementLine.individualAchievements.vals()) {
+                    if (individualAchievement.id == individualAchievementId) {
+                    return (?category, ?achievementLine, ?individualAchievement);
                     };
-                    let combinedProgress = progress.progress + newProgress.progress;
-                    let updatedProgress = {
-                        progress with 
-                        progress = combinedProgress;
-                        completed = combinedProgress >= requiredProgress;
-                    };
-                    updatedProgressArray.add(updatedProgress);
-                    updated := true;
-                } else {
-                    updatedProgressArray.add(progress); // Keep the existing progress as is
+                };
                 };
             };
 
-            // If this is a new progress entry, add it to the array
-            if (not updated) {
-                updatedProgressArray.add(newProgress);
-            };
-
-            // Update the user's progress with the new array
-            userProgress := Buffer.toArray(updatedProgressArray);
-        };
-
-        // Store the updated progress for the user
-        achievementProgress.put(user, userProgress);
-
-        return (true, "Achievement progress updated successfully");
+        return (null, null, null);
     };
+
+    public shared({caller}) func addProgressToIndividualAchievement(
+        individualAchievementId : Nat,
+        progressToAdd : Nat
+        ): async (?AchievementCategory, ?AchievementLine, ?IndividualAchievement) {
+        // Get the user's progress structure from the unified HashMap
+        let userProgressOpt = userProgress.get(caller);
+
+        switch (userProgressOpt) {
+            case (null) {
+                Debug.print("[addProgressToIndividualAchievement] User has no progress records.");
+                return (null,null,null);
+            };
+            case (?userCategoriesList) {
+                // Find the category and achievement line containing the individual achievement
+                let (category, achievementLine, individualAchievement) = findIndividualAchievement(userCategoriesList, individualAchievementId);
+                
+                switch (individualAchievement) {
+                    case (null) {
+                        Debug.print("[addProgressToIndividualAchievement] Individual Achievement not found.");
+                        return (null,null,null);
+                    };
+                    case (?individualAchievement) {
+                        // Update the individual achievement's progress
+                        let newProgress = individualAchievement.progress + progressToAdd;
+                        let isCompleted = newProgress >= individualAchievement.requiredProgress;
+
+                        // Create the updated individual achievement
+                        let updatedIndividualAchievement: IndividualAchievement = {
+                            id = individualAchievement.id;
+                            achievementId = individualAchievement.achievementId;
+                            name = individualAchievement.name;
+                            achievementType = individualAchievement.achievementType;
+                            requiredProgress = individualAchievement.requiredProgress;
+                            reward = individualAchievement.reward;
+                            progress = newProgress;
+                            completed = isCompleted;
+                        };
+
+                        // Update the achievement line with the new individual achievement
+                        switch (achievementLine) {
+                            case (null) { return (null,null,null);};
+                            case (?achievementLine) {
+
+                                var i= Array.indexOf<IndividualAchievement>(
+                                    individualAchievement,
+                                    achievementLine.individualAchievements,
+                                    func(a, b) { a.id == b.id }
+                                );
+
+                                let indexIndividual = switch(i) {
+                                    case null { return (null,null,null);};
+                                    case(?i) {
+                                        i;
+                                    };
+                                };
+                                                        
+                                // Create a mutable copy of the individual achievements array
+                                // Create a mutable copy of the achievements array
+                                let updIndividual = Array.tabulate<IndividualAchievement>(
+                                Array.size(achievementLine.individualAchievements),
+                                func(i: Nat): IndividualAchievement {
+                                    if (i == indexIndividual) {
+                                        updatedIndividualAchievement
+                                    } else {
+                                        achievementLine.individualAchievements[i]
+                                    }
+                                }
+                                );
+
+                                let updatedAchievementLine: AchievementLine = {
+                                    id = achievementLine.id;
+                                    name = achievementLine.name;   
+                                    individualAchievements = updIndividual;                           
+                                    categoryId = achievementLine.categoryId;
+                                    reward = achievementLine.reward;
+                                    requiredProgress = achievementLine.requiredProgress;
+                                    completed = achievementLine.completed;
+                                    progress = achievementLine.progress;
+                                    
+                                };
+
+        
+                                switch (category) {
+                                    case (null) { return (null,null,null);};
+                                    case (?category) {
+                                        let ic = Array.indexOf<AchievementLine>(
+                                            achievementLine,
+                                            category.achievements,
+                                            func(a, b) { a.id == b.id }
+                                        );
+                                        let indexInCategory = switch(ic) {
+                                            case null { return (null,null,null);};
+                                            case(?ic) {
+                                                ic;
+                                            };
+                                        };
+                                        let updLines = Array.tabulate<AchievementLine>(
+                                        Array.size(category.achievements),
+                                        func(i: Nat): AchievementLine {
+                                            if (i == indexInCategory) {
+                                                updatedAchievementLine
+                                            } else {
+                                                category.achievements[i]
+                                            }
+                                        }
+                                        );                                
+
+                                        let updatedCategory: AchievementCategory = {
+                                            id = category.id;
+                                            name = category.name;
+                                            achievements = updLines;
+                                            reward = category.reward;
+                                            requiredProgress = category.requiredProgress;
+                                            completed = category.completed;
+                                            progress = category.progress;
+                                        };
+
+                                        var a = userProgress.get(caller);
+
+                                        let categorieArray = switch(a) {
+                                            case null { return (null,null,null);};
+                                            case(?a) {
+                                                a;
+                                            };
+                                        };
+
+                            
+                                        let il = Array.indexOf<AchievementCategory>(
+                                            updatedCategory,
+                                            categorieArray,
+                                            func(a, b) { a.id == b.id }
+                                        );
+                                        let indexInCategoryArray = switch(il) {
+                                            case null { return (null,null,null);};
+                                            case(?il) {
+                                                il;
+                                            };
+                                        };
+                                        let updCategorieArray = Array.tabulate<AchievementCategory>(
+                                        Array.size(categorieArray),
+                                        func(i: Nat): AchievementCategory {
+                                            if (i == indexInCategoryArray) {
+                                                updatedCategory
+                                            } else {
+                                                categorieArray[i]
+                                            }
+                                        }
+                                        );   
+
+                                        userProgress.put(caller, updCategorieArray);
+
+                                        Debug.print("[addProgressToIndividualAchievement] Progress updated for Individual Achievement ID: " # Nat.toText(individualAchievementId));
+                                        return(?updatedCategory,
+                                        ?updatedAchievementLine,
+                                        ?updatedIndividualAchievement);
+                                    };
+                                };
+                            };
+                        };
+                    };
+                };
+            };
+        };
+    };
+
+    // queries deben tener estructurado los tipos nesteados en jerarquia Categoria/Linea/Individuales
 
     public shared(msg) func claimIndividualAchievementReward(achievementId: Nat): async (Bool, Text) {
-        let individualAchievementOpt = individualAchievements.get(achievementId);
-        switch (individualAchievementOpt) {
+        let userProgressOpt = userProgress.get(msg.caller);
+        switch (userProgressOpt) {
             case (null) {
-                return (false, "Individual Achievement not found");
+                return (false, "User has no progress records.");
             };
-            case (?individualAchievement) {
-                // Retrieve the user's progress for this achievement
-                let userProgress = switch (achievementProgress.get(msg.caller)) {
-                    case (null) { [] };
-                    case (?progress) { progress };
-                };
-
-                let progressOpt = Array.find<AchievementProgress>(userProgress, func(p) { p.achievementId == achievementId });
-                let progress = switch (progressOpt) {
-                    case (null) 0;
-                    case (?p) p.progress;
-                };
-
-                if (progress < individualAchievement.requiredProgress) {
-                    return (false, "Individual Achievement not completed");
-                };
-
-                let claimedRewards = switch (claimedAchievementRewards.get(msg.caller)) {
-                    case (null) { [] };
-                    case (?rewards) { rewards };
-                };
-
-                if (Array.find<Nat>(claimedRewards, func(r) { r == achievementId }) != null) {
-                    return (false, "Individual Achievement reward already claimed");
-                };
-
-                // Mint the rewards and collect messages
-                var rewardMessage: Text = "";
-                for (reward in individualAchievement.reward.vals()) {
-                    let (success, message) = await mintAchievementRewards(reward, msg.caller);
-                    if (not success) {
-                        return (false, message);
+            case (?userCategoriesList) {
+                let (_, _, individualAchievementOpt) = findIndividualAchievement(userCategoriesList, achievementId);
+                switch (individualAchievementOpt) {
+                    case (null) {
+                        return (false, "Individual Achievement not found");
                     };
-                    if (rewardMessage != "") {
-                        rewardMessage := rewardMessage # "; ";
+                    case (?individualAchievement) {
+                        if (not individualAchievement.completed) {
+                            return (false, "Individual Achievement not completed");
+                        };
+
+                        let claimedRewards = switch (claimedAchievementRewards.get(msg.caller)) {
+                            case (null) { [] };
+                            case (?rewards) { rewards };
+                        };
+
+                        if (Array.find<Nat>(claimedRewards, func(r) { r == achievementId }) != null) {
+                            return (false, "Individual Achievement reward already claimed");
+                        };
+
+                        // Mint the rewards and collect messages
+                        var rewardMessage: Text = "";
+                        for (reward in individualAchievement.reward.vals()) {
+                            // Ensure that `reward` is of the correct type
+                            let (success, message) = await mintAchievementRewards(reward, msg.caller);
+                            if (not success) {
+                                return (false, message);
+                            };
+                            rewardMessage := rewardMessage # "; " # message;
+                        };
+
+                        // Update claimed rewards
+                        let updatedClaimedRewardsBuffer = Buffer.Buffer<Nat>(claimedRewards.size() + 1);
+                        for (reward in claimedRewards.vals()) {
+                            updatedClaimedRewardsBuffer.add(reward);
+                        };
+                        updatedClaimedRewardsBuffer.add(achievementId);
+                        claimedAchievementRewards.put(msg.caller, Buffer.toArray(updatedClaimedRewardsBuffer));
+
+                        return (true, "Individual Achievement rewards claimed successfully. " # rewardMessage);
                     };
-                    rewardMessage := rewardMessage # message;
                 };
-
-                // Update claimed rewards
-                let updatedClaimedRewardsBuffer = Buffer.Buffer<Nat>(claimedRewards.size() + 1);
-                for (reward in claimedRewards.vals()) {
-                    updatedClaimedRewardsBuffer.add(reward);
-                };
-                updatedClaimedRewardsBuffer.add(achievementId);
-                claimedAchievementRewards.put(msg.caller, Buffer.toArray(updatedClaimedRewardsBuffer));
-
-                if (rewardMessage == "") {
-                    rewardMessage := "No rewards available to claim.";
-                };
-
-                return (true, "Individual Achievement rewards claimed successfully. " # rewardMessage);
-            }
+            };
         };
     };
 
     public shared(msg) func claimGeneralAchievementReward(achievementId: Nat): async (Bool, Text) {
-        let generalAchievementOpt = achievements.get(achievementId);
-        switch (generalAchievementOpt) {
+        // Find the achievement line in the user's progress
+        let userProgressOpt = userProgress.get(msg.caller);
+        switch (userProgressOpt) {
             case (null) {
-                return (false, "General Achievement not found");
+                return (false, "User has no progress records.");
             };
-            case (?generalAchievement) {
-                if (not generalAchievement.completed) {
-                    return (false, "General Achievement not completed");
-                };
+            case (?userCategoriesList) {
+                for (category in userCategoriesList.vals()) {
+                    for (achievementLine in category.achievements.vals()) {
+                        if (achievementLine.id == achievementId) {
+                            if (not achievementLine.completed) {
+                                return (false, "General Achievement not completed");
+                            };
 
-                let claimedRewards = switch (claimedAchievementRewards.get(msg.caller)) {
-                    case (null) { [] };
-                    case (?rewards) { rewards };
-                };
+                            let claimedRewards = switch (claimedAchievementRewards.get(msg.caller)) {
+                                case (null) { [] };
+                                case (?rewards) { rewards };
+                            };
 
-                if (Array.find<Nat>(claimedRewards, func(r) { r == achievementId }) != null) {
-                    return (false, "General Achievement reward already claimed");
-                };
+                            if (Array.find<Nat>(claimedRewards, func(r) { r == achievementId }) != null) {
+                                return (false, "General Achievement reward already claimed");
+                            };
 
-                // Mint the rewards and collect messages
-                var rewardMessage: Text = "";
-                for (reward in generalAchievement.reward.vals()) {
-                    let (success, message) = await mintAchievementRewards(reward, msg.caller);
-                    if (not success) {
-                        return (false, message);
+                            // Mint the rewards and collect messages
+                            var rewardMessage: Text = "";
+                            for (reward in achievementLine.reward.vals()) {
+                                let (success, message) = await mintAchievementRewards(reward, msg.caller);
+                                if (not success) {
+                                    return (false, message);
+                                };
+                                rewardMessage := rewardMessage # "; " # message;
+                            };
+
+                            // Update claimed rewards
+                            let updatedClaimedRewardsBuffer = Buffer.Buffer<Nat>(claimedRewards.size() + 1);
+                            for (reward in claimedRewards.vals()) {
+                                updatedClaimedRewardsBuffer.add(reward);
+                            };
+                            updatedClaimedRewardsBuffer.add(achievementId);
+                            claimedAchievementRewards.put(msg.caller, Buffer.toArray(updatedClaimedRewardsBuffer));
+
+                            return (true, "General Achievement rewards claimed successfully. " # rewardMessage);
+                        };
                     };
-                    rewardMessage #= " " # message; // Accumulate messages
                 };
-
-                // Update claimed rewards
-                let updatedClaimedRewardsBuffer = Buffer.Buffer<Nat>(claimedRewards.size() + 1);
-                for (reward in claimedRewards.vals()) {
-                    updatedClaimedRewardsBuffer.add(reward);
-                };
-                updatedClaimedRewardsBuffer.add(achievementId);
-                claimedAchievementRewards.put(msg.caller, Buffer.toArray(updatedClaimedRewardsBuffer));
-
-                return (true, "General Achievement rewards claimed successfully." # rewardMessage);
+                return (false, "General Achievement not found");
             };
         };
     };
 
     public shared(msg) func claimCategoryAchievementReward(categoryId: Nat): async (Bool, Text) {
-        let categoryOpt = categories.get(categoryId);
-        switch (categoryOpt) {
+        // Find the achievement category in the user's progress
+        let userProgressOpt = userProgress.get(msg.caller);
+        switch (userProgressOpt) {
             case (null) {
-                return (false, "Achievement Category not found");
+                return (false, "User has no progress records.");
             };
-            case (?category) {
-                if (not category.completed) {
-                    return (false, "Achievement Category not completed");
-                };
+            case (?userCategoriesList) {
+                for (category in userCategoriesList.vals()) {
+                    if (category.id == categoryId) {
+                        if (not category.completed) {
+                            return (false, "Achievement Category not completed");
+                        };
 
-                let claimedRewards = switch (claimedAchievementRewards.get(msg.caller)) {
-                    case (null) { [] };
-                    case (?rewards) { rewards };
-                };
+                        let claimedRewards = switch (claimedAchievementRewards.get(msg.caller)) {
+                            case (null) { [] };
+                            case (?rewards) { rewards };
+                        };
 
-                if (Array.find<Nat>(claimedRewards, func(r) { r == categoryId }) != null) {
-                    return (false, "Achievement Category reward already claimed");
-                };
+                        if (Array.find<Nat>(claimedRewards, func(r) { r == categoryId }) != null) {
+                            return (false, "Achievement Category reward already claimed");
+                        };
 
-                // Mint the rewards and collect messages
-                var rewardMessage: Text = "";
-                for (reward in category.reward.vals()) {
-                    let (success, message) = await mintAchievementRewards(reward, msg.caller);
-                    if (not success) {
-                        return (false, message);
+                        // Mint the rewards and collect messages
+                        var rewardMessage: Text = "";
+                        for (reward in category.reward.vals()) {
+                            let (success, message) = await mintAchievementRewards(reward, msg.caller);
+                            if (not success) {
+                                return (false, message);
+                            };
+                            rewardMessage := rewardMessage # "; " # message;
+                        };
+
+                        // Update claimed rewards
+                        let updatedClaimedRewardsBuffer = Buffer.Buffer<Nat>(claimedRewards.size() + 1);
+                        for (reward in claimedRewards.vals()) {
+                            updatedClaimedRewardsBuffer.add(reward);
+                        };
+                        updatedClaimedRewardsBuffer.add(categoryId);
+                        claimedAchievementRewards.put(msg.caller, Buffer.toArray(updatedClaimedRewardsBuffer));
+
+                        return (true, "Achievement Category rewards claimed successfully. " # rewardMessage);
                     };
-                    rewardMessage #= " " # message; // Accumulate messages
                 };
-
-                // Update claimed rewards
-                let updatedClaimedRewardsBuffer = Buffer.Buffer<Nat>(claimedRewards.size() + 1);
-                for (reward in claimedRewards.vals()) {
-                    updatedClaimedRewardsBuffer.add(reward);
-                };
-                updatedClaimedRewardsBuffer.add(categoryId);
-                claimedAchievementRewards.put(msg.caller, Buffer.toArray(updatedClaimedRewardsBuffer));
-
-                return (true, "Achievement Category rewards claimed successfully." # rewardMessage);
+                return (false, "Achievement Category not found");
             };
         };
     };
 
-    func mintAchievementRewards(reward: Types.AchievementReward, caller: Types.PlayerId): async (Bool, Text) {
+
+    func mintAchievementRewards(reward: AchievementReward, caller: Types.PlayerId): async (Bool, Text) {
         switch (reward.rewardType) {
             case (#Stardust) {
                 let mintArgs: ICRC1.Mint = {
@@ -1881,111 +1890,60 @@ public query func searchActiveAchievements(user: PlayerId): async [(AchievementC
         }
     };
 
-    public func updateAvatarChangeAchievement(user: PlayerId): async (Bool, Text) {
-        let progressList: [AchievementProgress] = [{
-            achievementId = 3;
-            playerId = user;
-            progress = 1;
-            completed = false;
-        }];
+public func updateAvatarChangeAchievement(user: PlayerId): async (Bool, Text) {
+    let individualAchievementId: Nat = 3;  // Replace with the actual ID for the Avatar Change Achievement
+    let progressToAdd: Nat = 1;
 
-        return await updateIndividualAchievementProgress(user, progressList);
-    };
+    let (categoryOpt, achievementLineOpt, individualAchievementOpt) = await addProgressToIndividualAchievement(individualAchievementId, progressToAdd);
 
-    public func updateUpgradeNFTAchievement(user: PlayerId): async (Bool, Text) {
-        var currentProgress: Nat = 0;
-
-        // Retrieve current progress if it exists
-        let existingProgressListOpt = achievementProgress.get(user);
-        switch (existingProgressListOpt) {
-            case (?progressList) {
-                for (progress in progressList.vals()) {
-                    if (progress.achievementId == 5) {
-                        currentProgress := progress.progress;
-                    };
-                };
-            };
-            case (null) {}; // No existing progress, continue with currentProgress = 0
+    switch (individualAchievementOpt) {
+        case (null) {
+            return (false, "Failed to update Avatar Change Achievement.");
         };
-
-        // Increment the progress
-        let newProgress: Nat = currentProgress + 1;
-
-        let progressList: [AchievementProgress] = [{
-            achievementId = 5;
-            playerId = user;
-            progress = newProgress;
-            completed = false;
-        }];
-
-        return await updateIndividualAchievementProgress(user, progressList);
-    };
-
-    public func updateAddFriendAchievement(user: PlayerId): async (Bool, Text) {
-        var currentProgress: Nat = 0;
-
-        // Retrieve current progress if it exists
-        let existingProgressListOpt = achievementProgress.get(user);
-        switch (existingProgressListOpt) {
-            case (?progressList) {
-                for (progress in progressList.vals()) {
-                    if (progress.achievementId == 4) {
-                        currentProgress := progress.progress;
-                    };
-                };
-            };
-            case (null) {}; // No existing progress, continue with currentProgress = 0
+        case (?individualAchievement) {
+            return (true, "Avatar Change Achievement updated successfully.");
         };
-
-        // Increment the progress
-        let newProgress: Nat = currentProgress + 1;
-
-        let progressList: [AchievementProgress] = [{
-            achievementId = 4;
-            playerId = user;
-            progress = newProgress;
-            completed = false;
-        }];
-
-        return await updateIndividualAchievementProgress(user, progressList);
     };
+};
+
+public func updateUpgradeNFTAchievement(user: PlayerId): async (Bool, Text) {
+    let individualAchievementId: Nat = 5;  // Replace with the actual ID for the Upgrade NFT Achievement
+    let progressToAdd: Nat = 1;
+
+    let (categoryOpt, achievementLineOpt, individualAchievementOpt) = await addProgressToIndividualAchievement(individualAchievementId, progressToAdd);
+
+    switch (individualAchievementOpt) {
+        case (null) {
+            return (false, "Failed to update Upgrade NFT Achievement.");
+        };
+        case (?individualAchievement) {
+            return (true, "Upgrade NFT Achievement updated successfully.");
+        };
+    };
+};
+
+public func updateAddFriendAchievement(user: PlayerId): async (Bool, Text) {
+    let individualAchievementId: Nat = 4;  // Replace with the actual ID for the Add Friend Achievement
+    let progressToAdd: Nat = 1;
+
+    let (categoryOpt, achievementLineOpt, individualAchievementOpt) = await addProgressToIndividualAchievement(individualAchievementId, progressToAdd);
+
+    switch (individualAchievementOpt) {
+        case (null) {
+            return (false, "Failed to update Add Friend Achievement.");
+        };
+        case (?individualAchievement) {
+            return (true, "Add Friend Achievement updated successfully.");
+        };
+    };
+};
 
     
 //--
 // Progress Manager
 
-    func mapPlayerStatsToAchievementProgress(user: Principal, playerStats: {
-        secRemaining: Nat;
-        energyGenerated: Nat;
-        damageDealt: Nat;
-        damageTaken: Nat;
-        energyUsed: Nat;
-        deploys: Nat;
-        faction: Nat;
-        gameMode: Nat;
-        xpEarned: Nat;
-        kills: Nat;
-        wonGame: Bool;
-        }): [AchievementProgress] {
-        let achievementProgressBuffer = Buffer.Buffer<AchievementProgress>(9);
 
-        achievementProgressBuffer.add({ achievementId = 0; playerId = user; progress = 1; completed = false }); // GamesCompleted
-        achievementProgressBuffer.add({ achievementId = 1; playerId = user; progress = playerStats.damageDealt; completed = false }); // DamageDealt
-        achievementProgressBuffer.add({ achievementId = 2; playerId = user; progress = playerStats.damageTaken; completed = false }); // DamageTaken
-        achievementProgressBuffer.add({ achievementId = 3; playerId = user; progress = playerStats.energyUsed; completed = false }); // EnergyUsed
-        achievementProgressBuffer.add({ achievementId = 4; playerId = user; progress = playerStats.deploys; completed = false }); // UnitsDeployed
-        achievementProgressBuffer.add({ achievementId = 5; playerId = user; progress = playerStats.faction; completed = false }); // FactionPlayed
-        achievementProgressBuffer.add({ achievementId = 6; playerId = user; progress = playerStats.gameMode; completed = false }); // GameModePlayed
-        achievementProgressBuffer.add({ achievementId = 7; playerId = user; progress = playerStats.xpEarned; completed = false }); // XPEarned
-        achievementProgressBuffer.add({ achievementId = 8; playerId = user; progress = playerStats.kills; completed = false }); // Kills
-
-        if (playerStats.wonGame) {
-            achievementProgressBuffer.add({ achievementId = 9; playerId = user; progress = 1; completed = false }); // GamesWon
-        };
-
-        return Buffer.toArray(achievementProgressBuffer);
-    };
-    // Function to update achievement progress manager
+    // Function to update achievement progress manager (cleaned version)
     func updateAchievementProgressManager(user: Principal, playerStats: {
         secRemaining: Nat;
         energyGenerated: Nat;
@@ -2001,28 +1959,9 @@ public query func searchActiveAchievements(user: PlayerId): async [(AchievementC
         // Add other criteria like tokens minted, friends added, etc. here
         }): async (Bool, Text) {
 
-        // Step 1: Generate initial achievement progress list
-        var achievementProgressList = mapPlayerStatsToAchievementProgress(user, playerStats);
+        // Cleaned version - no operations performed
 
-        // Step 2: Initialize a buffer with the size of the initial list
-        let progressBuffer = Buffer.Buffer<AchievementProgress>(achievementProgressList.size());
-
-        // Step 3: Add initial achievement progress to the buffer
-        for (progress in achievementProgressList.vals()) {
-            progressBuffer.add(progress);
-        };
-
-        // Step 4: Add progress from other sources (tokens minted, friends added, etc.)
-        // Example:
-        // progressBuffer.add({ achievementId = 10; playerId = user; progress = tokensMinted; completed = false });
-
-        // Convert the buffer back to an array before sending it to the next function
-        let finalAchievementProgressList = Buffer.toArray(progressBuffer);
-
-        // Step 5: Call the function to update individual achievement progress with the final list
-        let (result, message) = await updateIndividualAchievementProgress(user, finalAchievementProgressList);
-
-        return (result, message);
+        return (true, "Achievement progress manager update skipped.");
     };
 
     public func updateProgressManager(user: Principal, playerStats: PlayerStats): async (Bool, Text) {
@@ -2539,8 +2478,11 @@ public query func searchActiveAchievements(user: PlayerId): async [(AchievementC
                 };
                 players.put(playerId, newPlayer);
 
-                // Call getAchievements function asynchronously without waiting for its result
-                ignore await getAchievements();
+                // Initialization of player into the system asynchronously without waiting for its result
+                ignore await mintDeck();
+                ignore await initAchievementsByCaller();
+                ignore await getGeneralMissions();
+                ignore await getUserMissions();
 
                 return (true, ?newPlayer, "User registered successfully");
             };
@@ -6737,10 +6679,6 @@ public query func searchActiveAchievements(user: PlayerId): async [(AchievementC
 
         _individualAchievements := Iter.toArray(individualAchievements.entries());
         _achievements := Iter.toArray(achievements.entries());
-        _categories := Iter.toArray(categories.entries());
-        _achievementProgress := Iter.toArray(achievementProgress.entries());
-        _playerAchievements := Iter.toArray(playerAchievements.entries());
-        _categoryProgress := Iter.toArray(categoryProgress.entries());
         _claimedAchievementRewards := Iter.toArray(claimedAchievementRewards.entries());
 
         _players := Iter.toArray(players.entries());
@@ -6778,10 +6716,6 @@ public query func searchActiveAchievements(user: PlayerId): async [(AchievementC
 
         individualAchievements := HashMap.fromIter(_individualAchievements.vals(), 0, Utils._natEqual, Utils._natHash);
         achievements := HashMap.fromIter(_achievements.vals(), 0, Utils._natEqual, Utils._natHash);
-        categories := HashMap.fromIter(_categories.vals(), 0, Utils._natEqual, Utils._natHash);
-        achievementProgress := HashMap.fromIter(_achievementProgress.vals(), 0, Principal.equal, Principal.hash);
-        playerAchievements := HashMap.fromIter(_playerAchievements.vals(), 0, Principal.equal, Principal.hash);
-        categoryProgress := HashMap.fromIter(_categoryProgress.vals(), 0, Principal.equal, Principal.hash);
         claimedAchievementRewards := HashMap.fromIter(_claimedAchievementRewards.vals(), 0, Principal.equal, Principal.hash);
 
         players := HashMap.fromIter(_players.vals(), 0, Principal.equal, Principal.hash);
