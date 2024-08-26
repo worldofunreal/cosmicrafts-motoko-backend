@@ -1920,107 +1920,106 @@ shared actor class Cosmicrafts() = Self {
         };
     };
 
-public shared func mintAchievementRewards(reward: AchievementReward, caller: Types.PlayerId): async (Bool, Text) {
-    switch (reward.rewardType) {
-        case (#Stardust) {
-            let mintArgs: ICRC1.Mint = {
-                to = { owner = caller; subaccount = null };
-                amount = reward.amount;
-                memo = null;
-                created_at_time = ?Nat64.fromNat(Int.abs(Time.now()));
-            };
-            let mintResult = await mint(mintArgs);
-            switch (mintResult) {
-                case (#Ok(_transactionID)) {
-                    await updateMintedStardust(caller, reward.amount);
-                    return (true, "Stardust minted successfully. Quantity: " # Nat.toText(reward.amount));
+    public shared func mintAchievementRewards(reward: AchievementReward, caller: Types.PlayerId): async (Bool, Text) {
+        switch (reward.rewardType) {
+            case (#Stardust) {
+                let mintArgs: ICRC1.Mint = {
+                    to = { owner = caller; subaccount = null };
+                    amount = reward.amount;
+                    memo = null;
+                    created_at_time = ?Nat64.fromNat(Int.abs(Time.now()));
                 };
-                case (#Err(_error)) {
-                    return (false, "Minting stardust failed");
-                };
-            };
-        };
-        case (#Chest) {
-            let (success, message) = await mintChest(caller, reward.amount);
-            if (success) {
-                return (true, "Chest minted successfully. Quantity: " # Nat.toText(reward.amount));
-            };
-            return (success, message);
-        };
-        case (#NFT) {
-            let nftTemplateId = reward.amount; // Use the reward amount as the template ID
-            let mintResult = await mintUnit(nftTemplateId, caller); // Pass caller to mint the NFT for the player
-            switch (mintResult) {
-                case (#Ok(_tokenId)) {
-                    return (true, "Unit NFT minted successfully.");
-                };
-                case (#Err(_error)) {
-                    return (false, "Minting Unit NFT failed");
-                };
-            };
-        };
-        case (#Title) {
-            let titleId = reward.amount;
-            let userTitles = switch (availableTitles.get(caller)) {
-                case (null) { [] };
-                case (?titles) { titles };
-            };
-
-            if (Array.find<Nat>(userTitles, func(t) { t == titleId }) == null) {
-                let updatedTitlesBuffer = Buffer.Buffer<Nat>(userTitles.size() + 1);
-                for (titleId in userTitles.vals()) {
-                    updatedTitlesBuffer.add(titleId);
-                };
-                updatedTitlesBuffer.add(titleId);
-                availableTitles.put(caller, Buffer.toArray(updatedTitlesBuffer));
-                return (true, "Title added successfully.");
-            };
-            return (false, "Title already exists for the user.");
-        };
-        case (#Avatar) {
-            let avatarId = reward.amount;
-            let userAvatars = switch (availableAvatars.get(caller)) {
-                case (null) { [] };
-                case (?avatars) { avatars };
-            };
-
-            if (Array.find<Nat>(userAvatars, func(a) { a == avatarId }) == null) {
-                let updatedAvatarsBuffer = Buffer.Buffer<Nat>(userAvatars.size() + 1);
-                for (avatarId in userAvatars.vals()) {
-                    updatedAvatarsBuffer.add(avatarId);
-                };
-                updatedAvatarsBuffer.add(avatarId);
-                availableAvatars.put(caller, Buffer.toArray(updatedAvatarsBuffer));
-                return (true, "Avatar added successfully.");
-            };
-            return (false, "Avatar already exists for the user.");
-        };
-        case (#XP) {
-            var playerStatsOpt = playerGamesStats.get(caller);
-            if (playerStatsOpt == null) {
-                ignore await _initializeNewPlayerStats(caller);
-                playerStatsOpt := playerGamesStats.get(caller);
-            };
-
-            switch (playerStatsOpt) {
-                case (null) {
-                    return (false, "Failed to initialize player stats.");
-                };
-                case (?stats) {
-                    let updatedStats = {
-                        stats with totalXpEarned = stats.totalXpEarned + reward.amount
+                let mintResult = await mint(mintArgs);
+                switch (mintResult) {
+                    case (#Ok(_transactionID)) {
+                        await updateMintedStardust(caller, reward.amount);
+                        return (true, "Stardust minted successfully. Quantity: " # Nat.toText(reward.amount));
                     };
-                    playerGamesStats.put(caller, updatedStats);
-
-                    await updatePlayerLevel(caller);
-
-                    return (true, "XP minted successfully. XP added: " # Nat.toText(reward.amount));
+                    case (#Err(_error)) {
+                        return (false, "Minting stardust failed");
+                    };
                 };
             };
-        };
-    }
-};
+            case (#Chest) {
+                let (success, message) = await mintChest(caller, reward.amount);
+                if (success) {
+                    return (true, "Chest minted successfully with Rarity " # Nat.toText(reward.amount));
+                };
+                return (success, message);
+            };
+            case (#NFT) {
+                let nftTemplateId = reward.amount; // Use the reward amount as the template ID
+                let mintResult = await mintUnit(nftTemplateId, caller); // Pass caller to mint the NFT for the player
+                switch (mintResult) {
+                    case (#Ok(tokenId)) {
+                        return (true, " NFT minted successfully with Token ID: " # Nat.toText(tokenId));
+                    };
+                    case (#Err(_error)) {
+                        return (false, "Minting Unit NFT failed");
+                    };
+                };
+            };
+            case (#Title) {
+                let titleId = reward.amount;
+                let userTitles = switch (availableTitles.get(caller)) {
+                    case (null) { [] };
+                    case (?titles) { titles };
+                };
 
+                if (Array.find<Nat>(userTitles, func(t) { t == titleId }) == null) {
+                    let updatedTitlesBuffer = Buffer.Buffer<Nat>(userTitles.size() + 1);
+                    for (titleId in userTitles.vals()) {
+                        updatedTitlesBuffer.add(titleId);
+                    };
+                    updatedTitlesBuffer.add(titleId);
+                    availableTitles.put(caller, Buffer.toArray(updatedTitlesBuffer));
+                    return (true, "Title ID earned: " # Nat.toText(titleId));
+                };
+                return (false, "Title already exists for the user.");
+            };
+            case (#Avatar) {
+                let avatarId = reward.amount;
+                let userAvatars = switch (availableAvatars.get(caller)) {
+                    case (null) { [] };
+                    case (?avatars) { avatars };
+                };
+
+                if (Array.find<Nat>(userAvatars, func(a) { a == avatarId }) == null) {
+                    let updatedAvatarsBuffer = Buffer.Buffer<Nat>(userAvatars.size() + 1);
+                    for (avatarId in userAvatars.vals()) {
+                        updatedAvatarsBuffer.add(avatarId);
+                    };
+                    updatedAvatarsBuffer.add(avatarId);
+                    availableAvatars.put(caller, Buffer.toArray(updatedAvatarsBuffer));
+                    return (true, "Avatar ID earned: " # Nat.toText(avatarId));
+                };
+                return (false, "Avatar already exists for the user.");
+            };
+            case (#XP) {
+                var playerStatsOpt = playerGamesStats.get(caller);
+                if (playerStatsOpt == null) {
+                    ignore await _initializeNewPlayerStats(caller);
+                    playerStatsOpt := playerGamesStats.get(caller);
+                };
+
+                switch (playerStatsOpt) {
+                    case (null) {
+                        return (false, "Failed to initialize player stats.");
+                    };
+                    case (?stats) {
+                        let updatedStats = {
+                            stats with totalXpEarned = stats.totalXpEarned + reward.amount
+                        };
+                        playerGamesStats.put(caller, updatedStats);
+
+                        await updatePlayerLevel(caller);
+
+                        return (true, "XP earned: " # Nat.toText(reward.amount));
+                    };
+                };
+            };
+        }
+    };
 
     public func updateAvatarChangeAchievement(user: PlayerId): async (Bool, Text) {
         let individualAchievementId: Nat = 3;  // Replace with the actual ID for the Avatar Change Achievement
@@ -7334,7 +7333,7 @@ public shared func mintAchievementRewards(reward: AchievementReward, caller: Typ
 
     private let titles: [Title] = [
         { id = 1; title = "Starbound Initiate"; description = "Welcome to Cosmicrafts commander, you are now in the Metaverse" },
-        { id = 98; title = "Ambassador"; description = "The Spiral is strong in you, thank you for your service commander" },
+        { id = 98; title = "Cosmicrafts Ambassador"; description = "The Spiral is strong in you, thank you for your service commander" },
         { id = 99; title = "Cosmicrafts Founder"; description = "Founder of Cosmicrafts you will be remembered forever across the Metaverse" },
         { id = 91; title = "Twitter Ambassador"; description = "Awarded for your outstanding presence on Twitter." },
         { id = 92; title = "Discord Ambassador"; description = "Awarded for your strong community engagement on Discord." },
@@ -7447,7 +7446,7 @@ public shared func mintAchievementRewards(reward: AchievementReward, caller: Typ
     };
 
     // Function to update the selected title for a user
-    public shared(msg) func updateUserTitle(titleId: Nat): async (Bool, Text) {
+    public shared(msg) func updateTitle(titleId: Nat): async (Bool, Text) {
         let userTitlesOpt = availableTitles.get(msg.caller);
         switch (userTitlesOpt) {
             case (null) {
