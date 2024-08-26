@@ -1448,7 +1448,6 @@ shared actor class Cosmicrafts() = Self {
         };
     };
 
-    // Helper function to find the individual achievement
     private func findIndividualAchievement(userCategoriesList : [AchievementCategory], individualAchievementId : Nat) 
         : (?AchievementCategory, 
             ?AchievementLine, 
@@ -1595,8 +1594,6 @@ shared actor class Cosmicrafts() = Self {
             };
         };
     };
-
-        // queries deben tener estructurado los tipos nesteados en jerarquia Categoria/Linea/Individuales
 
     public shared(msg) func claimIndividualAchievementReward(achievementId: Nat): async (Bool, Text) {
         let userProgressOpt = userProgress.get(msg.caller);
@@ -1923,121 +1920,107 @@ shared actor class Cosmicrafts() = Self {
         };
     };
 
-    public shared func mintAchievementRewards(reward: AchievementReward, caller: Types.PlayerId): async (Bool, Text) {
-        switch (reward.rewardType) {
-            case (#Stardust) {
-                let mintArgs: ICRC1.Mint = {
-                    to = { owner = caller; subaccount = null };
-                    amount = reward.amount;
-                    memo = null;
-                    created_at_time = ?Nat64.fromNat(Int.abs(Time.now()));
+public shared func mintAchievementRewards(reward: AchievementReward, caller: Types.PlayerId): async (Bool, Text) {
+    switch (reward.rewardType) {
+        case (#Stardust) {
+            let mintArgs: ICRC1.Mint = {
+                to = { owner = caller; subaccount = null };
+                amount = reward.amount;
+                memo = null;
+                created_at_time = ?Nat64.fromNat(Int.abs(Time.now()));
+            };
+            let mintResult = await mint(mintArgs);
+            switch (mintResult) {
+                case (#Ok(_transactionID)) {
+                    await updateMintedStardust(caller, reward.amount);
+                    return (true, "Stardust minted successfully. Quantity: " # Nat.toText(reward.amount));
                 };
-                let mintResult = await mint(mintArgs);
-                switch (mintResult) {
-                    case (#Ok(_transactionID)) {
-                        await updateMintedStardust(caller, reward.amount);
-                        return (true, "Stardust minted successfully. Quantity: " # Nat.toText(reward.amount));
-                    };
-                    case (#Err(_error)) {
-                        return (false, "Minting stardust failed");
-                    };
+                case (#Err(_error)) {
+                    return (false, "Minting stardust failed");
                 };
             };
-            case (#Chest) {
-                let (success, message) = await mintChest(caller, reward.amount);
-                if (success) {
-                    return (true, "Chest minted successfully. Quantity: " # Nat.toText(reward.amount));
-                };
-                return (success, message);
+        };
+        case (#Chest) {
+            let (success, message) = await mintChest(caller, reward.amount);
+            if (success) {
+                return (true, "Chest minted successfully. Quantity: " # Nat.toText(reward.amount));
             };
-            case (#NFT) {
-                let nftDetails: NFTDetails = {
-                    unitType = #Spaceship;  // Example: Customize this as needed
-                    name = "Lazerhawk";
-                    description = "Wow a lazer wow";
-                    image = "image_of_lazerhawk";
-                    faction = #Celestial;
-                    rarity = 4;
-                    level = 1;
-                    health = 0;
-                    damage = 0;
-                    combatExperience = 21;
+            return (success, message);
+        };
+        case (#NFT) {
+            let nftTemplateId = reward.amount; // Use the reward amount as the template ID
+            let mintResult = await mintUnit(nftTemplateId, caller); // Pass caller to mint the NFT for the player
+            switch (mintResult) {
+                case (#Ok(_tokenId)) {
+                    return (true, "Unit NFT minted successfully.");
                 };
-
-                let mintResult = await mintUnit(nftDetails);
-
-                switch (mintResult) {
-                    case (#Ok(_tokenId)) {
-                        return (true, "Unit NFT minted successfully.");
-                    };
-                    case (#Err(_error)) {
-                        return (false, "Minting Unit NFT failed");
-                    };
+                case (#Err(_error)) {
+                    return (false, "Minting Unit NFT failed");
                 };
             };
-            case (#Title) {
-                let titleQuantity = reward.amount;
-                var success: Bool = true;
-                var titleMessagesText: Text = "";
-
-                for (_i in Iter.range(0, titleQuantity - 1)) {
-                    let (addSuccess, resultMessage) = await addTitleToUser("TitleName");  // Replace "TitleName" with the actual title
-                    if (titleMessagesText != "") {
-                        titleMessagesText := titleMessagesText # "; ";
-                    };
-                    titleMessagesText := titleMessagesText # resultMessage;
-                    if (not addSuccess) {
-                        success := false;
-                    };
-                };
-
-                return (success, titleMessagesText);
+        };
+        case (#Title) {
+            let titleId = reward.amount;
+            let userTitles = switch (availableTitles.get(caller)) {
+                case (null) { [] };
+                case (?titles) { titles };
             };
-            case (#Avatar) {
-                let avatarQuantity = reward.amount;
-                var success: Bool = true;
-                var avatarMessagesText: Text = "";
 
-                for (_i in Iter.range(0, avatarQuantity - 1)) {
-                    let (addSuccess, resultMessage) = await addAvatarToUser(_i + 1);  // Replace _i + 1 with the actual avatar ID if different
-                    if (avatarMessagesText != "") {
-                        avatarMessagesText := avatarMessagesText # "; ";
-                    };
-                    avatarMessagesText := avatarMessagesText # resultMessage;
-                    if (not addSuccess) {
-                        success := false;
-                    };
+            if (Array.find<Nat>(userTitles, func(t) { t == titleId }) == null) {
+                let updatedTitlesBuffer = Buffer.Buffer<Nat>(userTitles.size() + 1);
+                for (titleId in userTitles.vals()) {
+                    updatedTitlesBuffer.add(titleId);
                 };
-
-                return (success, avatarMessagesText);
+                updatedTitlesBuffer.add(titleId);
+                availableTitles.put(caller, Buffer.toArray(updatedTitlesBuffer));
+                return (true, "Title added successfully.");
             };
-            case (#XP) {
-                // Handle XP reward
-                var playerStatsOpt = playerGamesStats.get(caller);
-                if (playerStatsOpt == null) {
-                    ignore await _initializeNewPlayerStats(caller);
-                    playerStatsOpt := playerGamesStats.get(caller);
+            return (false, "Title already exists for the user.");
+        };
+        case (#Avatar) {
+            let avatarId = reward.amount;
+            let userAvatars = switch (availableAvatars.get(caller)) {
+                case (null) { [] };
+                case (?avatars) { avatars };
+            };
+
+            if (Array.find<Nat>(userAvatars, func(a) { a == avatarId }) == null) {
+                let updatedAvatarsBuffer = Buffer.Buffer<Nat>(userAvatars.size() + 1);
+                for (avatarId in userAvatars.vals()) {
+                    updatedAvatarsBuffer.add(avatarId);
                 };
+                updatedAvatarsBuffer.add(avatarId);
+                availableAvatars.put(caller, Buffer.toArray(updatedAvatarsBuffer));
+                return (true, "Avatar added successfully.");
+            };
+            return (false, "Avatar already exists for the user.");
+        };
+        case (#XP) {
+            var playerStatsOpt = playerGamesStats.get(caller);
+            if (playerStatsOpt == null) {
+                ignore await _initializeNewPlayerStats(caller);
+                playerStatsOpt := playerGamesStats.get(caller);
+            };
 
-                switch (playerStatsOpt) {
-                    case (null) {
-                        return (false, "Failed to initialize player stats.");
+            switch (playerStatsOpt) {
+                case (null) {
+                    return (false, "Failed to initialize player stats.");
+                };
+                case (?stats) {
+                    let updatedStats = {
+                        stats with totalXpEarned = stats.totalXpEarned + reward.amount
                     };
-                    case (?stats) {
-                        let updatedStats = {
-                            stats with totalXpEarned = stats.totalXpEarned + reward.amount
-                        };
-                        playerGamesStats.put(caller, updatedStats);
+                    playerGamesStats.put(caller, updatedStats);
 
-                        // Update player's level based on new total XP
-                        await updatePlayerLevel(caller);
+                    await updatePlayerLevel(caller);
 
-                        return (true, "XP minted successfully. XP added: " # Nat.toText(reward.amount));
-                    };
+                    return (true, "XP minted successfully. XP added: " # Nat.toText(reward.amount));
                 };
             };
-        }
-    };
+        };
+    }
+};
+
 
     public func updateAvatarChangeAchievement(user: PlayerId): async (Bool, Text) {
         let individualAchievementId: Nat = 3;  // Replace with the actual ID for the Avatar Change Achievement
@@ -2080,15 +2063,13 @@ shared actor class Cosmicrafts() = Self {
             return (false, "Failed to update Add Friend Achievement.");
         }
     };
-
-
     
 //--
 // Progress Manager
 
 
     // Function to update achievement progress manager (cleaned version)
-    func updateAchievementProgressManager(user: Principal, playerStats: {
+    func updateAchievementProgressManager(_user: Principal, _playerStats: {
         secRemaining: Nat;
         energyGenerated: Nat;
         damageDealt: Nat;
@@ -2533,10 +2514,6 @@ shared actor class Cosmicrafts() = Self {
         var ONE_MINUTE : Nat64 = 60 * ONE_SECOND;
 
         stable var _players: [(PlayerId, Player)] = [];
-        stable var _availableTitles: [(Principal, [Text])] = [];
-        stable var _selectedTitles: [(Principal, Text)] = [];
-        stable var _availableAvatars: [(Principal, [Nat])] = [];
-        stable var _selectedAvatars: [(Principal, Nat)] = [];
 
         stable var _friendRequests: [(PlayerId, [FriendRequest])] = [];
         stable var _privacySettings: [(PlayerId, PrivacySetting)] = [];
@@ -2547,10 +2524,6 @@ shared actor class Cosmicrafts() = Self {
 
         // Initialize HashMaps using the stable lists
         var players: HashMap.HashMap<PlayerId, Player> = HashMap.fromIter(_players.vals(), 0, Principal.equal, Principal.hash);
-        var availableTitles: HashMap.HashMap<Principal, [Text]> = HashMap.fromIter(_availableTitles.vals(), 0, Principal.equal, Principal.hash);
-        var selectedTitles: HashMap.HashMap<Principal, Text> = HashMap.fromIter(_selectedTitles.vals(), 0, Principal.equal, Principal.hash);
-        var availableAvatars: HashMap.HashMap<Principal, [Nat]> = HashMap.fromIter(_availableAvatars.vals(), 0, Principal.equal, Principal.hash);
-        var selectedAvatars: HashMap.HashMap<Principal, Nat> = HashMap.fromIter(_selectedAvatars.vals(), 0, Principal.equal, Principal.hash);
 
         var friendRequests: HashMap.HashMap<PlayerId, [FriendRequest]> = HashMap.fromIter(_friendRequests.vals(), 0, Principal.equal, Principal.hash);
         var privacySettings: HashMap.HashMap<PlayerId, PrivacySetting> = HashMap.fromIter(_privacySettings.vals(), 0, Principal.equal, Principal.hash);
@@ -2558,125 +2531,47 @@ shared actor class Cosmicrafts() = Self {
         var mutualFriendships: HashMap.HashMap<(PlayerId, PlayerId), MutualFriendship> = HashMap.fromIter(_mutualFriendships.vals(), 0, Utils.tupleEqual, Utils.tupleHash);
         var notifications: HashMap.HashMap<PlayerId, [Notification]> = HashMap.fromIter(_notifications.vals(), 0, Principal.equal, Principal.hash);
         var updateTimestamps: HashMap.HashMap<PlayerId, UpdateTimestamps> = HashMap.fromIter(_updateTimestamps.vals(), 0, Principal.equal, Principal.hash);
-    
-    public shared(msg) func addAvatarToUser(newAvatar: Nat): async (Bool, Text) {
-        let userAvatars = switch (availableAvatars.get(msg.caller)) {
-            case (null) { [] };
-            case (?avatars) { avatars };
-        };
 
-        if (Array.find<Nat>(userAvatars, func(a) { a == newAvatar }) == null) {
-            let updatedAvatarsBuffer = Buffer.Buffer<Nat>(userAvatars.size() + 1);
-            for (avatar in userAvatars.vals()) {
-                updatedAvatarsBuffer.add(avatar);
+    public shared({ caller: PlayerId }) func registerPlayer(username: Username, avatar: AvatarID): async (Bool, ?Player, Text) {
+        if (username.size() > 12) {
+            return (false, null, "Username must be 12 characters or less");
+        };
+        
+        let playerId = caller;
+
+        // Check if the player is already registered
+        switch (players.get(playerId)) {
+            case (?_) {
+                return (false, null, "User is already registered");
             };
-            updatedAvatarsBuffer.add(newAvatar);
-            availableAvatars.put(msg.caller, Buffer.toArray(updatedAvatarsBuffer));
-            return (true, "Avatar added successfully: " # Nat.toText(newAvatar));
-        };
-        return (false, "Avatar already exists for the user: " # Nat.toText(newAvatar));
-    };
-
-    public shared(msg) func updateAvatar(avatar: Nat): async (Bool, Text) {
-        let userAvatarsOpt = availableAvatars.get(msg.caller);
-        switch (userAvatarsOpt) {
             case (null) {
-                return (false, "No avatars available for the user.");
-            };
-            case (?userAvatars) {
-                if (Array.find<Nat>(userAvatars, func(a) { a == avatar }) != null) {
-                    selectedAvatars.put(msg.caller, avatar);
-
-                    // Update the player's avatar in their profile
-                    switch (players.get(msg.caller)) {
-                        case (?player) {
-                            let updatedPlayer = { player with avatar = avatar };
-                            players.put(msg.caller, updatedPlayer);
-                        };
-                        case (null) {
-                            return (false, "Player not found");
-                        };
-                    };
-
-                    return (true, "Avatar selected successfully.");
+                let registrationDate = Time.now();
+                let newPlayer: Player = {
+                    id = playerId;
+                    username = username;
+                    avatar = avatar;
+                    description = "";
+                    registrationDate = registrationDate;
+                    level = 1;
+                    elo = 1200;
+                    friends = [];
+                    title = "Starbound Initiate";
                 };
-                return (false, "Avatar not found in the user's available avatars.");
-            };
-        };
-    };
+                players.put(playerId, newPlayer);
 
-    public query(msg) func getSelectedAvatar(): async ?Nat {
-        return selectedAvatars.get(msg.caller);
-    };
+                // Add default avatars (IDs 1 to 12) to the user's available avatars
+                availableAvatars.put(playerId, Iter.toArray(Iter.range(1, 12)));
 
-    public query(msg) func getAvailableAvatars(): async [Nat] {
-        switch (availableAvatars.get(msg.caller)) {
-            case (null) {
-                return [];
-            };
-            case (?avatars) {
-                return avatars;
-            };
-        };
-    };
+                // Add default title (IDs 1) to the user's available titles
+                availableTitles.put(playerId, [1]);
 
-    public shared(msg) func addTitleToUser(newTitle: Text): async (Bool, Text) {
-        let userTitles = switch (availableTitles.get(msg.caller)) {
-            case (null) { [] };
-            case (?titles) { titles };
-        };
+                // Other initializations
+                ignore await mintDeck();
+                ignore await getAchievements();
+                ignore await getGeneralMissions();
+                ignore await getUserMissions();
 
-        if (Array.find<Text>(userTitles, func(t) { t == newTitle }) == null) {
-            let updatedTitlesBuffer = Buffer.Buffer<Text>(userTitles.size() + 1);
-            for (title in userTitles.vals()) {
-                updatedTitlesBuffer.add(title);
-            };
-            updatedTitlesBuffer.add(newTitle);
-            availableTitles.put(msg.caller, Buffer.toArray(updatedTitlesBuffer));
-            return (true, "Title added successfully: " # newTitle);
-        };
-        return (false, "Title already exists for the user: " # newTitle);
-    };
-
-    public shared(msg) func updateUserTitle(title: Text): async (Bool, Text) {
-        let userTitlesOpt = availableTitles.get(msg.caller);
-        switch (userTitlesOpt) {
-            case (null) {
-                return (false, "No titles available for the user.");
-            };
-            case (?userTitles) {
-                if (Array.find<Text>(userTitles, func(t) { t == title }) != null) {
-                    selectedTitles.put(msg.caller, title);
-
-                    // Update the player's title in their profile
-                    switch (players.get(msg.caller)) {
-                        case (?player) {
-                            let updatedPlayer = { player with title = title };
-                            players.put(msg.caller, updatedPlayer);
-                        };
-                        case (null) {
-                            return (false, "Player not found");
-                        };
-                    };
-
-                    return (true, "Title selected successfully.");
-                };
-                return (false, "Title not found in the user's available titles.");
-            };
-        };
-    };
-
-    public query (msg) func getSelectedTitle(): async ?Text {
-        return selectedTitles.get(msg.caller);
-    };
-
-    public query(msg) func getAvailableTitles(): async [Text] {
-        switch (availableTitles.get(msg.caller)) {
-            case (null) {
-                return [];
-            };
-            case (?titles) {
-                return titles;
+                return (true, ?newPlayer, "User registered successfully");
             };
         };
     };
@@ -2725,47 +2620,6 @@ shared actor class Cosmicrafts() = Self {
             addNotification(to, notification);
         };
         cleanOldNotifications(to); // Clean old notifications after adding a new one
-    };
-
-    public shared({ caller: PlayerId }) func registerPlayer(username: Username, avatar: AvatarID): async (Bool, ?Player, Text) {
-        if (username.size() > 12) {
-            return (false, null, "Username must be 12 characters or less");
-        };
-        
-        let playerId = caller;
-
-        // Check if the player is already registered
-        switch (players.get(playerId)) {
-            case (?_) {
-                return (false, null, "User is already registered");
-            };
-            case (null) {
-                let registrationDate = Time.now();
-                let newPlayer: Player = {
-                    id = playerId;
-                    username = username;
-                    avatar = avatar;
-                    description = "";
-                    registrationDate = registrationDate;
-                    level = 1;
-                    elo = 1200;
-                    friends = [];
-                    title = "Starbound Initiate";
-                };
-                players.put(playerId, newPlayer);
-
-                // Add default avatars (IDs 1 to 12) to the user's available avatars
-                availableAvatars.put(playerId, [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]);
-
-                // Other initializations
-                ignore await mintDeck();
-                ignore await getAchievements();
-                ignore await getGeneralMissions();
-                ignore await getUserMissions();
-
-                return (true, ?newPlayer, "User registered successfully");
-            };
-        };
     };
 
     public shared ({ caller: PlayerId }) func updateUsername(username: Username) : async (Bool, PlayerId, Text) {
@@ -5733,9 +5587,16 @@ shared actor class Cosmicrafts() = Self {
         return (true, "Deck minted and stored successfully", Buffer.toArray(uuids));
     };
 
-    public shared({ caller }) func mintUnit(nftDetails: NFTDetails): async TypesICRC7.MintReceipt {
+    private func mintUnit(templateId: Nat, owner: Principal): async TypesICRC7.MintReceipt {
         let _now = Nat64.fromIntWrap(Time.now());
-        let acceptedTo: TypesICRC7.Account = { owner = caller; subaccount = null };
+        let acceptedTo: TypesICRC7.Account = { owner = owner; subaccount = null };
+
+        // Fetch the NFTDetails from the predefined templates
+        if (templateId < 1 or templateId > nftTemplates.size()) {
+            return #Err(#Unauthorized);
+        };
+        
+        let nftDetails = nftTemplates[templateId - 1];  // Adjust for 0-based indexing
 
         // Check if supply cap is exceeded
         if (supplyCap != null) {
@@ -5786,8 +5647,8 @@ shared actor class Cosmicrafts() = Self {
                 health = nftDetails.health;
                 damage = nftDetails.damage;
             };
-            skills = null;  // Assuming skills are not provided initially
-            skins = null;   // Assuming skins are not provided initially
+            skills = null;
+            skins = null;
             soul = ?soulMetadata;
         };
 
@@ -5810,6 +5671,36 @@ shared actor class Cosmicrafts() = Self {
             case (#Err(err)) return #Err(err);
         };
     };
+
+    private let nftTemplates: [NFTDetails] = [
+        {
+            unitType = #Spaceship;
+            name = "Gemini";
+            description = "A glitch on the matrix";
+            image = "imageURL";
+            faction = #Celestial;
+            rarity = 4;
+            level = 1;
+            health = 420;
+            damage = 42;
+            combatExperience = 0;
+        },
+        {
+            unitType = #Spaceship;
+            name = "Lazerhawk";
+            description = "Wow a lazer wow";
+            image = "imageURL";
+            faction = #Celestial;
+            rarity = 4;
+            level = 1;
+            health = 500;
+            damage = 50;
+            combatExperience = 10;
+        },
+        // Add more templates as needed
+    ];
+
+
 
     /*
     Arguments to mint Unit
@@ -7408,6 +7299,252 @@ shared actor class Cosmicrafts() = Self {
         #Ok;
         #Err: Text;
     };
+
+//--
+// Avatars and Titles
+
+    // Types for Avatars and Titles
+    public type Avatar = {
+        id: Nat;
+        description: Text;
+    };
+
+    public type Title = {
+        id: Nat;
+        title: Text;
+        description: Text;
+    };
+
+    private let avatars: [Avatar] = [
+        { id = 1; description = "Default avatar" },
+        { id = 2; description = "Galactic Explorer" },
+        { id = 3; description = "Stellar Voyager" },
+        { id = 4; description = "Nebula Wanderer" },
+        { id = 5; description = "Cosmic Drifter" },
+        { id = 6; description = "Asteroid Miner" },
+        { id = 7; description = "Meteor Hunter" },
+        { id = 8; description = "Celestial Scout" },
+        { id = 9; description = "Orbital Mechanic" },
+        { id = 10; description = "Starship Engineer" },
+        { id = 11; description = "Quantum Navigator" },
+        { id = 12; description = "Space Pioneer" },
+        { id = 98; description = "Cosmicrafts Ambassador Avatar, awarded for finishing referrals program" },
+        { id = 99; description = "An awesome Avatar, rewarded for finishing the Tiers Referral Program" }
+    ];
+
+    private let titles: [Title] = [
+        { id = 1; title = "Starbound Initiate"; description = "Welcome to Cosmicrafts commander, you are now in the Metaverse" },
+        { id = 98; title = "Ambassador"; description = "The Spiral is strong in you, thank you for your service commander" },
+        { id = 99; title = "Cosmicrafts Founder"; description = "Founder of Cosmicrafts you will be remembered forever across the Metaverse" },
+        { id = 91; title = "Twitter Ambassador"; description = "Awarded for your outstanding presence on Twitter." },
+        { id = 92; title = "Discord Ambassador"; description = "Awarded for your strong community engagement on Discord." },
+        { id = 93; title = "DSCVR Ambassador"; description = "Awarded for your active participation on DSCVR." },
+        { id = 94; title = "Tiktok Ambassador"; description = "Awarded for spreading the word on Tiktok." },
+        { id = 95; title = "Facebook Ambassador"; description = "Awarded for your influence on Facebook." },
+        { id = 96; title = "Instagram Ambassador"; description = "Awarded for your visual storytelling on Instagram." }
+    ];
+
+    // Stable variables to store player-specific data
+        stable var _availableTitles: [(Principal, [Nat])] = [];
+        stable var _selectedTitles: [(Principal, Nat)] = [];
+        stable var _availableAvatars: [(Principal, [Nat])] = [];
+        stable var _selectedAvatars: [(Principal, Nat)] = [];
+
+        // HashMaps to manage player-specific data
+        var availableTitles: HashMap.HashMap<Principal, [Nat]> = HashMap.fromIter(_availableTitles.vals(), 0, Principal.equal, Principal.hash);
+        var selectedTitles: HashMap.HashMap<Principal, Nat> = HashMap.fromIter(_selectedTitles.vals(), 0, Principal.equal, Principal.hash);
+        var availableAvatars: HashMap.HashMap<Principal, [Nat]> = HashMap.fromIter(_availableAvatars.vals(), 0, Principal.equal, Principal.hash);
+        var selectedAvatars: HashMap.HashMap<Principal, Nat> = HashMap.fromIter(_selectedAvatars.vals(), 0, Principal.equal, Principal.hash);
+
+    // Functions to get avatar and title by ID
+    public func getAvatarById(id: Nat): async Avatar {
+        return switch (Array.find<Avatar>(avatars, func(a) { a.id == id })) {
+            case (?avatar) avatar;
+            case (null) {
+                // Handle the case where the ID is not found, but since this shouldn't happen, we return a default avatar or an error
+                { id = 0; description = "Unknown Avatar" }
+            }
+        };
+    };
+
+    public func getTitleById(id: Nat): async Title {
+        return switch (Array.find<Title>(titles, func(t) { t.id == id })) {
+            case (?title) title;
+            case (null) {
+                // Handle the case where the ID is not found, but since this shouldn't happen, we return a default title or an error
+                { id = 0; title = "Unknown Title"; description = "Unknown Description" }
+            }
+        };
+    };
+
+    // Function to add an avatar to a user
+    public shared(msg) func addAvatarToUser(newAvatarId: Nat): async (Bool, Text) {
+        let avatar = await getAvatarById(newAvatarId); // Ensure this is correctly awaited if needed
+        let userAvatars = switch (availableAvatars.get(msg.caller)) {
+            case (null) { [] };
+            case (?avatars) { avatars };
+        };
+
+        if (Array.find<Nat>(userAvatars, func(a) { a == newAvatarId }) == null) {
+            let updatedAvatarsBuffer = Buffer.Buffer<Nat>(userAvatars.size() + 1);
+            for (avatarId in userAvatars.vals()) {
+                updatedAvatarsBuffer.add(avatarId);
+            };
+            updatedAvatarsBuffer.add(newAvatarId);
+            availableAvatars.put(msg.caller, Buffer.toArray(updatedAvatarsBuffer));
+            return (true, "Avatar added successfully: " # avatar.description);
+        };
+        return (false, "Avatar already exists for the user: " # avatar.description);
+    };
+
+    // Function to update the selected avatar for a user
+    public shared(msg) func updateAvatar(avatarId: Nat): async (Bool, Text) {
+        let userAvatarsOpt = availableAvatars.get(msg.caller);
+        switch (userAvatarsOpt) {
+            case (null) {
+                return (false, "No avatars available for the user.");
+            };
+            case (?userAvatars) {
+                if (Array.find<Nat>(userAvatars, func(a) { a == avatarId }) != null) {
+                    selectedAvatars.put(msg.caller, avatarId);
+
+                    // Update the player's avatar in their profile
+                    switch (players.get(msg.caller)) {
+                        case (?player) {
+                            let updatedPlayer = { player with avatar = avatarId };
+                            players.put(msg.caller, updatedPlayer);
+                        };
+                        case (null) {
+                            return (false, "Player not found");
+                        };
+                    };
+
+                    return (true, "Avatar selected successfully.");
+                };
+                return (false, "Avatar not found in the user's available avatars.");
+            };
+        };
+    };
+
+    // Function to add a title to a user
+    public shared(msg) func addTitleToUser(newTitleId: Nat): async (Bool, Text) {
+        let title = await getTitleById(newTitleId);
+        let userTitles = switch (availableTitles.get(msg.caller)) {
+            case (null) { [] };
+            case (?titles) { titles };
+        };
+
+        if (Array.find<Nat>(userTitles, func(t) { t == newTitleId }) == null) {
+            let updatedTitlesBuffer = Buffer.Buffer<Nat>(userTitles.size() + 1);
+            for (titleId in userTitles.vals()) {
+                updatedTitlesBuffer.add(titleId);
+            };
+            updatedTitlesBuffer.add(newTitleId);
+            availableTitles.put(msg.caller, Buffer.toArray(updatedTitlesBuffer));
+            return (true, "Title added successfully: " # title.description);
+        };
+        return (false, "Title already exists for the user: " # title.description);
+    };
+
+    // Function to update the selected title for a user
+    public shared(msg) func updateUserTitle(titleId: Nat): async (Bool, Text) {
+        let userTitlesOpt = availableTitles.get(msg.caller);
+        switch (userTitlesOpt) {
+            case (null) {
+                return (false, "No titles available for the user.");
+            };
+            case (?userTitles) {
+                if (Array.find<Nat>(userTitles, func(t) { t == titleId }) != null) {
+                    // Retrieve the title text using the titleId
+                    let title = await getTitleById(titleId);
+                    selectedTitles.put(msg.caller, titleId);
+
+                    // Update the player's title in their profile with the actual title text
+                    switch (players.get(msg.caller)) {
+                        case (?player) {
+                            let updatedPlayer = { player with title = title.title };
+                            players.put(msg.caller, updatedPlayer);
+                        };
+                        case (null) {
+                            return (false, "Player not found");
+                        };
+                    };
+
+                    return (true, "Title selected successfully: " # title.title);
+                };
+                return (false, "Title not found in the user's available titles.");
+            };
+        };
+    };
+
+    // Query function to get the selected avatar for a user
+    public query(msg) func getSelectedAvatar(): async ?Nat {
+        return selectedAvatars.get(msg.caller);
+    };
+
+    // Query function to get the selected title for a user
+    public query(msg) func getSelectedTitle(): async ?Nat {
+        return selectedTitles.get(msg.caller);
+    };
+
+    // Query function to get available avatars for a user
+    public query(msg) func getAvailableAvatars(): async [Nat] {
+        switch (availableAvatars.get(msg.caller)) {
+            case (null) {
+                return [];
+            };
+            case (?avatars) {
+                return avatars;
+            };
+        };
+    };
+
+    // Query function to get available titles for a user
+    public query(msg) func getAvailableTitles(): async [Nat] {
+        switch (availableTitles.get(msg.caller)) {
+            case (null) {
+                return [];
+            };
+            case (?titles) {
+                return titles;
+            };
+        };
+    };
+
+    // Query function to get the complete Avatar details for the user
+    public query(msg) func getAvailableAvatarDetails(): async [Avatar] {
+        let avatarIds = switch (availableAvatars.get(msg.caller)) {
+            case (null) { [] };
+            case (?avatars) { avatars };
+        };
+        
+        let avatarDetails: [Avatar] = Array.flatten(Array.map<Nat, [Avatar]>(avatarIds, func(id: Nat): [Avatar] {
+            switch (Array.find<Avatar>(avatars, func(a) { a.id == id })) {
+                case (?avatar) [avatar];
+                case (null) [];  // Return an empty list for unmatched IDs
+            }
+        }));
+        
+        return avatarDetails;
+    };
+
+    // Query function to get the complete Title details for the user
+    public query(msg) func getAvailableTitleDetails(): async [Title] {
+        let titleIds = switch (availableTitles.get(msg.caller)) {
+            case (null) { [] };
+            case (?titles) { titles };
+        };
+        
+        let titleDetails: [Title] = Array.flatten(Array.map<Nat, [Title]>(titleIds, func(id: Nat): [Title] {
+            switch (Array.find<Title>(titles, func(t) { t.id == id })) {
+                case (?title) [title];
+                case (null) [];  // Return an empty list for unmatched IDs
+            }
+        }));
+        
+        return titleDetails;
+    };
+
 
 //--
 }
