@@ -2569,6 +2569,7 @@ public shared({ caller: PlayerId }) func registerPlayer(
                             return (false, null, "Invalid referral code");
                         };
                         case (?referrerId) {
+                            // Code was already assigned to a player, proceed with registration
                             // Add the new player to the referrer's list of referrals
                             let referrals = switch (referralsByPlayer.get(referrerId)) {
                                 case (null) { [playerId] };
@@ -2608,17 +2609,19 @@ public shared({ caller: PlayerId }) func registerPlayer(
             // Add default title (ID 1) to the user's available titles
             availableTitles.put(playerId, [1]);
 
+            // Generate and assign a referral code to the new player
+            ignore await assignReferralCode(playerId);
+
             // Other initializations
             ignore await mintDeck();
             ignore await getAchievements();
             ignore await getGeneralMissions();
             ignore await getUserMissions();
 
-            return (true, ?newPlayer, "User registered successfully");
+            return (true, ?newPlayer, "User registered successfully with a new referral code");
         };
     };
 };
-
 
 
     private func addNotification(to: PlayerId, notification: Notification) {
@@ -6842,7 +6845,7 @@ public shared({ caller: PlayerId }) func registerPlayer(
     };
 
     // Generate a referral code by merging a shuffled cosmic word with the short UUID
-    public func generateReferralCode(): async ReferralCode {
+    func generateReferralCode(): async ReferralCode {
         let uuid = await generateShortUUID();
 
         // Shuffle the cosmicWords array
@@ -6858,7 +6861,7 @@ public shared({ caller: PlayerId }) func registerPlayer(
     };
 
     // Assign a referral code to a player
-    public func assignReferralCode(player: PlayerId): async ReferralCode {
+    func assignReferralCode(player: PlayerId): async ReferralCode {
         let code = await generateReferralCode();
         referralCodes.put(code, player);
         _referralCodes := Iter.toArray(referralCodes.entries());
@@ -6883,13 +6886,8 @@ public shared({ caller: PlayerId }) func registerPlayer(
         };
     };
 
-    // Add a referral code to the list of unassigned codes
-    public func addUnassignedReferralCode(code: ReferralCode): async () {
-        _unassignedReferralCodes := Array.append(_unassignedReferralCodes, [code]);
-    };
-
     // Assign an unassigned referral code to a new player
-    private func assignUnassignedReferralCode(player: PlayerId, code: ReferralCode): async Result<Bool, Text> {
+    func assignUnassignedReferralCode(player: PlayerId, code: ReferralCode): async Result<Bool, Text> {
         if (Utils.arrayContains<ReferralCode>(_unassignedReferralCodes, code, Text.equal)) {
             // Remove the code from the unassigned list
             _unassignedReferralCodes := Array.filter<ReferralCode>(_unassignedReferralCodes, func(c: ReferralCode) { c != code });
@@ -6897,25 +6895,23 @@ public shared({ caller: PlayerId }) func registerPlayer(
             // Assign the code to the player
             referralCodes.put(code, player);
             _referralCodes := Iter.toArray(referralCodes.entries());
+
+            // Code successfully assigned and now it's in the assigned list
             return #ok(true);
+        } else if (referralCodes.get(code) != null) {
+            // Code is already assigned and valid for registration
+            return #ok(false);  // Indicate that the code is valid but not newly assigned
         } else {
-            // Check if the code is already assigned to another player
-            switch (referralCodes.get(code)) {
-                case (?_) {
-                    return #err("Referral code has already been used.");
-                };
-                case (null) {
-                    return #err("Invalid referral code.");
-                };
-            };
-        };
+            // The code is neither in the unassigned nor in the assigned list
+            return #err("Invalid referral code.");
+        }
     };
 
     // Function to create a batch of 10 unassigned referral codes
     public func createBatchOfUnassignedCodes(): async [ReferralCode] {
         var newCodes: [ReferralCode] = [];
 
-        for (i in Iter.range(0, 9)) {  // Creating 10 codes
+        for (i in Iter.range(0, 1)) {  // Creating 10 codes
             let code = await generateReferralCode();
             newCodes := Array.append(newCodes, [code]);
         };
@@ -6927,22 +6923,28 @@ public shared({ caller: PlayerId }) func registerPlayer(
     };
 
     // Tracking to maintain a record of who referred whom
-    private func trackReferrer(referrerId: PlayerId, newPlayerId: PlayerId) {
-        // Add the new player to the referrer's list of referrals
-        let referrals = switch (referralsByPlayer.get(referrerId)) {
-            case (null) { [newPlayerId] };
-            case (?list) { Array.append(list, [newPlayerId]) };
+    func trackReferrer(referrerId: PlayerId, newPlayerId: PlayerId) {
+        // Retrieve the current list of referrals for the referrer
+        let currentReferrals = switch (referralsByPlayer.get(referrerId)) {
+            case (null) { [] };  // No referrals yet
+            case (?list) { list };
         };
-        referralsByPlayer.put(referrerId, referrals);
-        _referralsByPlayer := Iter.toArray(referralsByPlayer.entries());
 
-        // Store the referrer for the new player
-        referrerOfPlayer.put(newPlayerId, referrerId);
-        _referrerOfPlayer := Iter.toArray(referrerOfPlayer.entries());
+        // Check if the new player is already in the list of referrals
+        if (not Utils.arrayContains(currentReferrals, newPlayerId, Principal.equal)) {
+            // If the new player is not in the list, add them
+            let updatedReferrals = Array.append(currentReferrals, [newPlayerId]);
+            referralsByPlayer.put(referrerId, updatedReferrals);
+            _referralsByPlayer := Iter.toArray(referralsByPlayer.entries());
+
+            // Store the referrer for the new player
+            referrerOfPlayer.put(newPlayerId, referrerId);
+            _referrerOfPlayer := Iter.toArray(referrerOfPlayer.entries());
+        };
     };
 
     // Update the multiplier based on the type of referral (direct or indirect)
-    private func updateMultiplier(referrerId: PlayerId, newPlayerId: PlayerId) {
+    func updateMultiplier(referrerId: PlayerId, newPlayerId: PlayerId) {
         // Check if the new player is a direct referral
         let isDirectReferral = switch (referralsByPlayer.get(referrerId)) {
             case (null) { false };
