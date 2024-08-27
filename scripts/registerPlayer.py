@@ -65,7 +65,6 @@ async def get_referral_code(player_principal):
     referral_code = output.strip().replace('(opt "', '').replace('")', '')
     return referral_code
 
-
 async def register_user(semaphore, user, username, avatar_id, referral_code):
     """Switches identity and registers a user using the registerPlayer canister method."""
     async with semaphore:
@@ -92,8 +91,23 @@ async def register_user(semaphore, user, username, avatar_id, referral_code):
                 await asyncio.sleep(1)  # Wait before retrying
 
 async def main():
-    """Main function to register users."""
+    """Main function to run the initial commands and then register users."""
+
+    # Prompt for the number of users to register
     num_users = int(input("Enter the number of users to register: "))
+
+    # Initial commands
+    initial_commands = [
+        "dfx identity use bizkit",
+        "dfx canister uninstall-code cosmicrafts",
+        "dfx deploy"
+    ]
+    
+    for command in initial_commands:
+        await execute_dfx_command(command)
+
+    # Switch to bizkit identity
+    await switch_identity("bizkit")
 
     users = [f"player{i}" for i in range(1, num_users + 1)]  # Create player identities
     user_data = [(user, generate_random_username(), random.randint(1, 33)) for user in users]  # Pre-generate usernames and avatar IDs

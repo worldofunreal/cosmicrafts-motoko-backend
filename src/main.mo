@@ -2535,94 +2535,80 @@ shared actor class Cosmicrafts() = Self {
         var notifications: HashMap.HashMap<PlayerId, [Notification]> = HashMap.fromIter(_notifications.vals(), 0, Principal.equal, Principal.hash);
         var updateTimestamps: HashMap.HashMap<PlayerId, UpdateTimestamps> = HashMap.fromIter(_updateTimestamps.vals(), 0, Principal.equal, Principal.hash);
 
-public shared({ caller: PlayerId }) func registerPlayer(
-    username: Username, 
-    avatar: AvatarID, 
-    referralCode: ReferralCode  // Making referralCode mandatory
-): async (Bool, ?Player, Text) {
-    if (username.size() > 12) {
-        return (false, null, "Username must be 12 characters or less");
-    };
-    
-    let playerId = caller;
-
-    // Check if the player is already registered
-    switch (players.get(playerId)) {
-        case (?_) {
-            return (false, null, "User is already registered");
+    public shared({ caller: PlayerId }) func registerPlayer(
+        username: Username, 
+        avatar: AvatarID, 
+        referralCode: ReferralCode
+    ): async (Bool, ?Player, Text) {
+        if (username.size() > 12) {
+            return (false, null, "Username must be 12 characters or less");
         };
-        case (null) {
-            // Validate the referral code against unassigned or assigned codes
-            let codeAssigned = await assignUnassignedReferralCode(playerId, referralCode);
 
-            switch (codeAssigned) {
-                case (#ok(true)) {
-                    // Successfully assigned from unassigned codes
-                };
-                case (#err(errMsg)) {
-                    return (false, null, errMsg);  // Return the error message if the code is invalid or already used
-                };
-                case (#ok(false)) {
-                    // Check if the code is in the assigned list
-                    switch (referralCodes.get(referralCode)) {
-                        case (null) {
-                            return (false, null, "Invalid referral code");
-                        };
-                        case (?referrerId) {
-                            // Code was already assigned to a player, proceed with registration
-                            // Add the new player to the referrer's list of referrals
-                            let referrals = switch (referralsByPlayer.get(referrerId)) {
-                                case (null) { [playerId] };
-                                case (?list) { Array.append(list, [playerId]) };
+        let playerId = caller;
+
+        // Check if the player is already registered
+        switch (players.get(playerId)) {
+            case (?_) {
+                return (false, null, "User is already registered");
+            };
+            case (null) {
+                // Validate the referral code against unassigned or assigned codes
+                let codeAssigned = await assignUnassignedReferralCode(playerId, referralCode);
+
+                var finalCode = referralCode;
+
+                switch (codeAssigned) {
+                    case (#ok(true)) {
+                        // Code was successfully assigned from unassigned codes
+                        // The original referral code should be preserved.
+                        finalCode := referralCode;
+                    };
+                    case (#err(errMsg)) {
+                        return (false, null, errMsg);  // Return error message if code is invalid
+                    };
+                    case (#ok(false)) {
+                        // Code is valid but already assigned; identify the referrer
+                        switch (referralCodes.get(referralCode)) {
+                            case (null) {
+                                return (false, null, "Invalid referral code");
                             };
-                            referralsByPlayer.put(referrerId, referrals);
-                            _referralsByPlayer := Iter.toArray(referralsByPlayer.entries());
-
-                            // Track the referrer for the new player
-                            trackReferrer(referrerId, playerId);
-
-                            // Update multiplier for the referrer
-                            updateMultiplier(referrerId, playerId);
+                            case (?referrerId) {
+                                // Update the referrer data and track referrals
+                                trackReferrer(referrerId, playerId);
+                            };
                         };
                     };
                 };
+
+                // Proceed with player registration if referral code is valid
+                let registrationDate = Time.now();
+                let newPlayer: Player = {
+                    id = playerId;
+                    username = username;
+                    avatar = avatar;
+                    description = "";
+                    registrationDate = registrationDate;
+                    level = 1;
+                    elo = 1200;
+                    friends = [];
+                    title = "Starbound Initiate";
+                };
+                players.put(playerId, newPlayer);
+
+                // Assign default avatars and titles
+                availableAvatars.put(playerId, Iter.toArray(Iter.range(1, 12)));
+                availableTitles.put(playerId, [1]);
+
+                // If the code was from the unassigned list, no need to generate a new one
+                if (codeAssigned != #ok(true)) {
+                    let (assignedCode, _assignedReferrerId) = await assignReferralCode(playerId, null);
+                    finalCode := assignedCode;
+                };
+
+                return (true, ?newPlayer, "User registered successfully with referral code " # finalCode);
             };
-
-            // Proceed with the rest of the registration process if the referral code is valid
-            let registrationDate = Time.now();
-            let newPlayer: Player = {
-                id = playerId;
-                username = username;
-                avatar = avatar;
-                description = "";
-                registrationDate = registrationDate;
-                level = 1;
-                elo = 1200;
-                friends = [];
-                title = "Starbound Initiate";
-            };
-            players.put(playerId, newPlayer);
-
-            // Add default avatars (IDs 1 to 12) to the user's available avatars
-            availableAvatars.put(playerId, Iter.toArray(Iter.range(1, 12)));
-
-            // Add default title (ID 1) to the user's available titles
-            availableTitles.put(playerId, [1]);
-
-            // Generate and assign a referral code to the new player
-            ignore await assignReferralCode(playerId);
-
-            // Other initializations
-            ignore await mintDeck();
-            ignore await getAchievements();
-            ignore await getGeneralMissions();
-            ignore await getUserMissions();
-
-            return (true, ?newPlayer, "User registered successfully with a new referral code");
         };
     };
-};
-
 
     private func addNotification(to: PlayerId, notification: Notification) {
         var userNotifications = Utils.nullishCoalescing<[Notification]>(notifications.get(to), []);
@@ -6811,23 +6797,27 @@ public shared({ caller: PlayerId }) func registerPlayer(
         directReferrals: Nat;
         indirectReferrals: Nat;
         multiplier: Float;
+        referredPlayers: [(PlayerId, Bool)];
     };
 
     // Stable Variables
     stable var _referralCodes: [(ReferralCode, PlayerId)] = [];
-    stable var _unassignedReferralCodes: [ReferralCode] = [];  // New variable to store unassigned codes
-    stable var _referralsByPlayer: [(PlayerId, [PlayerId])] = [];
+    stable var _unassignedReferralCodes: [ReferralCode] = [];
+    stable var _referralsByPlayer: [(PlayerId, ReferralInfo)] = [];
     stable var _referrerOfPlayer: [(PlayerId, PlayerId)] = [];
     stable var _multiplierByPlayer: [(PlayerId, Float)] = [];
+    stable var _grandReferrerOfPlayer: [(PlayerId, PlayerId)] = [];
+
 
     // HashMaps for fast access
     var referralCodes: HashMap.HashMap<ReferralCode, PlayerId> = HashMap.fromIter(_referralCodes.vals(), 0, Text.equal, Text.hash);
-    var referralsByPlayer: HashMap.HashMap<PlayerId, [PlayerId]> = HashMap.fromIter(_referralsByPlayer.vals(), 0, Principal.equal, Principal.hash);
+    var referralsByPlayer: HashMap.HashMap<PlayerId, ReferralInfo> = HashMap.fromIter(_referralsByPlayer.vals(), 0, Principal.equal, Principal.hash);
     var referrerOfPlayer: HashMap.HashMap<PlayerId, PlayerId> = HashMap.fromIter(_referrerOfPlayer.vals(), 0, Principal.equal, Principal.hash);
     var multiplierByPlayer: HashMap.HashMap<PlayerId, Float> = HashMap.fromIter(_multiplierByPlayer.vals(), 0, Principal.equal, Principal.hash);
+    var grandReferrerOfPlayer: HashMap.HashMap<PlayerId, PlayerId> = HashMap.fromIter(_grandReferrerOfPlayer.vals(), 0, Principal.equal, Principal.hash);
 
     // Predefined list of cosmic-themed words
-    let cosmicWords = ["PUMP", "WAGMI", "SHILL", "GWEI", "SATOSHI", "MOONIT", "WHALE", "LAMBO", "HODL", "FOMO"];
+    let cosmicWords = ["PUMP", "WAGMI", "SHILL", "GWEI", "SATOSHI", "MOON", "WHALE", "LAMBO", "HODL", "FOMO"];
 
     // Generate a shorter UUID-based referral code (4 digits)
     func generateShortUUID(): async Nat {
@@ -6860,30 +6850,34 @@ public shared({ caller: PlayerId }) func registerPlayer(
         referralCode;
     };
 
-    // Assign a referral code to a player
-    func assignReferralCode(player: PlayerId): async ReferralCode {
+    // Assign a referral code to a player and manage referrers and grand referrers
+    func assignReferralCode(player: PlayerId, referrerId: ?PlayerId): async (ReferralCode, ?PlayerId) {
         let code = await generateReferralCode();
         referralCodes.put(code, player);
         _referralCodes := Iter.toArray(referralCodes.entries());
-        code;
-    };
 
-    // Get a player's referral code
-    public query func getReferralCode(player: PlayerId): async ?ReferralCode {
-        for ((code, id) in referralCodes.entries()) {
-            if (id == player) {
-                return ?code;
+        // If there's a referrer, update the referrer and grand referrer data
+        switch (referrerId) {
+            case (?refId) {
+                // Store the referrer of the new player
+                referrerOfPlayer.put(player, refId);
+                _referrerOfPlayer := Iter.toArray(referrerOfPlayer.entries());
+
+                // Check if the referrer has a grand referrer and update accordingly
+                let grandReferrer = referrerOfPlayer.get(refId);
+                switch (grandReferrer) {
+                    case (?grandRefId) {
+                        grandReferrerOfPlayer.put(player, grandRefId);
+                        _grandReferrerOfPlayer := Iter.toArray(grandReferrerOfPlayer.entries());
+                    };
+                    case (null) {};  // No grand referrer found
+                };
             };
+            case (null) {};  // No referrer, do nothing
         };
-        return null;
-    };
 
-    // Get a player's referrals
-    public query func getPlayerReferrals(player: PlayerId): async [PlayerId] {
-        switch (referralsByPlayer.get(player)) {
-            case (null) { [] };
-            case (?list) { list };
-        };
+        // Return both the referral code and the referrer ID
+        return (code, referrerId);
     };
 
     // Assign an unassigned referral code to a new player
@@ -6922,42 +6916,87 @@ public shared({ caller: PlayerId }) func registerPlayer(
         return newCodes;
     };
 
+    // Helper function to extract PlayerId from a tuple
+    func extractPlayerId(ref: (PlayerId, Bool)): PlayerId {
+        return ref.0;
+    };
+
+    // Helper function to check if a referral is direct (second element is true)
+    func isDirectReferral(ref: (PlayerId, Bool)): Bool {
+        return ref.1 == true;
+    };
+    // Helper function to check if a player is already referred
+    func isPlayerAlreadyReferred(referrerInfo: { directReferrals: Nat; indirectReferrals: Nat; multiplier: Float; referredPlayers: [(PlayerId, Bool)] }, newPlayerId: PlayerId): Bool {
+        let playerIds = Array.map(referrerInfo.referredPlayers, extractPlayerId);
+        return Utils.arrayContains(playerIds, newPlayerId, Principal.equal);
+    };
+
     // Tracking to maintain a record of who referred whom
     func trackReferrer(referrerId: PlayerId, newPlayerId: PlayerId) {
-        // Retrieve the current list of referrals for the referrer
-        let currentReferrals = switch (referralsByPlayer.get(referrerId)) {
-            case (null) { [] };  // No referrals yet
-            case (?list) { list };
+        var referrerInfo = switch (referralsByPlayer.get(referrerId)) {
+            case (null) {
+                {
+                    directReferrals = 0;
+                    indirectReferrals = 0;
+                    multiplier = 1.0;
+                    referredPlayers = []
+                }
+            };
+            case (?info) { info };
         };
 
-        // Check if the new player is already in the list of referrals
-        if (not Utils.arrayContains(currentReferrals, newPlayerId, Principal.equal)) {
-            // If the new player is not in the list, add them
-            let updatedReferrals = Array.append(currentReferrals, [newPlayerId]);
-            referralsByPlayer.put(referrerId, updatedReferrals);
+        if (not isPlayerAlreadyReferred(referrerInfo, newPlayerId)) {
+            // Update direct referrals
+            let updatedReferrerInfo = {
+                directReferrals = referrerInfo.directReferrals + 1;
+                indirectReferrals = referrerInfo.indirectReferrals;
+                multiplier = referrerInfo.multiplier;
+                referredPlayers = Array.append(referrerInfo.referredPlayers, [(newPlayerId, true)]);
+            };
+            referralsByPlayer.put(referrerId, updatedReferrerInfo);
             _referralsByPlayer := Iter.toArray(referralsByPlayer.entries());
 
-            // Store the referrer for the new player
+            // Set the referrer for the new player
             referrerOfPlayer.put(newPlayerId, referrerId);
             _referrerOfPlayer := Iter.toArray(referrerOfPlayer.entries());
+
+            // Handle grand referrer (indirect referrals)
+            let grandReferrer = referrerOfPlayer.get(referrerId);
+            switch (grandReferrer) {
+                case (?grandReferrerId) {
+                    grandReferrerOfPlayer.put(newPlayerId, grandReferrerId);
+                    _grandReferrerOfPlayer := Iter.toArray(grandReferrerOfPlayer.entries());
+                };
+                case (null) { /* No grand referrer, do nothing */ };
+            };
+
+            updateMultiplier(referrerId, newPlayerId);
         };
     };
 
     // Update the multiplier based on the type of referral (direct or indirect)
     func updateMultiplier(referrerId: PlayerId, newPlayerId: PlayerId) {
-        // Check if the new player is a direct referral
-        let isDirectReferral = switch (referralsByPlayer.get(referrerId)) {
-            case (null) { false };
-            case (?list) { Utils.arrayContains(list, newPlayerId, Principal.equal) };
+        var isDirectReferralFlag = false;
+
+        // Check if the new player is a direct referral by iterating over the referredPlayers array
+        switch (referralsByPlayer.get(referrerId)) {
+            case (null) { isDirectReferralFlag := false };
+            case (?info) {
+                for (ref in info.referredPlayers.vals()) {
+                    if (ref.0 == newPlayerId and isDirectReferral(ref)) {
+                        isDirectReferralFlag := true;
+                    };
+                };
+            };
         };
 
-        let multiplierIncrement = if (isDirectReferral) {
+        let multiplierIncrement = if (isDirectReferralFlag) {
             0.25  // Direct referral increment
         } else {
             0.1  // Indirect referral increment
         };
 
-        // Update the multiplier for the referrer
+        // Update the multiplier for the direct referrer
         let currentMultiplier = switch (multiplierByPlayer.get(referrerId)) {
             case (null) { 1.0 };  // Default multiplier
             case (?multiplier) { multiplier };
@@ -6970,6 +7009,96 @@ public shared({ caller: PlayerId }) func registerPlayer(
 
         multiplierByPlayer.put(referrerId, cappedMultiplier);
         _multiplierByPlayer := Iter.toArray(multiplierByPlayer.entries());
+
+        // Now, apply the multiplier increment to the grand referrer (if exists)
+        let grandReferrer = referrerOfPlayer.get(referrerId);
+        switch (grandReferrer) {
+            case (?grandReferrerId) {
+                // Update the multiplier for the grand referrer
+                let grandCurrentMultiplier = switch (multiplierByPlayer.get(grandReferrerId)) {
+                    case (null) { 1.0 };  // Default multiplier
+                    case (?grandMultiplier) { grandMultiplier };
+                };
+
+                let grandUpdatedMultiplier = grandCurrentMultiplier + 0.1;  // Indirect referral increment for grand referrer
+
+                // Cap the multiplier if needed
+                let grandCappedMultiplier = if (grandUpdatedMultiplier > 5.0) { 5.0 } else { grandUpdatedMultiplier };
+
+                multiplierByPlayer.put(grandReferrerId, grandCappedMultiplier);
+                _multiplierByPlayer := Iter.toArray(multiplierByPlayer.entries());
+            };
+            case (null) { /* No grand referrer, do nothing */ };
+        };
     };
+
+        // Get a player's referral code
+    public query func getReferralCode(player: PlayerId): async ?ReferralCode {
+        for ((code, id) in referralCodes.entries()) {
+            if (id == player) {
+                return ?code;
+            };
+        };
+        return null;
+    };
+
+    // Get a player's referrals
+    public query func getPlayerReferrals(player: PlayerId): async [PlayerId] {
+        switch (referralsByPlayer.get(player)) {
+            case (null) { [] };  // Return an empty array if there are no referrals
+            case (?referralInfo) {
+                // Extract only the PlayerId from the referredPlayers array and return it
+                Array.map(referralInfo.referredPlayers, func(ref: (PlayerId, Bool)) : PlayerId { ref.0 })
+            };
+        };
+    };
+
+    // 1. Get the Grand Referrer of a player
+    public query func getGrandReferrer(playerId: PlayerId): async ?PlayerId {
+        switch (referrerOfPlayer.get(playerId)) {
+            case (?referrerId) {
+                return referrerOfPlayer.get(referrerId);  // Return the referrer of the referrer
+            };
+            case (null) { return null; };  // No referrer found
+        }
+    };
+
+    // 2. Get the Referrer of a player
+    public query func getReferrer(playerId: PlayerId): async ?PlayerId {
+        return referrerOfPlayer.get(playerId);  // Return the direct referrer
+    };
+
+    // 3. Get the Referrals (direct) of a player
+    public query func getReferrals(playerId: PlayerId): async [PlayerId] {
+        switch (referralsByPlayer.get(playerId)) {
+            case (null) { return []; };  // No referrals found
+            case (?info) {
+                return Array.map(info.referredPlayers, func(ref: (PlayerId, Bool)) : PlayerId { ref.0 });
+            };
+        }
+    };
+
+    // 4. Get the Grand Referrals of a player
+    public func getGrandReferrals(playerId: PlayerId): async [PlayerId] {
+        var grandReferrals: [PlayerId] = [];
+        let referrals = await getReferrals(playerId);
+
+        for (referrerId in referrals.vals()) {
+            let directReferrals = await getReferrals(referrerId);
+            grandReferrals := Array.append(grandReferrals, directReferrals);
+        };
+
+        return grandReferrals;
+    };
+
+    // Query function to retrieve the multiplier for a specific player
+    public query func getMultiplier(playerId: PlayerId): async Float {
+        switch (multiplierByPlayer.get(playerId)) {
+            case (null) { return 1.0; };  // Default multiplier
+            case (?multiplier) { return multiplier; };
+        }
+    };
+
+
 //--
 }
