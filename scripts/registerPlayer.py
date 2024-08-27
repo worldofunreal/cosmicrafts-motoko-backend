@@ -90,6 +90,35 @@ async def register_user(semaphore, user, username, avatar_id, referral_code):
                     raise e
                 await asyncio.sleep(1)  # Wait before retrying
 
+async def register_players_batch(semaphore, user_data, start_index, referral_code, batch_size):
+    """Register a batch of players with the same referral code."""
+    new_referral_codes = []
+
+    for i in range(batch_size):
+        if start_index >= len(user_data):
+            break
+        # Register the player with the given referral code
+        player_principal = await register_user(semaphore, user_data[start_index][0], user_data[start_index][1], user_data[start_index][2], referral_code)
+        # Get the new referral code for this player
+        new_referral_code = await get_referral_code(player_principal)
+        new_referral_codes.append(new_referral_code)
+        start_index += 1
+
+    return new_referral_codes, start_index
+
+async def register_players_cascade(semaphore, user_data, start_index, referral_code, batch_size):
+    """Recursively register players with cascading referrals."""
+    if start_index >= len(user_data):
+        return
+
+    # Register a batch of players using the same referral code
+    new_referral_codes, new_start_index = await register_players_batch(semaphore, user_data, start_index, referral_code, batch_size)
+
+    # Recursively register next batches using new referral codes
+    for new_referral_code in new_referral_codes:
+        await register_players_cascade(semaphore, user_data, new_start_index, new_referral_code, batch_size)
+        new_start_index += batch_size
+
 async def main():
     """Main function to run the initial commands and then register users."""
 
@@ -122,33 +151,23 @@ async def main():
     first_player_data = user_data[0]
     first_player_principal = await register_user(semaphore, first_player_data[0], first_player_data[1], first_player_data[2], unassigned_codes[0])
 
-    # Step 3: Get the referral code for the first player to use it for the next players
+    # Step 3: Get the referral code for the first player
     first_player_referral_code = await get_referral_code(first_player_principal)
-    
-    # Step 4: Register the next two players with the first player's referral code
-    for i in range(1, 3):
-        await register_user(semaphore, user_data[i][0], user_data[i][1], user_data[i][2], first_player_referral_code)
 
-    # Step 5: For each of the next two players, get their referral code and use it to register 4 more players each
-    for i in range(1, 3):
-        player_principal = await switch_identity(user_data[i][0])
-        player_referral_code = await get_referral_code(player_principal)
-
-        for j in range(4):
-            next_player_index = 3 + 4 * (i - 1) + j
-            await register_user(semaphore, user_data[next_player_index][0], user_data[next_player_index][1], user_data[next_player_index][2], player_referral_code)
+    # Step 4: Register subsequent players in batches with a max of 11 players per batch
+    batch_size = 11
+    await register_players_cascade(semaphore, user_data, 1, first_player_referral_code, batch_size)
 
     # Switch back to the bizkit identity at the end
     print("Switching back to bizkit identity")
     await switch_identity("bizkit")
 
-    # Step 6: Check referrals for the first player
-    for user in users[:3]:  # Check referrals for the first three players
-        principal_id = await switch_identity(user)
-        command = f'dfx canister call cosmicrafts getPlayerReferrals \'(principal "{principal_id}")\''
-        success, output = await execute_dfx_command(command)
-        if success:
-            print(f"Referrals for {user} ({principal_id}): {output}")
+    # Step 5: Check referrals for the first player
+    principal_id = await switch_identity(user_data[0][0])
+    command = f'dfx canister call cosmicrafts getTotalReferralNetwork \'(principal "{principal_id}")\''
+    success, output = await execute_dfx_command(command)
+    if success:
+        print(f"Total referral network for the first player ({principal_id}): {output}")
 
 if __name__ == "__main__":
     asyncio.run(main())

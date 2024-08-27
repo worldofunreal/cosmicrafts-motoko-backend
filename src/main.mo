@@ -6796,6 +6796,7 @@ shared actor class Cosmicrafts() = Self {
     public type ReferralInfo = {
         directReferrals: Nat;
         indirectReferrals: Nat;
+        beyondReferrals: Nat;
         multiplier: Float;
         referredPlayers: [(PlayerId, Bool)];
     };
@@ -6938,6 +6939,7 @@ shared actor class Cosmicrafts() = Self {
                 {
                     directReferrals = 0;
                     indirectReferrals = 0;
+                    beyondReferrals = 0; // Initialize beyond referrals
                     multiplier = 1.0;
                     referredPlayers = []
                 }
@@ -6950,6 +6952,7 @@ shared actor class Cosmicrafts() = Self {
             let updatedReferrerInfo = {
                 directReferrals = referrerInfo.directReferrals + 1;
                 indirectReferrals = referrerInfo.indirectReferrals;
+                beyondReferrals = referrerInfo.beyondReferrals;
                 multiplier = referrerInfo.multiplier;
                 referredPlayers = Array.append(referrerInfo.referredPlayers, [(newPlayerId, true)]);
             };
@@ -6966,6 +6969,29 @@ shared actor class Cosmicrafts() = Self {
                 case (?grandReferrerId) {
                     grandReferrerOfPlayer.put(newPlayerId, grandReferrerId);
                     _grandReferrerOfPlayer := Iter.toArray(grandReferrerOfPlayer.entries());
+
+                    // Increment beyond referrals for the grand referrer
+                    var grandReferrerInfo = switch (referralsByPlayer.get(grandReferrerId)) {
+                        case (null) {
+                            {
+                                directReferrals = 0;
+                                indirectReferrals = 0;
+                                beyondReferrals = 0;
+                                multiplier = 1.0;
+                                referredPlayers = []
+                            }
+                        };
+                        case (?info) { info };
+                    };
+                    let updatedGrandReferrerInfo = {
+                        directReferrals = grandReferrerInfo.directReferrals;
+                        indirectReferrals = grandReferrerInfo.indirectReferrals + 1; 
+                        beyondReferrals = grandReferrerInfo.beyondReferrals + 1; // Update beyond referrals
+                        multiplier = grandReferrerInfo.multiplier;
+                        referredPlayers = grandReferrerInfo.referredPlayers;
+                    };
+                    referralsByPlayer.put(grandReferrerId, updatedGrandReferrerInfo);
+                    _referralsByPlayer := Iter.toArray(referralsByPlayer.entries());
                 };
                 case (null) { /* No grand referrer, do nothing */ };
             };
@@ -6974,7 +7000,7 @@ shared actor class Cosmicrafts() = Self {
         };
     };
 
-    // Update the multiplier based on the type of referral (direct or indirect)
+    // Update the multiplier based on the type of referral (direct, indirect, or beyond)
     func updateMultiplier(referrerId: PlayerId, newPlayerId: PlayerId) {
         var isDirectReferralFlag = false;
 
@@ -6990,13 +7016,28 @@ shared actor class Cosmicrafts() = Self {
             };
         };
 
-        let multiplierIncrement = if (isDirectReferralFlag) {
-            0.25  // Direct referral increment
-        } else {
-            0.1  // Indirect referral increment
+        // Function to calculate the increment based on the referral count and tier
+        func calculateIncrement(count: Nat, isDirect: Bool): Float {
+            if (isDirect) {
+                if (count <= 3) return 1.0;
+                if (count <= 10) return 0.75;
+                return 0.5;
+            } else {
+                if (count <= 3) return 0.5;
+                if (count <= 10) return 0.25;
+                return 0.1;
+            };
         };
 
         // Update the multiplier for the direct referrer
+        let directReferrerInfo = referralsByPlayer.get(referrerId);
+        let directCount = switch (directReferrerInfo) {
+            case (null) { 0 };
+            case (?info) { info.directReferrals };
+        };
+        
+        let multiplierIncrement = calculateIncrement(directCount, isDirectReferralFlag);
+
         let currentMultiplier = switch (multiplierByPlayer.get(referrerId)) {
             case (null) { 1.0 };  // Default multiplier
             case (?multiplier) { multiplier };
@@ -7005,7 +7046,7 @@ shared actor class Cosmicrafts() = Self {
         let updatedMultiplier = currentMultiplier + multiplierIncrement;
 
         // Cap the multiplier if needed
-        let cappedMultiplier = if (updatedMultiplier > 5.0) { 5.0 } else { updatedMultiplier };
+        let cappedMultiplier = if (updatedMultiplier > 100.0) { 100.0 } else { updatedMultiplier };
 
         multiplierByPlayer.put(referrerId, cappedMultiplier);
         _multiplierByPlayer := Iter.toArray(multiplierByPlayer.entries());
@@ -7014,25 +7055,61 @@ shared actor class Cosmicrafts() = Self {
         let grandReferrer = referrerOfPlayer.get(referrerId);
         switch (grandReferrer) {
             case (?grandReferrerId) {
-                // Update the multiplier for the grand referrer
+                let grandReferrerInfo = referralsByPlayer.get(grandReferrerId);
+                let indirectCount = switch (grandReferrerInfo) {
+                    case (null) { 0 };
+                    case (?info) { info.indirectReferrals };
+                };
+
+                let grandIncrement = calculateIncrement(indirectCount, false);
                 let grandCurrentMultiplier = switch (multiplierByPlayer.get(grandReferrerId)) {
                     case (null) { 1.0 };  // Default multiplier
                     case (?grandMultiplier) { grandMultiplier };
                 };
 
-                let grandUpdatedMultiplier = grandCurrentMultiplier + 0.1;  // Indirect referral increment for grand referrer
-
-                // Cap the multiplier if needed
-                let grandCappedMultiplier = if (grandUpdatedMultiplier > 5.0) { 5.0 } else { grandUpdatedMultiplier };
+                let grandUpdatedMultiplier = grandCurrentMultiplier + grandIncrement;
+                let grandCappedMultiplier = if (grandUpdatedMultiplier > 100.0) { 100.0 } else { grandUpdatedMultiplier };
 
                 multiplierByPlayer.put(grandReferrerId, grandCappedMultiplier);
                 _multiplierByPlayer := Iter.toArray(multiplierByPlayer.entries());
+
+                // Now, check if there's a beyond referrer (i.e., the referrer of the grand referrer)
+                let beyondReferrer = referrerOfPlayer.get(grandReferrerId);
+                switch (beyondReferrer) {
+                    case (?beyondReferrerId) {
+                        let beyondReferrerInfo = referralsByPlayer.get(beyondReferrerId);
+                        let beyondCount = switch (beyondReferrerInfo) {
+                            case (null) { 0 };
+                            case (?info) { info.beyondReferrals };
+                        };
+
+                        let beyondIncrement = if (beyondCount <= 3) {
+                            0.25
+                        } else if (beyondCount <= 10) {
+                            0.1
+                        } else {
+                            0.05
+                        };
+
+                        let beyondCurrentMultiplier = switch (multiplierByPlayer.get(beyondReferrerId)) {
+                            case (null) { 1.0 };  // Default multiplier
+                            case (?beyondMultiplier) { beyondMultiplier };
+                        };
+
+                        let beyondUpdatedMultiplier = beyondCurrentMultiplier + beyondIncrement;
+                        let beyondCappedMultiplier = if (beyondUpdatedMultiplier > 100.0) { 100.0 } else { beyondUpdatedMultiplier };
+
+                        multiplierByPlayer.put(beyondReferrerId, beyondCappedMultiplier);
+                        _multiplierByPlayer := Iter.toArray(multiplierByPlayer.entries());
+                    };
+                    case (null) { /* No beyond referrer, do nothing */ };
+                };
             };
             case (null) { /* No grand referrer, do nothing */ };
         };
     };
 
-        // Get a player's referral code
+    // Get a player's referral code
     public query func getReferralCode(player: PlayerId): async ?ReferralCode {
         for ((code, id) in referralCodes.entries()) {
             if (id == player) {
@@ -7089,6 +7166,39 @@ shared actor class Cosmicrafts() = Self {
         };
 
         return grandReferrals;
+    };
+
+    public func getTotalReferralNetwork(playerId: PlayerId): async {
+        directReferrals: [PlayerId];
+        indirectReferrals: [PlayerId];
+        beyondReferrals: [PlayerId];
+     } {
+        var directReferrals: [PlayerId] = [];
+        var indirectReferrals: [PlayerId] = [];
+        var beyondReferrals: [PlayerId] = [];
+
+        // Perform async call separately and assign results after await
+        let directRefs = await getReferrals(playerId);
+        directReferrals := directRefs;
+
+        // For each direct referral, get their referrals (indirect referrals)
+        for (directRef in directReferrals.vals()) {
+            let indirects = await getReferrals(directRef);
+            indirectReferrals := Array.append(indirectReferrals, indirects);
+
+            // For each indirect referral, get their referrals (beyond referrals)
+            for (indirectRef in indirects.vals()) {
+                let beyond = await getReferrals(indirectRef);
+                beyondReferrals := Array.append(beyondReferrals, beyond);
+            };
+        };
+
+        // Return the result as a record
+        return {
+            directReferrals = directReferrals;
+            indirectReferrals = indirectReferrals;
+            beyondReferrals = beyondReferrals;
+        };
     };
 
     // Query function to retrieve the multiplier for a specific player
