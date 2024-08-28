@@ -6798,7 +6798,7 @@ shared actor class Cosmicrafts() = Self {
         indirectReferrals: Nat;
         beyondReferrals: Nat;
         multiplier: Float;
-        referredPlayers: [(PlayerId, Bool)];
+        referredPlayers: [(PlayerId, Bool, Float)];
     };
 
     // Stable Variables
@@ -6917,87 +6917,15 @@ shared actor class Cosmicrafts() = Self {
         return newCodes;
     };
 
-    // Helper function to extract PlayerId from a tuple
-    func extractPlayerId(ref: (PlayerId, Bool)): PlayerId {
-        return ref.0;
-    };
-
     // Helper function to check if a referral is direct (second element is true)
-    func isDirectReferral(ref: (PlayerId, Bool)): Bool {
+    func isDirectReferral(ref: (PlayerId, Bool, Float)): Bool {
         return ref.1 == true;
     };
+    
     // Helper function to check if a player is already referred
-    func isPlayerAlreadyReferred(referrerInfo: { directReferrals: Nat; indirectReferrals: Nat; multiplier: Float; referredPlayers: [(PlayerId, Bool)] }, newPlayerId: PlayerId): Bool {
-        let playerIds = Array.map(referrerInfo.referredPlayers, extractPlayerId);
+    func isPlayerAlreadyReferred(referrerInfo: { directReferrals: Nat; indirectReferrals: Nat; beyondReferrals: Nat; multiplier: Float; referredPlayers: [(PlayerId, Bool, Float)] }, newPlayerId: PlayerId): Bool {
+        let playerIds = Array.map(referrerInfo.referredPlayers, func(ref: (PlayerId, Bool, Float)) : PlayerId { ref.0 });
         return Utils.arrayContains(playerIds, newPlayerId, Principal.equal);
-    };
-
-    // Tracking to maintain a record of who referred whom
-    func trackReferrer(referrerId: PlayerId, newPlayerId: PlayerId) {
-        var referrerInfo = switch (referralsByPlayer.get(referrerId)) {
-            case (null) {
-                {
-                    directReferrals = 0;
-                    indirectReferrals = 0;
-                    beyondReferrals = 0; // Initialize beyond referrals
-                    multiplier = 1.0;
-                    referredPlayers = []
-                }
-            };
-            case (?info) { info };
-        };
-
-        if (not isPlayerAlreadyReferred(referrerInfo, newPlayerId)) {
-            // Update direct referrals
-            let updatedReferrerInfo = {
-                directReferrals = referrerInfo.directReferrals + 1;
-                indirectReferrals = referrerInfo.indirectReferrals;
-                beyondReferrals = referrerInfo.beyondReferrals;
-                multiplier = referrerInfo.multiplier;
-                referredPlayers = Array.append(referrerInfo.referredPlayers, [(newPlayerId, true)]);
-            };
-            referralsByPlayer.put(referrerId, updatedReferrerInfo);
-            _referralsByPlayer := Iter.toArray(referralsByPlayer.entries());
-
-            // Set the referrer for the new player
-            referrerOfPlayer.put(newPlayerId, referrerId);
-            _referrerOfPlayer := Iter.toArray(referrerOfPlayer.entries());
-
-            // Handle grand referrer (indirect referrals)
-            let grandReferrer = referrerOfPlayer.get(referrerId);
-            switch (grandReferrer) {
-                case (?grandReferrerId) {
-                    grandReferrerOfPlayer.put(newPlayerId, grandReferrerId);
-                    _grandReferrerOfPlayer := Iter.toArray(grandReferrerOfPlayer.entries());
-
-                    // Increment beyond referrals for the grand referrer
-                    var grandReferrerInfo = switch (referralsByPlayer.get(grandReferrerId)) {
-                        case (null) {
-                            {
-                                directReferrals = 0;
-                                indirectReferrals = 0;
-                                beyondReferrals = 0;
-                                multiplier = 1.0;
-                                referredPlayers = []
-                            }
-                        };
-                        case (?info) { info };
-                    };
-                    let updatedGrandReferrerInfo = {
-                        directReferrals = grandReferrerInfo.directReferrals;
-                        indirectReferrals = grandReferrerInfo.indirectReferrals + 1; 
-                        beyondReferrals = grandReferrerInfo.beyondReferrals + 1; // Update beyond referrals
-                        multiplier = grandReferrerInfo.multiplier;
-                        referredPlayers = grandReferrerInfo.referredPlayers;
-                    };
-                    referralsByPlayer.put(grandReferrerId, updatedGrandReferrerInfo);
-                    _referralsByPlayer := Iter.toArray(referralsByPlayer.entries());
-                };
-                case (null) { /* No grand referrer, do nothing */ };
-            };
-
-            updateMultiplier(referrerId, newPlayerId);
-        };
     };
 
     // Update the multiplier based on the type of referral (direct, indirect, or beyond)
@@ -7109,6 +7037,172 @@ shared actor class Cosmicrafts() = Self {
         };
     };
 
+    // Now integrate updateMultiplier into the referral tracking process
+    func trackReferrer(referrerId: PlayerId, newPlayerId: PlayerId) {
+        var referrerInfo = switch (referralsByPlayer.get(referrerId)) {
+            case (null) {
+                {
+                    directReferrals = 0;
+                    indirectReferrals = 0;
+                    beyondReferrals = 0; // Initialize beyond referrals
+                    multiplier = 1.0;
+                    referredPlayers = []
+                }
+            };
+            case (?info) { info };
+        };
+
+        if (not isPlayerAlreadyReferred(referrerInfo, newPlayerId)) {
+            // Calculate the increment based on the current number of referrals
+            let directCount = referrerInfo.directReferrals + 1;
+            let increment = if (directCount <= 3) {
+                1.0
+            } else if (directCount <= 10) {
+                0.75
+            } else {
+                0.5
+            };
+
+            // Debug output for increment
+            Debug.print("Direct Count: " # Nat.toText(directCount) # ", Increment: " # Float.toText(increment));
+
+            // Update direct referrals
+            let updatedReferrerInfo = {
+                directReferrals = directCount;
+                indirectReferrals = referrerInfo.indirectReferrals;
+                beyondReferrals = referrerInfo.beyondReferrals;
+                multiplier = referrerInfo.multiplier + increment;
+                referredPlayers = Array.append(referrerInfo.referredPlayers, [(newPlayerId, true, increment)]);
+            };
+
+            // Debug output for updated referredPlayers list
+            for (ref in updatedReferrerInfo.referredPlayers.vals()) {
+                Debug.print("Updated Referred Player: " # Principal.toText(ref.0) # ", Direct: " # Bool.toText(ref.1) # ", Points: " # Float.toText(ref.2));
+            };
+
+            referralsByPlayer.put(referrerId, updatedReferrerInfo);
+            _referralsByPlayer := Iter.toArray(referralsByPlayer.entries());
+
+            // Set the referrer for the new player
+            referrerOfPlayer.put(newPlayerId, referrerId);
+            _referrerOfPlayer := Iter.toArray(referrerOfPlayer.entries());
+
+            // Handle grand referrer (indirect referrals)
+            let grandReferrer = referrerOfPlayer.get(referrerId);
+            switch (grandReferrer) {
+                case (?grandReferrerId) {
+                    grandReferrerOfPlayer.put(newPlayerId, grandReferrerId);
+                    _grandReferrerOfPlayer := Iter.toArray(grandReferrerOfPlayer.entries());
+
+                    // Calculate the indirect increment
+                    let indirectCount = switch (referralsByPlayer.get(grandReferrerId)) {
+                        case (null) { 0 };
+                        case (?info) { info.indirectReferrals + 1 };
+                    };
+
+                    let indirectIncrement = if (indirectCount <= 3) {
+                        0.5
+                    } else if (indirectCount <= 10) {
+                        0.25
+                    } else {
+                        0.1
+                    };
+
+                    // Debug output for indirect increment
+                    Debug.print("Indirect Count: " # Nat.toText(indirectCount) # ", Increment: " # Float.toText(indirectIncrement));
+
+                    // Update grand referrer
+                    var grandReferrerInfo = switch (referralsByPlayer.get(grandReferrerId)) {
+                        case (null) {
+                            {
+                                directReferrals = 0;
+                                indirectReferrals = indirectCount;
+                                beyondReferrals = 0;
+                                multiplier = 1.0 + indirectIncrement;
+                                referredPlayers = []
+                            }
+                        };
+                        case (?info) {
+                            {
+                                directReferrals = info.directReferrals;
+                                indirectReferrals = indirectCount;
+                                beyondReferrals = info.beyondReferrals;
+                                multiplier = info.multiplier + indirectIncrement;
+                                referredPlayers = Array.append(info.referredPlayers, [(newPlayerId, false, indirectIncrement)]);
+                            }
+                        };
+                    };
+
+                    // Debug output for updated grand referrer referredPlayers list
+                    for (ref in grandReferrerInfo.referredPlayers.vals()) {
+                        Debug.print("Updated Grand Referrer Referred Player: " # Principal.toText(ref.0) # ", Direct: " # Bool.toText(ref.1) # ", Points: " # Float.toText(ref.2));
+                    };
+
+                    referralsByPlayer.put(grandReferrerId, grandReferrerInfo);
+                    _referralsByPlayer := Iter.toArray(referralsByPlayer.entries());
+
+                    // Handle beyond referrer
+                    let beyondReferrer = referrerOfPlayer.get(grandReferrerId);
+                    switch (beyondReferrer) {
+                        case (?beyondReferrerId) {
+                            // Calculate the beyond increment
+                            let beyondCount = switch (referralsByPlayer.get(beyondReferrerId)) {
+                                case (null) { 0 };
+                                case (?info) { info.beyondReferrals + 1 };
+                            };
+
+                            let beyondIncrement = if (beyondCount <= 3) {
+                                0.25
+                            } else if (beyondCount <= 10) {
+                                0.1
+                            } else {
+                                0.05
+                            };
+
+                            // Debug output for beyond increment
+                            Debug.print("Beyond Count: " # Nat.toText(beyondCount) # ", Increment: " # Float.toText(beyondIncrement));
+
+                            // Update beyond referrer
+                            var beyondReferrerInfo = switch (referralsByPlayer.get(beyondReferrerId)) {
+                                case (null) {
+                                    {
+                                        directReferrals = 0;
+                                        indirectReferrals = 0;
+                                        beyondReferrals = beyondCount;
+                                        multiplier = 1.0 + beyondIncrement;
+                                        referredPlayers = []
+                                    }
+                                };
+                                case (?info) {
+                                    {
+                                        directReferrals = info.directReferrals;
+                                        indirectReferrals = info.indirectReferrals;
+                                        beyondReferrals = beyondCount;
+                                        multiplier = info.multiplier + beyondIncrement;
+                                        referredPlayers = Array.append(info.referredPlayers, [(newPlayerId, false, beyondIncrement)]);
+                                    }
+                                };
+                            };
+
+                            // Debug output for updated beyond referrer referredPlayers list
+                            for (ref in beyondReferrerInfo.referredPlayers.vals()) {
+                                Debug.print("Updated Beyond Referrer Referred Player: " # Principal.toText(ref.0) # ", Direct: " # Bool.toText(ref.1) # ", Points: " # Float.toText(ref.2));
+                            };
+
+                            referralsByPlayer.put(beyondReferrerId, beyondReferrerInfo);
+                            _referralsByPlayer := Iter.toArray(referralsByPlayer.entries());
+                        };
+                        case (null) { /* No beyond referrer, do nothing */ };
+                    };
+                };
+                case (null) { /* No grand referrer, do nothing */ };
+            };
+        };
+
+        // Finally, update the multiplier for the current player
+        updateMultiplier(referrerId, newPlayerId);
+    };
+
     // Get a player's referral code
     public query func getReferralCode(player: PlayerId): async ?ReferralCode {
         for ((code, id) in referralCodes.entries()) {
@@ -7125,7 +7219,7 @@ shared actor class Cosmicrafts() = Self {
             case (null) { [] };  // Return an empty array if there are no referrals
             case (?referralInfo) {
                 // Extract only the PlayerId from the referredPlayers array and return it
-                Array.map(referralInfo.referredPlayers, func(ref: (PlayerId, Bool)) : PlayerId { ref.0 })
+                Array.map(referralInfo.referredPlayers, func(ref: (PlayerId, Bool, Float)) : PlayerId { ref.0 })
             };
         };
     };
@@ -7150,7 +7244,7 @@ shared actor class Cosmicrafts() = Self {
         switch (referralsByPlayer.get(playerId)) {
             case (null) { return []; };  // No referrals found
             case (?info) {
-                return Array.map(info.referredPlayers, func(ref: (PlayerId, Bool)) : PlayerId { ref.0 });
+                return Array.map(info.referredPlayers, func(ref: (PlayerId, Bool, Float)) : PlayerId { ref.0 });
             };
         }
     };
@@ -7200,6 +7294,57 @@ shared actor class Cosmicrafts() = Self {
             beyondReferrals = beyondReferrals;
         };
     };
+
+public query func getTotalReferralNetworkWithPoints(playerId: PlayerId): async {
+    directReferrals: [(PlayerId, Float)];
+    indirectReferrals: [(PlayerId, Float)];
+    beyondReferrals: [(PlayerId, Float)];
+    } {
+    var directReferrals: [(PlayerId, Float)] = [];
+    var indirectReferrals: [(PlayerId, Float)] = [];
+    var beyondReferrals: [(PlayerId, Float)] = [];
+
+    // Get the direct referrals
+    let directRefInfo = referralsByPlayer.get(playerId);
+    let directRefs = switch (directRefInfo) {
+        case (null) { [] };
+        case (?info) { info.referredPlayers };
+    };
+
+    for (directRef in directRefs.vals()) {
+        directReferrals := Array.append(directReferrals, [(directRef.0, directRef.2)]);
+
+        // Get indirect referrals
+        let indirectRefInfo = referralsByPlayer.get(directRef.0);
+        let indirectRefs = switch (indirectRefInfo) {
+            case (null) { [] };
+            case (?info) { info.referredPlayers };
+        };
+
+        for (indirectRef in indirectRefs.vals()) {
+            indirectReferrals := Array.append(indirectReferrals, [(indirectRef.0, indirectRef.2)]);
+
+            // Get beyond referrals
+            let beyondRefInfo = referralsByPlayer.get(indirectRef.0);
+            let beyondRefs = switch (beyondRefInfo) {
+                case (null) { [] };
+                case (?info) { info.referredPlayers };
+            };
+
+            for (beyondRef in beyondRefs.vals()) {
+                beyondReferrals := Array.append(beyondReferrals, [(beyondRef.0, beyondRef.2)]);
+            };
+        };
+    };
+
+    // Return the result as a record
+    return {
+        directReferrals = directReferrals;
+        indirectReferrals = indirectReferrals;
+        beyondReferrals = beyondReferrals;
+    };
+};
+
 
     // Query function to retrieve the multiplier for a specific player
     public query func getMultiplier(playerId: PlayerId): async Float {
