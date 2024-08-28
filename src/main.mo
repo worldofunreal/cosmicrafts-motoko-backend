@@ -7213,18 +7213,6 @@ shared actor class Cosmicrafts() = Self {
         return null;
     };
 
-    // Get a player's referrals
-    public query func getPlayerReferrals(player: PlayerId): async [PlayerId] {
-        switch (referralsByPlayer.get(player)) {
-            case (null) { [] };  // Return an empty array if there are no referrals
-            case (?referralInfo) {
-                // Extract only the PlayerId from the referredPlayers array and return it
-                Array.map(referralInfo.referredPlayers, func(ref: (PlayerId, Bool, Float)) : PlayerId { ref.0 })
-            };
-        };
-    };
-
-    // 1. Get the Grand Referrer of a player
     public query func getGrandReferrer(playerId: PlayerId): async ?PlayerId {
         switch (referrerOfPlayer.get(playerId)) {
             case (?referrerId) {
@@ -7234,117 +7222,172 @@ shared actor class Cosmicrafts() = Self {
         }
     };
 
-    // 2. Get the Referrer of a player
     public query func getReferrer(playerId: PlayerId): async ?PlayerId {
         return referrerOfPlayer.get(playerId);  // Return the direct referrer
     };
 
-    // 3. Get the Referrals (direct) of a player
-    public query func getReferrals(playerId: PlayerId): async [PlayerId] {
+    public query func getDirectReferrals(playerId: PlayerId): async [PlayerId] {
         switch (referralsByPlayer.get(playerId)) {
-            case (null) { return []; };  // No referrals found
+            case (null) { return []; };  // No direct referrals found
             case (?info) {
-                return Array.map(info.referredPlayers, func(ref: (PlayerId, Bool, Float)) : PlayerId { ref.0 });
+                // Filter for direct referrals
+                let directRefs = Array.filter(info.referredPlayers, func(ref: (PlayerId, Bool, Float)) : Bool {
+                    ref.1 == true;
+                });
+                
+                // Map to extract the PlayerIds
+                return Array.map(directRefs, func(ref: (PlayerId, Bool, Float)) : PlayerId {
+                    ref.0;
+                });
             };
         }
     };
 
-    // 4. Get the Grand Referrals of a player
-    public func getGrandReferrals(playerId: PlayerId): async [PlayerId] {
-        var grandReferrals: [PlayerId] = [];
-        let referrals = await getReferrals(playerId);
+    public query func getIndirectReferrals(playerId: PlayerId): async [PlayerId] {
+        var indirectReferrals: [PlayerId] = [];
 
-        for (referrerId in referrals.vals()) {
-            let directReferrals = await getReferrals(referrerId);
-            grandReferrals := Array.append(grandReferrals, directReferrals);
+        // Retrieve the direct referrals of the player
+        switch (referralsByPlayer.get(playerId)) {
+            case (null) { return []; };  // No direct referrals found
+            case (?info) {
+                let directRefs = Array.filter(info.referredPlayers, func(ref: (PlayerId, Bool, Float)) : Bool {
+                    ref.1 == true;  // Only direct referrals
+                });
+
+                // For each direct referral, check if they have their own direct referrals (which are indirect for the original player)
+                for (directRef in directRefs.vals()) {
+                    switch (referralsByPlayer.get(directRef.0)) {
+                        case (null) {};  // No referrals found for this direct referral
+                        case (?directInfo) {
+                            let indirects = Array.filter(directInfo.referredPlayers, func(ref: (PlayerId, Bool, Float)) : Bool {
+                                ref.1 == true;  // Only direct referrals of the direct referral
+                            });
+
+                            // Append these indirect referrals to the result
+                            indirectReferrals := Array.append(indirectReferrals, Array.map(indirects, func(ref: (PlayerId, Bool, Float)) : PlayerId {
+                                ref.0;
+                            }));
+                        };
+                    };
+                };
+            };
         };
 
-        return grandReferrals;
+        return indirectReferrals;
     };
 
-    public func getTotalReferralNetwork(playerId: PlayerId): async {
+    public query func getBeyondReferrals(playerId: PlayerId): async [PlayerId] {
+        var beyondReferrals: [PlayerId] = [];
+
+        // Retrieve the direct referrals of the player
+        switch (referralsByPlayer.get(playerId)) {
+            case (null) { return []; };  // No direct referrals found
+            case (?info) {
+                let directRefs = Array.filter(info.referredPlayers, func(ref: (PlayerId, Bool, Float)) : Bool {
+                    ref.1 == true;  // Only direct referrals
+                });
+
+                // For each direct referral, check for their indirect referrals
+                for (directRef in directRefs.vals()) {
+                    switch (referralsByPlayer.get(directRef.0)) {
+                        case (null) {};  // No referrals found for this direct referral
+                        case (?directInfo) {
+                            let indirectRefs = Array.filter(directInfo.referredPlayers, func(ref: (PlayerId, Bool, Float)) : Bool {
+                                ref.1 == true;  // Only direct referrals of the direct referral (indirect for the original player)
+                            });
+
+                            // For each indirect referral, check if they have their own direct referrals (which are beyond for the original player)
+                            for (indirectRef in indirectRefs.vals()) {
+                                switch (referralsByPlayer.get(indirectRef.0)) {
+                                    case (null) {};  // No referrals found for this indirect referral
+                                    case (?indirectInfo) {
+                                        let beyonds = Array.filter(indirectInfo.referredPlayers, func(ref: (PlayerId, Bool, Float)) : Bool {
+                                            ref.1 == true;  // Only direct referrals of the indirect referral (beyond for the original player)
+                                        });
+
+                                        // Append these beyond referrals to the result
+                                        beyondReferrals := Array.append(beyondReferrals, Array.map(beyonds, func(ref: (PlayerId, Bool, Float)) : PlayerId {
+                                            ref.0;
+                                        }));
+                                    };
+                                };
+                            };
+                        };
+                    };
+                };
+            };
+        };
+
+        return beyondReferrals;
+    };
+
+    public query func getTotalReferralNetwork(playerId: PlayerId): async {
         directReferrals: [PlayerId];
         indirectReferrals: [PlayerId];
         beyondReferrals: [PlayerId];
-     } {
+    } {
         var directReferrals: [PlayerId] = [];
         var indirectReferrals: [PlayerId] = [];
         var beyondReferrals: [PlayerId] = [];
 
-        // Perform async call separately and assign results after await
-        let directRefs = await getReferrals(playerId);
-        directReferrals := directRefs;
+        // Retrieve the direct referrals of the player
+        switch (referralsByPlayer.get(playerId)) {
+            case (null) { return { directReferrals = []; indirectReferrals = []; beyondReferrals = []; }; };
+            case (?info) {
+                // Filter for direct referrals
+                let filteredDirectRefs = Array.filter(info.referredPlayers, func(ref: (PlayerId, Bool, Float)) : Bool {
+                    ref.1 == true;  // Only direct referrals
+                });
 
-        // For each direct referral, get their referrals (indirect referrals)
-        for (directRef in directReferrals.vals()) {
-            let indirects = await getReferrals(directRef);
-            indirectReferrals := Array.append(indirectReferrals, indirects);
+                // Map to extract the PlayerIds
+                directReferrals := Array.map(filteredDirectRefs, func(ref: (PlayerId, Bool, Float)) : PlayerId {
+                    ref.0;
+                });
 
-            // For each indirect referral, get their referrals (beyond referrals)
-            for (indirectRef in indirects.vals()) {
-                let beyond = await getReferrals(indirectRef);
-                beyondReferrals := Array.append(beyondReferrals, beyond);
+                // For each direct referral, gather indirect and beyond referrals
+                for (directRef in directReferrals.vals()) {
+                    switch (referralsByPlayer.get(directRef)) {
+                        case (null) {};  // No referrals found for this direct referral
+                        case (?directInfo) {
+                            // Filter for indirect referrals
+                            let filteredIndirectRefs = Array.filter(directInfo.referredPlayers, func(ref: (PlayerId, Bool, Float)) : Bool {
+                                ref.1 == true;  // Only direct referrals of the direct referral (indirect for the original player)
+                            });
+
+                            // Append indirect referrals
+                            indirectReferrals := Array.append(indirectReferrals, Array.map(filteredIndirectRefs, func(ref: (PlayerId, Bool, Float)) : PlayerId {
+                                ref.0;
+                            }));
+
+                            // For each indirect referral, gather beyond referrals
+                            for (indirectRef in filteredIndirectRefs.vals()) {
+                                switch (referralsByPlayer.get(indirectRef.0)) {
+                                    case (null) {};  // No referrals found for this indirect referral
+                                    case (?indirectInfo) {
+                                        // Filter for beyond referrals
+                                        let filteredBeyonds = Array.filter(indirectInfo.referredPlayers, func(ref: (PlayerId, Bool, Float)) : Bool {
+                                            ref.1 == true;  // Only direct referrals of the indirect referral (beyond for the original player)
+                                        });
+
+                                        // Append beyond referrals
+                                        beyondReferrals := Array.append(beyondReferrals, Array.map(filteredBeyonds, func(ref: (PlayerId, Bool, Float)) : PlayerId {
+                                            ref.0;
+                                        }));
+                                    };
+                                };
+                            };
+                        };
+                    };
+                };
             };
         };
 
-        // Return the result as a record
         return {
             directReferrals = directReferrals;
             indirectReferrals = indirectReferrals;
             beyondReferrals = beyondReferrals;
         };
     };
-
-public query func getTotalReferralNetworkWithPoints(playerId: PlayerId): async {
-    directReferrals: [(PlayerId, Float)];
-    indirectReferrals: [(PlayerId, Float)];
-    beyondReferrals: [(PlayerId, Float)];
-    } {
-    var directReferrals: [(PlayerId, Float)] = [];
-    var indirectReferrals: [(PlayerId, Float)] = [];
-    var beyondReferrals: [(PlayerId, Float)] = [];
-
-    // Get the direct referrals
-    let directRefInfo = referralsByPlayer.get(playerId);
-    let directRefs = switch (directRefInfo) {
-        case (null) { [] };
-        case (?info) { info.referredPlayers };
-    };
-
-    for (directRef in directRefs.vals()) {
-        directReferrals := Array.append(directReferrals, [(directRef.0, directRef.2)]);
-
-        // Get indirect referrals
-        let indirectRefInfo = referralsByPlayer.get(directRef.0);
-        let indirectRefs = switch (indirectRefInfo) {
-            case (null) { [] };
-            case (?info) { info.referredPlayers };
-        };
-
-        for (indirectRef in indirectRefs.vals()) {
-            indirectReferrals := Array.append(indirectReferrals, [(indirectRef.0, indirectRef.2)]);
-
-            // Get beyond referrals
-            let beyondRefInfo = referralsByPlayer.get(indirectRef.0);
-            let beyondRefs = switch (beyondRefInfo) {
-                case (null) { [] };
-                case (?info) { info.referredPlayers };
-            };
-
-            for (beyondRef in beyondRefs.vals()) {
-                beyondReferrals := Array.append(beyondReferrals, [(beyondRef.0, beyondRef.2)]);
-            };
-        };
-    };
-
-    // Return the result as a record
-    return {
-        directReferrals = directReferrals;
-        indirectReferrals = indirectReferrals;
-        beyondReferrals = beyondReferrals;
-    };
-};
-
 
     // Query function to retrieve the multiplier for a specific player
     public query func getMultiplier(playerId: PlayerId): async Float {
