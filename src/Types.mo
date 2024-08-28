@@ -394,6 +394,7 @@ public type ReferralInfo = {
             #Avatar;
             #NFT;
             #XP;
+            #Multiplier;
         };
 
         public type NFTDetails = {

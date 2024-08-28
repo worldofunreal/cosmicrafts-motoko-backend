@@ -68,6 +68,17 @@ module AchievementData {
         { id = 30; achievementId = 7; name = "25 Referrals"; achievementType = #Social; requiredProgress = 25; completed = false; reward = [{ rewardType = #Stardust; amount = 500 }, { rewardType = #Chest; amount = 1 }, { rewardType = #XP; amount = 25 }]; progress = 0; claimed = false }
     ];
 
+    let indAchievementsFeedback: [IndividualAchievement] = [
+        { id = 31; achievementId = 8; name = "Send Feedback after 1 Game"; achievementType = #Social; requiredProgress = 1; completed = false; reward = [{ rewardType = #Multiplier; amount = 1 }]; progress = 0; claimed = false },
+        { id = 32; achievementId = 8; name = "Send Feedback after 3 Games"; achievementType = #Social; requiredProgress = 3; completed = false; reward = [{ rewardType = #Multiplier; amount = 1 }]; progress = 0; claimed = false },
+        { id = 33; achievementId = 8; name = "Send Feedback after 5 Games"; achievementType = #Social; requiredProgress = 5; completed = false; reward = [{ rewardType = #Multiplier; amount = 1 }]; progress = 0; claimed = false },
+        { id = 34; achievementId = 8; name = "Send Feedback after 10 Games"; achievementType = #Social; requiredProgress = 10; completed = false; reward = [{ rewardType = #Multiplier; amount = 2 }]; progress = 0; claimed = false },
+        { id = 35; achievementId = 8; name = "Send Feedback after 25 Games"; achievementType = #Social; requiredProgress = 25; completed = false; reward = [{ rewardType = #Multiplier; amount = 3 }]; progress = 0; claimed = false },
+        { id = 36; achievementId = 8; name = "Send Feedback after 50 Games"; achievementType = #Social; requiredProgress = 50; completed = false; reward = [{ rewardType = #Multiplier; amount = 4 }]; progress = 0; claimed = false },
+        { id = 37; achievementId = 8; name = "Send Feedback after 100 Games"; achievementType = #Social; requiredProgress = 100; completed = false; reward = [{ rewardType = #Multiplier; amount = 5 }]; progress = 0; claimed = false }
+    ];
+
+
     // Define all achievement lines including the Referrals Program
     let achievementLines: [AchievementLine] = [
         { id = 1; name = "Twitter"; individualAchievements = indAchievementsTwitter; categoryId = 1; reward = [{ rewardType = #Title; amount = 91 }, { rewardType = #Stardust; amount = 100 }, { rewardType = #Chest; amount = 1 }, { rewardType = #XP; amount = 50 }]; requiredProgress = 4; completed = false; progress = 0; claimed = false },
@@ -76,7 +87,9 @@ module AchievementData {
         { id = 4; name = "Tiktok"; individualAchievements = indAchievementsTiktok; categoryId = 1; reward = [{ rewardType = #Title; amount = 94 }, { rewardType = #Stardust; amount = 100 }, { rewardType = #Chest; amount = 1 }, { rewardType = #XP; amount = 50 }]; requiredProgress = 4; completed = false; progress = 0; claimed = false },
         { id = 5; name = "Facebook"; individualAchievements = indAchievementsFacebook; categoryId = 1; reward = [{ rewardType = #Title; amount = 95 }, { rewardType = #Stardust; amount = 100 }, { rewardType = #Chest; amount = 1 }, { rewardType = #XP; amount = 50 }]; requiredProgress = 4; completed = false; progress = 0; claimed = false },
         { id = 6; name = "Instagram"; individualAchievements = indAchievementsInstagram; categoryId = 1; reward = [{ rewardType = #Title; amount = 96 }, { rewardType = #Stardust; amount = 100 }, { rewardType = #Chest; amount = 1 }, { rewardType = #XP; amount = 50 }]; requiredProgress = 4; completed = false; progress = 0; claimed = false },
-        { id = 7; name = "Referrals Program"; individualAchievements = indAchievementsReferrals; categoryId = 1; reward = [{ rewardType = #Title; amount = 98 }, { rewardType = #Avatar; amount = 98 }, { rewardType = #Stardust; amount = 1000 }, { rewardType = #Chest; amount = 10 }, { rewardType = #XP; amount = 1000 }]; requiredProgress = 5; completed = false; progress = 0; claimed = false }
+        { id = 7; name = "Referrals Program"; individualAchievements = indAchievementsReferrals; categoryId = 1; reward = [{ rewardType = #Title; amount = 98 }, { rewardType = #Avatar; amount = 98 }, { rewardType = #Stardust; amount = 1000 }, { rewardType = #Chest; amount = 10 }, { rewardType = #XP; amount = 1000 }]; requiredProgress = 5; completed = false; progress = 0; claimed = false },
+        { id = 8; name = "Feedback Rewards"; individualAchievements = indAchievementsFeedback; categoryId = 1; reward = [{ rewardType = #Multiplier; amount = 10 }, { rewardType = #XP; amount = 100 }]; requiredProgress = 7; completed = false; progress = 0; claimed = false }
+
     ];
 
     // Define the category "Tiers"

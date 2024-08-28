@@ -2022,6 +2022,23 @@ shared actor class Cosmicrafts() = Self {
                     };
                 };
             };
+            case (#Multiplier) {
+                // Convert Nat to Float
+                let rewardAmountFloat = Float.fromInt64(Int64.fromNat64(Nat64.fromNat(reward.amount)));
+                
+                let currentMultiplier = switch (multiplierByPlayer.get(caller)) {
+                    case (null) { 1.0 };
+                    case (?multiplier) { multiplier };
+                };
+                
+                let newMultiplier = currentMultiplier + rewardAmountFloat;
+                
+                // Update the player's multiplier
+                multiplierByPlayer.put(caller, newMultiplier);
+                _multiplierByPlayer := Iter.toArray(multiplierByPlayer.entries());
+                
+                return (true, "Multiplier increased by: " # Float.toText(rewardAmountFloat));
+            };
         }
     };
 
@@ -6928,11 +6945,30 @@ shared actor class Cosmicrafts() = Self {
         return Utils.arrayContains(playerIds, newPlayerId, Principal.equal);
     };
 
+    // Calculate the diminishing return based on the referral count and tier
+    func calculateDiminishingReturn(count: Nat, tier: Text): Float {
+        if (tier == "direct") {
+            if (count <= 3) return 1.0;
+            if (count <= 10) return 0.5;
+            if (count <= 25) return 0.25;
+            return 0.1;
+        } else if (tier == "indirect") {
+            if (count <= 25) return 0.25;
+            if (count <= 50) return 0.1;
+            return 0.05;
+        } else if (tier == "beyond") {
+            if (count <= 25) return 0.1;
+            if (count <= 100) return 0.05;
+            return 0.01;
+        };
+        return 0.0;  // Default case if something goes wrong
+    };
+
     // Update the multiplier based on the type of referral (direct, indirect, or beyond)
     func updateMultiplier(referrerId: PlayerId, newPlayerId: PlayerId) {
         var isDirectReferralFlag = false;
 
-        // Check if the new player is a direct referral by iterating over the referredPlayers array
+        // Check if the new player is a direct referral
         switch (referralsByPlayer.get(referrerId)) {
             case (null) { isDirectReferralFlag := false };
             case (?info) {
@@ -6944,27 +6980,14 @@ shared actor class Cosmicrafts() = Self {
             };
         };
 
-        // Function to calculate the increment based on the referral count and tier
-        func calculateIncrement(count: Nat, isDirect: Bool): Float {
-            if (isDirect) {
-                if (count <= 3) return 1.0;
-                if (count <= 10) return 0.75;
-                return 0.5;
-            } else {
-                if (count <= 3) return 0.5;
-                if (count <= 10) return 0.25;
-                return 0.1;
-            };
-        };
-
         // Update the multiplier for the direct referrer
         let directReferrerInfo = referralsByPlayer.get(referrerId);
         let directCount = switch (directReferrerInfo) {
             case (null) { 0 };
             case (?info) { info.directReferrals };
         };
-        
-        let multiplierIncrement = calculateIncrement(directCount, isDirectReferralFlag);
+
+        let multiplierIncrement = calculateDiminishingReturn(directCount, "direct");
 
         let currentMultiplier = switch (multiplierByPlayer.get(referrerId)) {
             case (null) { 1.0 };  // Default multiplier
@@ -6972,14 +6995,12 @@ shared actor class Cosmicrafts() = Self {
         };
 
         let updatedMultiplier = currentMultiplier + multiplierIncrement;
-
-        // Cap the multiplier if needed
         let cappedMultiplier = if (updatedMultiplier > 100.0) { 100.0 } else { updatedMultiplier };
 
         multiplierByPlayer.put(referrerId, cappedMultiplier);
         _multiplierByPlayer := Iter.toArray(multiplierByPlayer.entries());
 
-        // Now, apply the multiplier increment to the grand referrer (if exists)
+        // Apply the multiplier increment to the grand referrer (if exists)
         let grandReferrer = referrerOfPlayer.get(referrerId);
         switch (grandReferrer) {
             case (?grandReferrerId) {
@@ -6989,7 +7010,7 @@ shared actor class Cosmicrafts() = Self {
                     case (?info) { info.indirectReferrals };
                 };
 
-                let grandIncrement = calculateIncrement(indirectCount, false);
+                let grandIncrement = calculateDiminishingReturn(indirectCount, "indirect");
                 let grandCurrentMultiplier = switch (multiplierByPlayer.get(grandReferrerId)) {
                     case (null) { 1.0 };  // Default multiplier
                     case (?grandMultiplier) { grandMultiplier };
@@ -7011,14 +7032,7 @@ shared actor class Cosmicrafts() = Self {
                             case (?info) { info.beyondReferrals };
                         };
 
-                        let beyondIncrement = if (beyondCount <= 3) {
-                            0.25
-                        } else if (beyondCount <= 10) {
-                            0.1
-                        } else {
-                            0.05
-                        };
-
+                        let beyondIncrement = calculateDiminishingReturn(beyondCount, "beyond");
                         let beyondCurrentMultiplier = switch (multiplierByPlayer.get(beyondReferrerId)) {
                             case (null) { 1.0 };  // Default multiplier
                             case (?beyondMultiplier) { beyondMultiplier };

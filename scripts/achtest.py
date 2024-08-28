@@ -30,8 +30,8 @@ def get_principal():
 
 # Define the commands
 commands = [
-    "dfx canister uninstall-code cosmicrafts",
-    "dfx deploy",
+    #"dfx canister uninstall-code cosmicrafts",
+    #"dfx deploy",
     "dfx canister call cosmicrafts loadAchievements",
     'dfx canister call cosmicrafts registerPlayer \'("BiZKiT", 1)\'',
     "dfx canister call cosmicrafts getAchievements",
@@ -68,7 +68,7 @@ if principal:
         run_command(f"dfx canister call cosmicrafts claimIndividualAchievementReward '({ind_ach_id})'")
 
     # Claim all achievement lines after all individual achievements are completed
-    achievement_line_ids = [1, 2, 3, 4, 5, 6, 7]  # Replace with actual achievement line IDs
+    achievement_line_ids = [1, 2, 3, 4, 5, 6, 7, 8]  # Replace with actual achievement line IDs
 
     for ach_line_id in achievement_line_ids:
         # Claim the achievement line reward
