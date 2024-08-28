@@ -32,6 +32,7 @@ def get_principal():
 commands = [
     #"dfx canister uninstall-code cosmicrafts",
     #"dfx deploy",
+    "dfx identity use player46",
     "dfx canister call cosmicrafts loadAchievements",
     'dfx canister call cosmicrafts registerPlayer \'("BiZKiT", 1)\'',
     "dfx canister call cosmicrafts getAchievements",

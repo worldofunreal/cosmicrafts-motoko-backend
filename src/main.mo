@@ -29,6 +29,7 @@
 
     import Int64 "mo:base/Int64";
     import ExperimentalCycles "mo:base/ExperimentalCycles";
+    import Order "mo:base/Order";
 
     import ICRC1 "/icrc1/Canisters/..";
     import MetadataUtils "MetadataUtils";
@@ -7410,6 +7411,79 @@ shared actor class Cosmicrafts() = Self {
             case (?multiplier) { return multiplier; };
         }
     };
+
+
+//--
+// Tops
+public query func getTopReferrersByNetworkSize(startIndex: Nat): async [(PlayerId, Nat)] {
+    var playerNetworkSizes: [(PlayerId, Nat)] = [];
+
+    for ((playerId, referralInfo) in referralsByPlayer.entries()) {
+        let networkSize = referralInfo.directReferrals + referralInfo.indirectReferrals + referralInfo.beyondReferrals;
+        playerNetworkSizes := Array.append(playerNetworkSizes, [(playerId, networkSize)]);
+    };
+
+    // Sort by network size in descending order
+    playerNetworkSizes := Array.sort<(PlayerId, Nat)>(playerNetworkSizes, func(a: (PlayerId, Nat), b: (PlayerId, Nat)) : Order.Order {
+        if (a.1 < b.1) {
+            return #greater;
+        };
+        if (a.1 > b.1) {
+            return #less;
+        };
+        return #equal;
+    });
+
+    // Ensure startIndex is within bounds
+    let arraySize = Array.size(playerNetworkSizes);
+    if (startIndex >= arraySize) {
+        return [];  // Return an empty array if startIndex is out of bounds
+    };
+
+    // Calculate the correct subarray to return, ensuring 10 elements or fewer
+    let endIndex = if (startIndex + 10 < arraySize) { startIndex + 10 } else { arraySize };
+    let topReferrers = Array.subArray(playerNetworkSizes, startIndex, endIndex - startIndex);
+
+    return topReferrers;
+};
+
+public query func getTopPlayersByMultiplier(startIndex: Nat): async [(PlayerId, Float)] {
+    var playerMultipliers: [(PlayerId, Float)] = [];
+
+    // Collect all players and their multipliers
+    for ((playerId, multiplier) in multiplierByPlayer.entries()) {
+        playerMultipliers := Array.append(playerMultipliers, [(playerId, multiplier)]);
+    };
+
+    // Sort by multiplier in descending order
+    playerMultipliers := Array.sort<(PlayerId, Float)>(playerMultipliers, func(a: (PlayerId, Float), b: (PlayerId, Float)) : Order.Order {
+        if (a.1 > b.1) {
+            return #less;
+        };
+        if (a.1 < b.1) {
+            return #greater;
+        };
+        return #equal;
+    });
+
+    // Ensure startIndex is within bounds
+    let safeStartIndex = if ((startIndex - 1) < Array.size(playerMultipliers)) { startIndex - 1 } else { 0 };
+
+    // Calculate the endIndex ensuring it does not exceed the array size
+    let endIndex = if ((safeStartIndex + 10) <= Array.size(playerMultipliers)) {
+        safeStartIndex + 10
+    } else {
+        Array.size(playerMultipliers)
+    };
+
+    // Return the slice of players from safeStartIndex to endIndex as an array
+    let topPlayers = Iter.toArray(Array.slice(playerMultipliers, safeStartIndex, endIndex - safeStartIndex));
+    return topPlayers;
+};
+
+
+
+
 
 
 //--
