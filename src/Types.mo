@@ -59,15 +59,48 @@ module Types {
       description: Nat64;
       username: Nat64;
   };
+// Social APIs
+  public type SocialConnection = {
+      platform: PlatformType;
+      username: Text;
+      memberSince: Text;
+      profileLink: Text;
+  };
+
+  public type PlatformType = {
+      #Twitter;
+      #Discord;
+      #Facebook;
+      #Instagram;
+      #DSCVR;
+  };
+
+  public type UserProfile = {
+    id: PlayerId;
+    title: Title;
+    username: Username;
+    avatar: AvatarID;
+    level: Level;
+    description: Description;
+    registrationDate: RegistrationDate;
+    connections: [SocialConnection];
+  };
+
+  public type ShortProfile = {
+    id: PlayerId;
+    username: Username;
+    avatar: AvatarID;
+    level: Level;
+    registrationDate: RegistrationDate;
+  };
 //Referals
-public type ReferralCode = Nat;
+  public type ReferralCode = Nat;
 
-public type ReferralInfo = {
-    directReferrals: Nat;
-    indirectReferrals: Nat;
-    multiplier: Float;
-};
-
+  public type ReferralInfo = {
+      directReferrals: Nat;
+      indirectReferrals: Nat;
+      multiplier: Float;
+  };
 
 //--
 // Statistics
