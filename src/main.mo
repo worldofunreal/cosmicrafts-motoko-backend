@@ -2566,8 +2566,9 @@ shared actor class Cosmicrafts() = Self {
 
         // Check if the player is already registered
         switch (players.get(playerId)) {
-            case (?_) {
-                return (false, null, "User is already registered");
+            case (?existingPlayer) {
+                // If the player is already registered, return immediately without making any changes
+                return (false, ?existingPlayer, "User is already registered and cannot register again.");
             };
             case (null) {
                 // Validate the referral code against unassigned or assigned codes
@@ -2612,6 +2613,10 @@ shared actor class Cosmicrafts() = Self {
                     title = "Starbound Initiate";
                 };
                 players.put(playerId, newPlayer);
+
+                // Initialize the player's multiplier with a base value
+                multiplierByPlayer.put(playerId, 1.0);
+                _multiplierByPlayer := Iter.toArray(multiplierByPlayer.entries());
 
                 // Assign default avatars and titles
                 availableAvatars.put(playerId, Iter.toArray(Iter.range(1, 12)));
@@ -7052,7 +7057,6 @@ shared actor class Cosmicrafts() = Self {
         };
     };
 
-    // Now integrate updateMultiplier into the referral tracking process
     func trackReferrer(referrerId: PlayerId, newPlayerId: PlayerId) {
         var referrerInfo = switch (referralsByPlayer.get(referrerId)) {
             case (null) {
@@ -7101,6 +7105,10 @@ shared actor class Cosmicrafts() = Self {
             // Set the referrer for the new player
             referrerOfPlayer.put(newPlayerId, referrerId);
             _referrerOfPlayer := Iter.toArray(referrerOfPlayer.entries());
+
+            // Ensure the referrer's multiplier is updated
+            multiplierByPlayer.put(referrerId, updatedReferrerInfo.multiplier);
+            _multiplierByPlayer := Iter.toArray(multiplierByPlayer.entries());
 
             // Handle grand referrer (indirect referrals)
             let grandReferrer = referrerOfPlayer.get(referrerId);
@@ -7156,6 +7164,10 @@ shared actor class Cosmicrafts() = Self {
                     referralsByPlayer.put(grandReferrerId, grandReferrerInfo);
                     _referralsByPlayer := Iter.toArray(referralsByPlayer.entries());
 
+                    // Ensure the grand referrer's multiplier is updated
+                    multiplierByPlayer.put(grandReferrerId, grandReferrerInfo.multiplier);
+                    _multiplierByPlayer := Iter.toArray(multiplierByPlayer.entries());
+
                     // Handle beyond referrer
                     let beyondReferrer = referrerOfPlayer.get(grandReferrerId);
                     switch (beyondReferrer) {
@@ -7206,6 +7218,10 @@ shared actor class Cosmicrafts() = Self {
 
                             referralsByPlayer.put(beyondReferrerId, beyondReferrerInfo);
                             _referralsByPlayer := Iter.toArray(referralsByPlayer.entries());
+
+                            // Ensure the beyond referrer's multiplier is updated
+                            multiplierByPlayer.put(beyondReferrerId, beyondReferrerInfo.multiplier);
+                            _multiplierByPlayer := Iter.toArray(multiplierByPlayer.entries());
                         };
                         case (null) { /* No beyond referrer, do nothing */ };
                     };
@@ -7415,74 +7431,64 @@ shared actor class Cosmicrafts() = Self {
 
 //--
 // Tops
-public query func getTopReferrersByNetworkSize(startIndex: Nat): async [(PlayerId, Nat)] {
-    var playerNetworkSizes: [(PlayerId, Nat)] = [];
 
-    for ((playerId, referralInfo) in referralsByPlayer.entries()) {
-        let networkSize = referralInfo.directReferrals + referralInfo.indirectReferrals + referralInfo.beyondReferrals;
-        playerNetworkSizes := Array.append(playerNetworkSizes, [(playerId, networkSize)]);
+    public query func dumpAllPlayerMultipliers() : async [(PlayerId, Float)] {
+        let buffer = Buffer.Buffer<(PlayerId, Float)>(multiplierByPlayer.size());
+        for ((playerId, multiplier) in multiplierByPlayer.entries()) {
+            buffer.add((playerId, multiplier));
+        };
+        return Buffer.toArray(buffer);
     };
 
-    // Sort by network size in descending order
-    playerNetworkSizes := Array.sort<(PlayerId, Nat)>(playerNetworkSizes, func(a: (PlayerId, Nat), b: (PlayerId, Nat)) : Order.Order {
-        if (a.1 < b.1) {
-            return #greater;
-        };
-        if (a.1 > b.1) {
-            return #less;
-        };
-        return #equal;
-    });
+    public query func topPlayersByMultiplier(page: Nat) : async [(PlayerId, Float)] {
+        // Initialize a buffer to collect all player multipliers
+        let buffer = Buffer.Buffer<(PlayerId, Float)>(multiplierByPlayer.size());
 
-    // Ensure startIndex is within bounds
-    let arraySize = Array.size(playerNetworkSizes);
-    if (startIndex >= arraySize) {
-        return [];  // Return an empty array if startIndex is out of bounds
+        // Collect all players with their multipliers
+        for ((playerId, multiplier) in multiplierByPlayer.entries()) {
+            buffer.add((playerId, multiplier));
+        };
+
+        // Convert buffer to array
+        let allPlayersWithMultipliers = Buffer.toArray(buffer);
+
+        // Sort the players by multiplier in descending order
+        let sortedPlayers = Array.sort(
+            allPlayersWithMultipliers,
+            func(
+                a: (PlayerId, Float),
+                b: (PlayerId, Float)
+            ): {
+                #less;
+                #equal;
+                #greater;
+            } {
+                if (a.1 > b.1) {
+                    #less;   // 'a' comes before 'b'
+                } else if (a.1 < b.1) {
+                    #greater; // 'b' comes before 'a'
+                } else {
+                    #equal; // 'a' and 'b' are equal
+                };
+            }
+        );
+
+        // Define pagination parameters
+        let start = page * 10;
+        let end = if (start + 10 > Array.size(sortedPlayers)) {
+            Array.size(sortedPlayers); // Ensure we don't go out of bounds
+        } else {
+            start + 10;
+        };
+
+        // Slice the sorted array for the current page and convert to array
+        let paginatedPlayers = Iter.toArray(
+            Array.slice(sortedPlayers, start, end)
+        );
+
+        // Return the paginated list
+        return paginatedPlayers;
     };
-
-    // Calculate the correct subarray to return, ensuring 10 elements or fewer
-    let endIndex = if (startIndex + 10 < arraySize) { startIndex + 10 } else { arraySize };
-    let topReferrers = Array.subArray(playerNetworkSizes, startIndex, endIndex - startIndex);
-
-    return topReferrers;
-};
-
-public query func getTopPlayersByMultiplier(startIndex: Nat): async [(PlayerId, Float)] {
-    var playerMultipliers: [(PlayerId, Float)] = [];
-
-    // Collect all players and their multipliers
-    for ((playerId, multiplier) in multiplierByPlayer.entries()) {
-        playerMultipliers := Array.append(playerMultipliers, [(playerId, multiplier)]);
-    };
-
-    // Sort by multiplier in descending order
-    playerMultipliers := Array.sort<(PlayerId, Float)>(playerMultipliers, func(a: (PlayerId, Float), b: (PlayerId, Float)) : Order.Order {
-        if (a.1 > b.1) {
-            return #less;
-        };
-        if (a.1 < b.1) {
-            return #greater;
-        };
-        return #equal;
-    });
-
-    // Ensure startIndex is within bounds
-    let safeStartIndex = if ((startIndex - 1) < Array.size(playerMultipliers)) { startIndex - 1 } else { 0 };
-
-    // Calculate the endIndex ensuring it does not exceed the array size
-    let endIndex = if ((safeStartIndex + 10) <= Array.size(playerMultipliers)) {
-        safeStartIndex + 10
-    } else {
-        Array.size(playerMultipliers)
-    };
-
-    // Return the slice of players from safeStartIndex to endIndex as an array
-    let topPlayers = Iter.toArray(Array.slice(playerMultipliers, safeStartIndex, endIndex - safeStartIndex));
-    return topPlayers;
-};
-
-
-
 
 
 

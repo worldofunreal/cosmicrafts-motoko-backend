@@ -3,7 +3,6 @@ import subprocess
 import random
 import string
 import asyncio
-import time
 
 async def execute_dfx_command(command, log_output=True):
     """Executes a shell command asynchronously and logs the output."""
@@ -49,7 +48,6 @@ async def create_batch_of_unassigned_codes():
     if not success:
         raise Exception(f"Failed to create unassigned referral codes: {output}")
 
-    # Manually parse the output (expected format: (vec { "SATOSHI8584"; "PUMP9400" }))
     parsed_codes = output.strip().replace('(vec {', '').replace('})', '').replace('"', '').replace(';', '').split()
 
     return parsed_codes
@@ -61,16 +59,19 @@ async def get_referral_code(player_principal):
     if not success:
         raise Exception(f"Failed to get referral code for {player_principal}: {output}")
 
-    # Extract the referral code from the output, removing the `opt` wrapper
     referral_code = output.strip().replace('(opt "', '').replace('")', '')
     return referral_code
 
-async def register_user(semaphore, user, username, avatar_id, referral_code):
+async def register_user(semaphore, user, username, avatar_id, referral_code, registered_players):
     """Switches identity and registers a user using the registerPlayer canister method."""
     async with semaphore:
         retries = 3
         for attempt in range(retries):
             try:
+                if user in registered_players:
+                    print(f"User {user} already registered, skipping.")
+                    return None
+
                 print(f"Switching to identity {user}")
                 player_principal = await switch_identity(user)
                 
@@ -82,6 +83,7 @@ async def register_user(semaphore, user, username, avatar_id, referral_code):
                     raise Exception(f"Canister call failed: {output}")
                 
                 print(f"Finished registration for {user}")
+                registered_players.add(user)
                 return player_principal  # Return the principal ID for further use
             except Exception as e:
                 error_message = f"Error registering {user} on attempt {attempt + 1}: {e}"
@@ -90,41 +92,50 @@ async def register_user(semaphore, user, username, avatar_id, referral_code):
                     raise e
                 await asyncio.sleep(1)  # Wait before retrying
 
-async def register_players_batch(semaphore, user_data, start_index, referral_code, batch_size):
-    """Register a batch of players with the same referral code."""
-    new_referral_codes = []
+def build_hardcoded_tree():
+    """Builds the hardcoded referral tree structure."""
+    tree = {
+        0: [1, 2, 3, 4, 5],  # First player invites second level players
+        1: [6, 7, 8, 9],  # Second level invites third level players
+        2: [10, 11, 12, 13],
+        3: [14, 15, 16],
+        4: [17, 18],
+        5: [19, 20, 21],
+        6: [22, 23],  # Third level invites fourth level players
+        7: [24],
+        8: [25, 26],
+        9: [27],
+        10: [28, 29],
+        11: [30],
+        12: [31, 32],
+        13: [33, 34],
+        14: [35],
+        15: [36],
+        16: [37, 38],
+        17: [39],
+        18: [40, 41],
+        19: [42],
+        20: [43],
+        21: [44, 45],
+    }
+    return tree
 
-    for i in range(batch_size):
-        if start_index >= len(user_data):
-            break
-        # Register the player with the given referral code
-        player_principal = await register_user(semaphore, user_data[start_index][0], user_data[start_index][1], user_data[start_index][2], referral_code)
-        # Get the new referral code for this player
-        new_referral_code = await get_referral_code(player_principal)
-        new_referral_codes.append(new_referral_code)
-        start_index += 1
-
-    return new_referral_codes, start_index
-
-async def register_players_cascade(semaphore, user_data, start_index, referral_code, batch_size):
-    """Recursively register players with cascading referrals."""
-    if start_index >= len(user_data):
+async def register_and_cascade(semaphore, user_data, tree, parent_index, referral_code, registered_players):
+    """Register a player and make them invite others based on the prebuilt tree structure."""
+    player_principal = await register_user(semaphore, user_data[parent_index][0], user_data[parent_index][1], user_data[parent_index][2], referral_code, registered_players)
+    if not player_principal:
         return
+    
+    # Get the new referral code for this player
+    new_referral_code = await get_referral_code(player_principal)
 
-    # Register a batch of players using the same referral code
-    new_referral_codes, new_start_index = await register_players_batch(semaphore, user_data, start_index, referral_code, batch_size)
-
-    # Recursively register next batches using new referral codes
-    for new_referral_code in new_referral_codes:
-        await register_players_cascade(semaphore, user_data, new_start_index, new_referral_code, batch_size)
-        new_start_index += batch_size
+    # Register children in sequence
+    if parent_index in tree:
+        for child_index in tree[parent_index]:
+            await register_and_cascade(semaphore, user_data, tree, child_index, new_referral_code, registered_players)
 
 async def main():
     """Main function to run the initial commands and then register users."""
-
-    # Prompt for the number of users to register
-    num_users = int(input("Enter the number of users to register: "))
-
     # Initial commands
     initial_commands = [
         "dfx identity use bizkit",
@@ -138,31 +149,30 @@ async def main():
     # Switch to bizkit identity
     await switch_identity("bizkit")
 
+    num_users = 46  # Number of players matching the hardcoded tree
+
     users = [f"player{i}" for i in range(1, num_users + 1)]  # Create player identities
     user_data = [(user, generate_random_username(), random.randint(1, 33)) for user in users]  # Pre-generate usernames and avatar IDs
 
     semaphore = asyncio.Semaphore(1)  # Allow only one identity switch and canister call at a time
+    registered_players = set()
 
     # Step 1: Create a batch of unassigned referral codes
     unassigned_codes = await create_batch_of_unassigned_codes()
     print(f"Created unassigned referral codes: {unassigned_codes}")
 
-    # Step 2: Register the first player with the first unassigned code
-    first_player_data = user_data[0]
-    first_player_principal = await register_user(semaphore, first_player_data[0], first_player_data[1], first_player_data[2], unassigned_codes[0])
+    # Step 2: Build the hardcoded referral tree
+    tree = build_hardcoded_tree()
 
-    # Step 3: Get the referral code for the first player
-    first_player_referral_code = await get_referral_code(first_player_principal)
-
-    # Step 4: Register subsequent players in batches with a max of 11 players per batch
-    batch_size = 11
-    await register_players_cascade(semaphore, user_data, 1, first_player_referral_code, batch_size)
+    # Step 3: Register the first player with the first unassigned code
+    print(f"Starting cascade registration from player 0")
+    await register_and_cascade(semaphore, user_data, tree, 0, unassigned_codes[0], registered_players)
 
     # Switch back to the bizkit identity at the end
     print("Switching back to bizkit identity")
     await switch_identity("bizkit")
 
-    # Step 5: Check referrals for the first player
+    # Step 4: Check referrals for the first player
     principal_id = await switch_identity(user_data[0][0])
     command = f'dfx canister call cosmicrafts getTotalReferralNetwork \'(principal "{principal_id}")\''
     success, output = await execute_dfx_command(command)
